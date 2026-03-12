@@ -1,0 +1,213 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { getRequest } from "@/lib/apiClient";
+import { CreateDonationForm } from "@/components/donor/CreateDonationForm";
+import { MyDonations } from "@/components/donor/MyDonations";
+import { ProtectedRoute } from "@/components/common/ProtectedRoute";
+import Link from "next/link";
+import {
+  Package,
+  Clock,
+  MapPin,
+  TrendingUp,
+  Plus,
+  History,
+  TrendingDown,
+  ArrowUpRight,
+  ChevronRight,
+  ArrowRight,
+  Leaf,
+  Globe2,
+  Zap,
+  Activity,
+  Box,
+  LayoutDashboard
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+export default function DonorDashboard() {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const result = await getRequest("/api/analytics/summary");
+        if (result.success) setStats(result.data);
+      } catch (err) {
+        console.error("Failed to fetch donor stats", err);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  return (
+    <ProtectedRoute allowedRoles={["donor"]}>
+      <div className="min-h-screen saas-gradient">
+        <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
+
+          {/* Unified Navigation - Breadcrumbs */}
+          <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+            <Link href="/" className="hover:text-primary transition-colors">Platform</Link>
+            <ChevronRight className="w-3 h-3 opacity-50" />
+            <span className="text-slate-900">Donor Control Station</span>
+          </div>
+
+          {/* SaaS Header - Operational Control */}
+          <div className="relative group overflow-hidden bg-white border border-slate-200/60 rounded-2xl p-10 shadow-sm">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000">
+              <Plus className="w-64 h-64 text-slate-900" />
+            </div>
+
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative z-10">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 mb-2">
+                  <div className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-md flex items-center">
+                    <History className="w-3 h-3 mr-1.5" /> Session Active
+                  </div>
+                  <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <Activity className="w-3 h-3 mr-1.5 text-emerald-500 animate-pulse" /> Network Synchronized
+                  </div>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-[1.1]">
+                  Resource <span className="text-primary italic font-serif opacity-80 pl-2">Orchestration</span>
+                </h1>
+                <p className="text-slate-500 font-medium text-lg max-w-lg leading-relaxed">
+                  Register surplus assets and monitor their redistribution lifecycle across the humanitarian node network.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <Button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className={cn(
+                    "h-14 px-8 rounded-xl font-black text-xs uppercase tracking-[0.1em] shadow-xl transition-all active:scale-[0.98] flex items-center space-x-3",
+                    showAddForm ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-primary text-white hover:bg-primary/90"
+                  )}
+                >
+                  {showAddForm ? (
+                    <>
+                      <LayoutDashboard className="w-4 h-4" />
+                      <span>Return to Console</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>Initiate Batch Registration</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {!showAddForm && (
+            <>
+              {/* High-Performance Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard
+                  label="Asset Throughput"
+                  value={stats ? `${stats.activeSurplus} Units` : "--"}
+                  icon={<Box className="w-5 h-5 text-indigo-500" />}
+                  trend="Active Ledger"
+                />
+                <StatCard
+                  label="CO2 Mitigation"
+                  value={stats ? `${stats.co2}t` : "--"}
+                  icon={<Leaf className="w-5 h-5 text-emerald-500" />}
+                  trend="Carbon Impact"
+                />
+                <StatCard
+                  label="Entity Reach"
+                  value={stats ? "Connected" : "--"}
+                  icon={<Globe2 className="w-5 h-5 text-blue-500" />}
+                  trend="Regional Map"
+                />
+                <StatCard
+                  label="Network Tier"
+                  value={stats?.networkRank || "Pro"}
+                  icon={<TrendingUp className="w-5 h-5 text-amber-500" />}
+                  trend="Efficiency Rank"
+                />
+              </div>
+
+              {/* Inventory Management Matrix */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                <div className="lg:col-span-8 space-y-6">
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-200/60">
+                    <div className="flex items-center space-x-3">
+                      <h2 className="text-2xl font-black text-slate-900 tracking-tight">Active Ledger</h2>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                    </div>
+                  </div>
+
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <MyDonations />
+                  </div>
+                </div>
+
+                <div className="lg:col-span-4 space-y-8">
+                  <div className="bg-slate-900 rounded-2xl p-8 text-white relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                      <Zap className="w-20 h-20" />
+                    </div>
+                    <div className="relative z-10 space-y-6">
+                      <h4 className="text-lg font-black tracking-tight">Network Pulses</h4>
+                      <div className="space-y-4">
+                        {[
+                          { name: "Global Relief", action: "Active Search", time: "2m" },
+                          { name: "Urban Harvest", action: "Matched #201", time: "15m" },
+                        ].map((pulse, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-black">{pulse.name[0]}</div>
+                              <div className="space-y-0.5">
+                                <p className="text-[11px] font-black">{pulse.name}</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{pulse.action}</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-500">{pulse.time}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <Button variant="ghost" className="w-full h-11 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                        Full Activity Logistics
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {showAddForm && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto">
+              <CreateDonationForm onSuccess={() => setShowAddForm(false)} />
+            </div>
+          )}
+
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
+}
+
+const StatCard = ({ label, value, icon, trend }: { label: string, value: string, icon: React.ReactNode, trend: string }) => (
+  <div className="premium-card p-6 rounded-xl flex flex-col justify-between group">
+    <div className="flex items-center justify-between mb-4">
+      <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors">
+        <div className="transition-colors">
+          {icon}
+        </div>
+      </div>
+      <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 group-hover:text-slate-500 transition-colors">{trend}</div>
+    </div>
+    <div className="space-y-1">
+      <p className="text-3xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">{value}</p>
+      <p className="text-[10px] font-bold text-slate-400 leading-tight uppercase tracking-widest">{label}</p>
+    </div>
+  </div>
+);
