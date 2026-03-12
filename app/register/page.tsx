@@ -1,6 +1,7 @@
 import { RegisterForm } from "@/components/forms/RegisterForm";
 import { Zap, Globe2 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export default function RegisterPage() {
   return (
@@ -23,7 +24,9 @@ export default function RegisterPage() {
 
         <div className="premium-card p-1 items-center rounded-2xl bg-white overflow-hidden">
           <div className="p-8">
-            <RegisterForm />
+            <Suspense fallback={<div className="h-64 flex items-center justify-center font-bold text-slate-400">Loading registry...</div>}>
+              <RegisterForm />
+            </Suspense>
           </div>
           <div className="bg-slate-50 px-8 py-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
             <span className="flex items-center"><Globe2 className="w-3.5 h-3.5 mr-1.5 text-blue-500" /> Global Compliance Certified</span>
