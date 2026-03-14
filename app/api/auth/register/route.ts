@@ -3,11 +3,12 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import NGOProfile from '@/models/NGOProfile';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, role } = await req.json();
+    const { name, email, password, role, address, city, ngoRegNo } = await req.json();
 
     if (!name || !email || !password || !role) {
       return errorResponse('Missing required fields', 400);
@@ -36,6 +37,19 @@ export async function POST(req: Request) {
       password: hashedPassword,
       role,
     });
+
+    // Create NGO Profile immediately to capture location data
+    if (role === 'ngo') {
+      await NGOProfile.create({
+        userId: user._id,
+        ngoName: name,
+        city: city || 'Not specified',
+        address: address || 'Not specified',
+        contactPhone: 'Not specified',
+        registrationNumber: ngoRegNo || 'Pending',
+        verificationStatus: 'pending',
+      });
+    }
 
     // Generate JWT for automatic login
     const token = jwt.sign(
