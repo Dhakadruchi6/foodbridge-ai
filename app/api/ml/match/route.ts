@@ -87,8 +87,8 @@ export const POST = asyncHandler(async (req: Request) => {
     // Real distance calculation using city matrix
     const distance = getDistanceBetweenCities(donation.city, ngo.city);
 
-    // 🔴 STRATEGIC LIMIT: Skip NGOs that are too far away (>100km)
-    if (distance > 100) return null;
+    // 🔴 STRATEGIC LIMIT: Skip NGOs that are too far away (>20km)
+    if (distance > 20) return null;
 
     // Parse quantity
     const quantityStr = String(donation.quantity);
