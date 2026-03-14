@@ -19,7 +19,8 @@ import {
   Globe,
   MapPin,
   Target,
-  Navigation
+  Navigation,
+  Phone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +37,8 @@ export const RegisterForm = () => {
     address: "",
     city: "",
     ngoRegNo: "",
-    category: ""
+    category: "",
+    contactPhone: ""
   });
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -156,7 +158,7 @@ export const RegisterForm = () => {
             className="reg-item"
           />
 
-          {formData.role === "ngo" ? (
+          {formData.role === "ngo" && (
             <>
               <InputField
                 label="NGO Registration #"
@@ -164,6 +166,15 @@ export const RegisterForm = () => {
                 placeholder="REG-2024-XXXX"
                 value={formData.ngoRegNo}
                 onChange={(val) => setFormData({ ...formData, ngoRegNo: val })}
+                className="reg-item"
+              />
+              <InputField
+                label="Public Contact Phone"
+                icon={<Phone className="w-4 h-4" />}
+                type="tel"
+                placeholder="+1 555-0100"
+                value={formData.contactPhone}
+                onChange={(val) => setFormData({ ...formData, contactPhone: val })}
                 className="reg-item"
               />
               <div className="space-y-3 reg-item">
@@ -184,16 +195,16 @@ export const RegisterForm = () => {
                 </select>
               </div>
             </>
-          ) : (
-            <InputField
-              label="Base City"
-              icon={<Globe className="w-4 h-4" />}
-              placeholder="San Francisco"
-              value={formData.city}
-              onChange={(val: string) => setFormData({ ...formData, city: val })}
-              className="reg-item"
-            />
           )}
+
+          <InputField
+            label="Base City"
+            icon={<Globe className="w-4 h-4" />}
+            placeholder="San Francisco"
+            value={formData.city}
+            onChange={(val: string) => setFormData({ ...formData, city: val })}
+            className="reg-item"
+          />
 
           <div className="md:col-span-2">
             <InputField
