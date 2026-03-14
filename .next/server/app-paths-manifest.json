@@ -1,15 +1,12 @@
 {
   "/not-found": "app/not-found.js",
-  "/dashboard/ngo/logistics/page": "app/dashboard/ngo/logistics/page.js",
+  "/page": "app/page.js",
   "/login/page": "app/login/page.js",
   "/dashboard/ngo/page": "app/dashboard/ngo/page.js",
-  "/page": "app/page.js",
-  "/dashboard/donor/page": "app/dashboard/donor/page.js",
-  "/api/auth/login/route": "app/api/auth/login/route.js",
-  "/api/donations/available/route": "app/api/donations/available/route.js",
-  "/api/donations/accept/route": "app/api/donations/accept/route.js",
-  "/api/donations/my-deliveries/route": "app/api/donations/my-deliveries/route.js",
-  "/api/analytics/global/route": "app/api/analytics/global/route.js",
-  "/api/analytics/summary/route": "app/api/analytics/summary/route.js",
-  "/api/donations/my-donations/route": "app/api/donations/my-donations/route.js"
+  "/register/page": "app/register/page.js",
+  "/api/admin/metrics/route": "app/api/admin/metrics/route.js",
+  "/api/admin/donations/route": "app/api/admin/donations/route.js",
+  "/api/admin/users/route": "app/api/admin/users/route.js",
+  "/api/admin/approve-ngo/route": "app/api/admin/approve-ngo/route.js",
+  "/dashboard/admin/page": "app/dashboard/admin/page.js"
 }

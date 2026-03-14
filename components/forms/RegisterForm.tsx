@@ -38,7 +38,9 @@ export const RegisterForm = () => {
     city: "",
     ngoRegNo: "",
     category: "",
-    contactPhone: ""
+    contactPhone: "",
+    latitude: null as number | null,
+    longitude: null as number | null
   });
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -73,7 +75,9 @@ export const RegisterForm = () => {
           setFormData(prev => ({
             ...prev,
             address: address,
-            city: city
+            city: city,
+            latitude: latitude,
+            longitude: longitude
           }));
         }
       } catch (err) {

@@ -25,7 +25,9 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
     quantity: "",
     expiryDate: "",
     address: "",
-    city: ""
+    city: "",
+    latitude: null as number | null,
+    longitude: null as number | null
   });
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -54,7 +56,9 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
           setFormData(prev => ({
             ...prev,
             address: address,
-            city: city
+            city: city,
+            latitude: latitude,
+            longitude: longitude
           }));
         }
       } catch (err) {
@@ -79,7 +83,9 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
         quantity: formData.quantity,
         expiryTime: formData.expiryDate,
         pickupAddress: formData.address,
-        city: formData.city
+        city: formData.city,
+        latitude: formData.latitude,
+        longitude: formData.longitude
       };
 
       const result = await postRequest("/api/donations/create", payload);

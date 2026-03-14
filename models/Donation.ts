@@ -27,6 +27,12 @@ const DonationSchema = new Schema({
     required: true,
     index: true,
   },
+  latitude: {
+    type: Number,
+  },
+  longitude: {
+    type: Number,
+  },
   status: {
     type: String,
     enum: ['pending', 'accepted', 'picked_up', 'delivered'],

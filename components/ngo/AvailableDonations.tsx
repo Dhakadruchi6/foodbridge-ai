@@ -29,6 +29,7 @@ interface Donation {
   city: string;
   status: string;
   prioritizationRank?: number;
+  distance?: number | null;
 }
 
 export const AvailableDonations = () => {
@@ -155,7 +156,14 @@ const AvailableCard = ({ donation, onAccept, isProcessing }: { donation: Donatio
           </h4>
           <div className="flex items-center text-[11px] font-bold text-slate-400 mt-1">
             <MapPin className="w-3.5 h-3.5 mr-1 text-slate-300" />
-            <span className="truncate">{donation.city ? formatCity(donation.city) : "Zone Restricted"}</span>
+            <span className="truncate">
+              {donation.city ? formatCity(donation.city) : "Zone Restricted"}
+              {donation.distance !== null && donation.distance !== undefined && (
+                <span className="ml-1 text-primary font-black">
+                  • {donation.distance}km away
+                </span>
+              )}
+            </span>
           </div>
         </div>
 

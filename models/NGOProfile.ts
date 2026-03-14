@@ -26,6 +26,12 @@ const NGOProfileSchema = new Schema({
     type: String,
     required: true,
   },
+  latitude: {
+    type: Number,
+  },
+  longitude: {
+    type: Number,
+  },
   verificationStatus: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
