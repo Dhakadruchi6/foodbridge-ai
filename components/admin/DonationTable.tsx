@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Package, Clock, CheckCircle2, Search, MapPin, Activity, ArrowUpDown } from "lucide-react";
+import { Package, Clock, CheckCircle2, Search, MapPin, Activity, ArrowUpDown, ExternalLink } from "lucide-react";
 
 interface Donation {
     _id: string;
@@ -13,6 +13,8 @@ interface Donation {
     createdAt: string;
     prioritizationRank?: number;
     donorId: { name: string; email: string } | null;
+    latitude?: number | null;
+    longitude?: number | null;
 }
 
 const statusStyle: Record<string, string> = {
@@ -120,9 +122,22 @@ export const DonationTable = ({ donations }: { donations: Donation[] }) => {
                                     </td>
                                     <td className="px-6 py-4 font-black text-slate-600 italic">{donation.quantity}kg</td>
                                     <td className="px-6 py-4">
-                                        <span className="flex items-center text-slate-500 font-bold text-xs uppercase tracking-tighter">
-                                            <MapPin className="w-3 h-3 mr-1 text-slate-300" />{donation.city}
-                                        </span>
+                                        <div className="flex flex-col">
+                                            <span className="flex items-center text-slate-500 font-bold text-xs uppercase tracking-tighter">
+                                                <MapPin className="w-3 h-3 mr-1 text-slate-300" />{donation.city}
+                                            </span>
+                                            {donation.latitude && donation.longitude && (
+                                                <a
+                                                    href={`https://www.google.com/maps?q=${donation.latitude},${donation.longitude}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center text-[9px] font-black text-primary hover:underline mt-1 uppercase tracking-widest"
+                                                >
+                                                    <ExternalLink className="w-2.5 h-2.5 mr-1" />
+                                                    View Map
+                                                </a>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className={cn(

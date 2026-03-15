@@ -27,6 +27,15 @@ const DonationSchema = new Schema({
     required: true,
     index: true,
   },
+  state: {
+    type: String,
+  },
+  pincode: {
+    type: String,
+  },
+  description: {
+    type: String,
+  },
   latitude: {
     type: Number,
   },

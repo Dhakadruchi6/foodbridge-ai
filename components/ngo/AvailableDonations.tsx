@@ -15,7 +15,9 @@ import {
   Sparkles,
   Info,
   Timer,
-  Weight
+  Weight,
+  ExternalLink,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,10 @@ interface Donation {
   status: string;
   prioritizationRank?: number;
   distance?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  description?: string;
+  donorId: { name: string; email: string } | null;
 }
 
 export const AvailableDonations = () => {
@@ -154,18 +160,30 @@ const AvailableCard = ({ donation, onAccept, isProcessing }: { donation: Donatio
           <h4 className="text-xl font-black text-slate-900 leading-tight truncate">
             {donation.foodType || "Surplus Batch"}
           </h4>
-          <div className="flex items-center text-[11px] font-bold text-slate-400 mt-1">
-            <MapPin className="w-3.5 h-3.5 mr-1 text-slate-300" />
-            <span className="truncate">
-              {donation.city ? formatCity(donation.city) : "Zone Restricted"}
-              {donation.distance !== null && donation.distance !== undefined && (
-                <span className="ml-1 text-primary font-black">
-                  • {donation.distance}km away
-                </span>
-              )}
-            </span>
+          <div className="flex flex-col space-y-1 mt-1">
+            <div className="flex items-center text-[10px] font-black text-primary uppercase tracking-widest">
+              <User className="w-3.5 h-3.5 mr-1.5" />
+              <span>{donation.donorId?.name || "Anonymous Donor"}</span>
+            </div>
+            <div className="flex items-center text-[11px] font-bold text-slate-400">
+              <MapPin className="w-3.5 h-3.5 mr-1 text-slate-300" />
+              <span className="truncate">
+                {donation.city ? formatCity(donation.city) : "Zone Restricted"}
+                {donation.distance !== null && donation.distance !== undefined && (
+                  <span className="ml-1 text-primary font-black">
+                    • {donation.distance}km away
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
         </div>
+
+        {donation.description && (
+          <p className="text-[11px] font-medium text-slate-500 line-clamp-2 leading-relaxed italic">
+            "{donation.description}"
+          </p>
+        )}
 
         <div className="grid grid-cols-2 gap-3 pt-2">
           <div className="bg-slate-50 p-3 rounded-lg border border-slate-100/50">
@@ -188,8 +206,30 @@ const AvailableCard = ({ donation, onAccept, isProcessing }: { donation: Donatio
         </div>
       </div>
 
-      {/* Action Footer */}
-      <div className="px-5 py-4 bg-slate-50/50 border-t border-slate-100 mt-auto">
+      {/* Navigation & Action Footer */}
+      <div className="px-5 py-4 bg-slate-50/50 border-t border-slate-100 mt-auto space-y-3">
+        {donation.latitude && donation.longitude && (
+          <div className="flex gap-2">
+            <a
+              href={`https://www.google.com/maps?q=${donation.latitude},${donation.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 h-10 rounded-lg text-[10px] font-black uppercase tracking-wider bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center space-x-2"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Live Location</span>
+            </a>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${donation.latitude},${donation.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 h-10 rounded-lg text-[10px] font-black uppercase tracking-wider bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center space-x-2"
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Navigate</span>
+            </a>
+          </div>
+        )}
         <Button
           onClick={() => onAccept(donation._id)}
           disabled={isProcessing}

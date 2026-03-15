@@ -36,7 +36,9 @@ export const createDonation = async (donationData: any) => {
 export const getDonations = async (filter: any = {}) => {
   await dbConnect();
   // Sort by prioritizationRank first (highest urgency), then by creation date
-  return await Donation.find(filter).sort({ prioritizationRank: -1, createdAt: -1 });
+  return await Donation.find(filter)
+    .populate('donorId', 'name email')
+    .sort({ prioritizationRank: -1, createdAt: -1 });
 };
 
 export const updateDonationStatus = async (id: string, status: string) => {

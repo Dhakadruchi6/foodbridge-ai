@@ -36,6 +36,8 @@ export const RegisterForm = () => {
     role: queryRole === "ngo" ? "ngo" : "donor",
     address: "",
     city: "",
+    state: "",
+    pincode: "",
     ngoRegNo: "",
     category: "",
     contactPhone: "",
@@ -201,14 +203,32 @@ export const RegisterForm = () => {
             </>
           )}
 
-          <InputField
-            label="Base City"
-            icon={<Globe className="w-4 h-4" />}
-            placeholder="San Francisco"
-            value={formData.city}
-            onChange={(val: string) => setFormData({ ...formData, city: val })}
-            className="reg-item"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <InputField
+              label="Base City"
+              icon={<Globe className="w-4 h-4" />}
+              placeholder="San Francisco"
+              value={formData.city}
+              onChange={(val: string) => setFormData({ ...formData, city: val })}
+              className="reg-item"
+            />
+            <InputField
+              label="State / Province"
+              icon={<MapPin className="w-4 h-4" />}
+              placeholder="California"
+              value={formData.state}
+              onChange={(val: string) => setFormData({ ...formData, state: val })}
+              className="reg-item"
+            />
+            <InputField
+              label="Pincode / Zip"
+              icon={<MapPin className="w-4 h-4" />}
+              placeholder="94103"
+              value={formData.pincode}
+              onChange={(val: string) => setFormData({ ...formData, pincode: val })}
+              className="reg-item"
+            />
+          </div>
 
           <div className="md:col-span-2">
             <InputField

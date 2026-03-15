@@ -16,7 +16,7 @@ export const POST = asyncHandler(async (req: Request) => {
 
   const userId = authGate.headers.get('x-user-id');
   const body = await req.json();
-  const { foodType, quantity, expiryTime, pickupAddress, city, latitude, longitude } = body;
+  const { foodType, quantity, expiryTime, pickupAddress, city, state, pincode, description, latitude, longitude } = body;
 
   if (!foodType || !quantity || !expiryTime || !pickupAddress || !city) {
     return errorResponse('Missing required fields', 400);
@@ -29,6 +29,9 @@ export const POST = asyncHandler(async (req: Request) => {
     expiryTime,
     pickupAddress,
     city,
+    state,
+    pincode,
+    description,
     latitude,
     longitude,
     status: 'pending',

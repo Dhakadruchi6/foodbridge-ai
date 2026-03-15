@@ -22,6 +22,12 @@ const NGOProfileSchema = new Schema({
     type: String,
     required: true,
   },
+  state: {
+    type: String,
+  },
+  pincode: {
+    type: String,
+  },
   contactPhone: {
     type: String,
     required: true,

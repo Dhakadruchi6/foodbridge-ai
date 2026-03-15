@@ -15,7 +15,8 @@ import {
   Utensils,
   Navigation,
   Target,
-  Box
+  Box,
+  Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,9 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
     expiryDate: "",
     address: "",
     city: "",
+    state: "",
+    pincode: "",
+    description: "",
     latitude: null as number | null,
     longitude: null as number | null
   });
@@ -84,6 +88,9 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
         expiryTime: formData.expiryDate,
         pickupAddress: formData.address,
         city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        description: formData.description,
         latitude: formData.latitude,
         longitude: formData.longitude
       };
@@ -145,6 +152,15 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             />
           </FormGroup>
 
+          <FormGroup label="Asset Description" icon={<Box className="w-4 h-4" />}>
+            <Input
+              placeholder="e.g. 10 kg of tomatoes, 5 kg of onions"
+              className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-bold text-xs"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+          </FormGroup>
+
           <FormGroup label="Payload (kg/units)" icon={<Box className="w-4 h-4" />}>
             <Input
               type="number"
@@ -175,6 +191,25 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
               required
             />
           </FormGroup>
+
+          <div className="grid grid-cols-2 gap-8 md:col-span-1">
+            <FormGroup label="Strategic State" icon={<Globe className="w-4 h-4" />}>
+              <Input
+                placeholder="State"
+                className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-bold text-xs"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              />
+            </FormGroup>
+            <FormGroup label="Zip / Pincode" icon={<Navigation className="w-4 h-4" />}>
+              <Input
+                placeholder="Pincode"
+                className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-bold text-xs"
+                value={formData.pincode}
+                onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+              />
+            </FormGroup>
+          </div>
 
           <div className="md:col-span-2">
             <FormGroup

@@ -8,7 +8,7 @@ import { successResponse, errorResponse } from '@/lib/apiResponse';
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, role, address, city, ngoRegNo, contactPhone, latitude, longitude } = await req.json();
+    const { name, email, password, role, address, city, state, pincode, ngoRegNo, contactPhone, latitude, longitude } = await req.json();
 
     if (!name || !email || !password || !role) {
       return errorResponse('Missing required fields', 400);
@@ -44,6 +44,8 @@ export async function POST(req: Request) {
         userId: user._id,
         ngoName: name,
         city: city || 'Not specified',
+        state: state || 'Not specified',
+        pincode: pincode || 'Not specified',
         address: address || 'Not specified',
         contactPhone: contactPhone || 'Not specified',
         registrationNumber: ngoRegNo || 'Pending',
