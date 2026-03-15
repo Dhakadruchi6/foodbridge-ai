@@ -38,7 +38,7 @@ class DatasetGenerator:
         )
         
         # Normalize to clear 0-100 scale
-        urgency_score = (raw_score - raw_score.min()) / (raw_score.max() - raw_score.min()) * 100
+        urgency_score = (raw_score - np.min(raw_score)) / (np.max(raw_score) - np.min(raw_score)) * 100 # type: ignore
         
         return pd.DataFrame({
             'distance': distance,
