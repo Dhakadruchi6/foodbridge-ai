@@ -44,14 +44,14 @@ export const GET = asyncHandler(async (req: Request) => {
     }
     return { ...donation.toObject(), distance: distance ? Math.round(distance * 10) / 10 : null };
   }).filter((donation: any) => {
-    // 1. Strict Geospatial Match (50km radius)
+    // 1. Strict Geospatial Match (100km radius)
     if (donation.distance !== null) {
-      return donation.distance <= 50;
+      return donation.distance <= 100;
     }
 
     // 2. City-based Fallback (for older data or if browser geolocation fails)
     return ngoProfile.city.toLowerCase() === donation.city.toLowerCase();
   });
 
-  return successResponse(filteredDonations, `Donations within 50km or same city retrieved (${filteredDonations.length} found)`);
+  return successResponse(filteredDonations, `Donations within 100km or same city retrieved (${filteredDonations.length} found)`);
 });
