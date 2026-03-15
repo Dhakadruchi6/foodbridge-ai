@@ -22,7 +22,7 @@ export const getPredictionScore = async (
         console.warn(`ML Service Warning: ${stderr}`);
       }
 
-      // Parse output: "Suitability Score: 71.43/100"
+      // Parse output: "✅ Suitability Score: 71.43/100"
       const match = stdout.match(/Suitability Score: ([0-9.]+)\/100/);
       if (match && match[1]) {
         resolve(parseFloat(match[1]));
@@ -55,7 +55,7 @@ export const getUrgencyScore = async (
         console.warn(`Urgency Service Warning: ${stderr}`);
       }
 
-      // Parse output: "Urgency Score: 71.43/100"
+      // Parse output: "🚨 Urgency Score: 71.43/100"
       const match = stdout.match(/Urgency Score: ([0-9.]+)\/100/);
       if (match && match[1]) {
         resolve(parseFloat(match[1]));
