@@ -14,6 +14,14 @@ const DonationSchema = new Schema({
     type: String,
     required: true,
   },
+  foodImage: {
+    type: String,
+    required: true,
+  },
+  preparedTime: {
+    type: Date,
+    required: true,
+  },
   expiryTime: {
     type: Date,
     required: true,
@@ -44,7 +52,7 @@ const DonationSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'picked_up', 'delivered'],
+    enum: ['pending', 'accepted', 'picked_up', 'delivered', 'flagged'],
     default: 'pending',
     index: true,
   },
@@ -56,6 +64,18 @@ const DonationSchema = new Schema({
     type: Number,
     default: 0,
     index: true,
+  },
+  liveLatitude: {
+    type: Number,
+    default: null,
+  },
+  liveLongitude: {
+    type: Number,
+    default: null,
+  },
+  liveLocationUpdatedAt: {
+    type: Date,
+    default: null,
   },
 }, {
   timestamps: true,

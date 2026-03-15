@@ -5,6 +5,8 @@ import { getRequest } from "@/lib/apiClient";
 import { CreateDonationForm } from "@/components/donor/CreateDonationForm";
 import { MyDonations } from "@/components/donor/MyDonations";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
+import { NotificationBell } from "@/components/donor/NotificationBell";
+import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import Link from "next/link";
 import {
   Package,
@@ -22,15 +24,18 @@ import {
   Zap,
   Activity,
   Box,
-  LayoutDashboard
+  LayoutDashboard,
+  UserCircle
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+
 export default function DonorDashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [stats, setStats] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -41,20 +46,57 @@ export default function DonorDashboard() {
         console.error("Failed to fetch donor stats", err);
       }
     };
+    const fetchProfile = async () => {
+      try {
+        const result = await getRequest("/api/user/profile");
+        if (result.success) setUser(result.data);
+      } catch (err) {
+        console.error("Failed to fetch user profile", err);
+      }
+    };
     fetchStats();
+    fetchProfile();
   }, []);
+
+  const handleTourComplete = async () => {
+    try {
+      await getRequest("/api/user/tour-complete"); // Using GET as a simple trigger or PATCH if I create it
+      setUser((prev: any) => ({ ...prev, isFirstLogin: false }));
+    } catch (err) {
+      console.error("Failed to mark tour as complete", err);
+    }
+  };
 
   return (
     <ProtectedRoute allowedRoles={["donor"]}>
       <div className="min-h-screen saas-gradient">
+        {user && (
+          <OnboardingTour
+            userRole="donor"
+            isFirstLogin={user.isFirstLogin}
+            onComplete={handleTourComplete}
+          />
+        )}
         <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
 
           {/* Unified Navigation - Breadcrumbs */}
-          <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
-            <Link href="/" className="hover:text-primary transition-colors">Platform</Link>
-            <ChevronRight className="w-3 h-3 opacity-50" />
-            <span className="text-slate-900">Donor Control Station</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+              <Link href="/" className="hover:text-primary transition-colors">Platform</Link>
+              <ChevronRight className="w-3 h-3 opacity-50" />
+              <span className="text-slate-900">Donor Control Station</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Link id="tour-profile" href="/profile" className="flex items-center space-x-1.5 h-10 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-primary hover:border-primary/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
+                <UserCircle className="w-4 h-4" />
+                <span>My Profile</span>
+              </Link>
+              <div id="tour-notifications">
+                <NotificationBell />
+              </div>
+            </div>
           </div>
+
 
           {/* SaaS Header - Operational Control */}
           <div className="relative group overflow-hidden bg-white border border-slate-200/60 rounded-2xl p-10 shadow-sm">
@@ -82,6 +124,7 @@ export default function DonorDashboard() {
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <Button
+                  id="tour-post-donation"
                   onClick={() => setShowAddForm(!showAddForm)}
                   className={cn(
                     "h-14 px-8 rounded-xl font-black text-xs uppercase tracking-[0.1em] shadow-xl transition-all active:scale-[0.98] flex items-center space-x-3",
@@ -144,7 +187,7 @@ export default function DonorDashboard() {
                     </div>
                   </div>
 
-                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <div id="tour-my-donations" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     <MyDonations />
                   </div>
                 </div>

@@ -106,6 +106,7 @@ export const MyDonations = () => {
 
 import { MLMatchResults } from "./MLMatchResults";
 import { DeliveryTracking } from "./DeliveryTracking";
+import { LiveLocationShare } from "./LiveLocationShare";
 
 const DonationCard = ({
   donation,
@@ -181,11 +182,15 @@ const DonationCard = ({
       {/* Control Expansion */}
       {isExpanded && (
         <div className="px-5 pb-5 border-t border-slate-100 bg-slate-50/30 animate-in slide-in-from-top-2 duration-500">
-          <div className="pt-5 overflow-hidden">
+          <div className="pt-5 space-y-4 overflow-hidden">
             {donation.status === "pending" ? (
               <MLMatchResults donationId={donation._id} onSuccess={onAssignSuccess} />
             ) : (
-              <DeliveryTracking donationId={donation._id} />
+              <>
+                {/* Go Live Button for accepted/picked_up donations */}
+                <LiveLocationShare donationId={donation._id} donationStatus={donation.status} />
+                <DeliveryTracking donationId={donation._id} />
+              </>
             )}
           </div>
         </div>

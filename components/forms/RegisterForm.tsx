@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { setToken } from "@/lib/auth";
@@ -20,7 +21,8 @@ import {
   MapPin,
   Target,
   Navigation,
-  Phone
+  Phone,
+  CheckCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +34,9 @@ export const RegisterForm = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
+    confirmPassword: "",
     role: queryRole === "ngo" ? "ngo" : "donor",
     address: "",
     city: "",
@@ -44,6 +48,10 @@ export const RegisterForm = () => {
     latitude: null as number | null,
     longitude: null as number | null
   });
+  const [otp, setOtp] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [error, setError] = useState("");
@@ -93,10 +101,79 @@ export const RegisterForm = () => {
     });
   };
 
+  const handleSendOtp = async () => {
+    if (!formData.phone) {
+      setError("Please enter a phone number first.");
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const res = await postRequest("/api/auth/send-otp", { phone: formData.phone });
+      if (res.success) {
+        setIsOtpSent(true);
+        setError("");
+        // Alert removed for real SMS delivery
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to send OTP");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp) return;
+    setOtpLoading(true);
+    try {
+      const res = await postRequest("/api/auth/verify-otp", { phone: formData.phone, otp });
+      if (res.success) {
+        setIsPhoneVerified(true);
+        setIsOtpSent(false);
+        setError("");
+      }
+    } catch (err: any) {
+      setError(err.message || "Invalid OTP");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    // --- Client Side Validation ---
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
+
+    if (!isPhoneVerified) {
+      setError("Please verify your phone number using OTP first.");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Security Key must be at least 6 characters long.");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.role === "ngo" && !formData.category) {
+      setError("Please select an NGO category.");
+      setLoading(false);
+      return;
+    }
+
+    // Pincode validation (numeric and standard length)
+    if (formData.pincode && !/^\d{5,6}$/.test(formData.pincode)) {
+      setError("Please enter a valid 5 or 6 digit Pincode / Zip.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const result = await postRequest("/api/auth/register", formData);
@@ -155,12 +232,72 @@ export const RegisterForm = () => {
             className="reg-item"
           />
           <InputField
+            label="Phone Number"
+            icon={<Phone className="w-4 h-4" />}
+            type="tel"
+            placeholder="+1 555-0100"
+            value={formData.phone}
+            onChange={(val) => setFormData({ ...formData, phone: val })}
+            className="reg-item"
+            action={
+              !isPhoneVerified && (
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={otpLoading || !formData.phone}
+                  className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest disabled:opacity-30"
+                >
+                  {otpLoading ? "Sending..." : "Send OTP"}
+                </button>
+              )
+            }
+          />
+
+          {isOtpSent && !isPhoneVerified && (
+            <div className="md:col-span-2 space-y-3 reg-item animate-in slide-in-from-top duration-300">
+              <InputField
+                label="Enter 6-Digit OTP"
+                icon={<ShieldCheck className="w-4 h-4" />}
+                placeholder="000000"
+                value={otp}
+                onChange={(val) => setOtp(val)}
+                action={
+                  <button
+                    type="button"
+                    onClick={handleVerifyOtp}
+                    disabled={otpLoading || otp.length < 6}
+                    className="text-[10px] font-black text-emerald-600 hover:underline uppercase tracking-widest disabled:opacity-30"
+                  >
+                    Verify OTP
+                  </button>
+                }
+              />
+            </div>
+          )}
+
+          {isPhoneVerified && (
+            <div className="md:col-span-2 flex items-center space-x-2 p-3 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 reg-item">
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Phone Verified Successfully</span>
+            </div>
+          )}
+
+          <InputField
             label="Security Key"
             icon={<Lock className="w-4 h-4" />}
             type="password"
             placeholder="••••••••"
             value={formData.password}
             onChange={(val) => setFormData({ ...formData, password: val })}
+            className="reg-item"
+          />
+          <InputField
+            label="Confirm Password"
+            icon={<Lock className="w-4 h-4" />}
+            type="password"
+            placeholder="••••••••"
+            value={formData.confirmPassword}
+            onChange={(val) => setFormData({ ...formData, confirmPassword: val })}
             className="reg-item"
           />
 
@@ -189,9 +326,10 @@ export const RegisterForm = () => {
                   NGO Category
                 </label>
                 <select
-                  className="w-full h-14 rounded-[1.25rem] bg-gray-50/50 border-gray-200/60 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-bold px-4"
+                  className="w-full h-14 rounded-[1.25rem] bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black px-4 text-slate-900"
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   value={formData.category}
+                  required
                 >
                   <option value="">Select Category</option>
                   <option value="Food Bank">Food Bank</option>
@@ -203,32 +341,22 @@ export const RegisterForm = () => {
             </>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <InputField
-              label="Base City"
-              icon={<Globe className="w-4 h-4" />}
-              placeholder="San Francisco"
-              value={formData.city}
-              onChange={(val: string) => setFormData({ ...formData, city: val })}
-              className="reg-item"
-            />
-            <InputField
-              label="State / Province"
-              icon={<MapPin className="w-4 h-4" />}
-              placeholder="California"
-              value={formData.state}
-              onChange={(val: string) => setFormData({ ...formData, state: val })}
-              className="reg-item"
-            />
-            <InputField
-              label="Pincode / Zip"
-              icon={<MapPin className="w-4 h-4" />}
-              placeholder="94103"
-              value={formData.pincode}
-              onChange={(val: string) => setFormData({ ...formData, pincode: val })}
-              className="reg-item"
-            />
-          </div>
+          <InputField
+            label="Base City"
+            icon={<Globe className="w-4 h-4" />}
+            placeholder="San Francisco"
+            value={formData.city}
+            onChange={(val: string) => setFormData({ ...formData, city: val })}
+            className="reg-item"
+          />
+          <InputField
+            label="Pincode / Zip"
+            icon={<MapPin className="w-4 h-4" />}
+            placeholder="94103"
+            value={formData.pincode}
+            onChange={(val: string) => setFormData({ ...formData, pincode: val })}
+            className="reg-item"
+          />
 
           <div className="md:col-span-2">
             <InputField
@@ -264,20 +392,35 @@ export const RegisterForm = () => {
           </div>
         )}
 
-        <div className="reg-item pt-4">
+        <div className="reg-item pt-4 space-y-6">
           <Button
             type="submit"
-            disabled={loading}
-            className="w-full h-16 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 text-white text-xl font-black shadow-2xl shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-2"
+            disabled={loading || !isPhoneVerified}
+            className="w-full h-16 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 text-white text-xl font-black shadow-2xl shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:grayscale"
           >
             {loading ? (
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
               <>
-                <span>Initialize Platform Access</span>
+                <span>Create Platform Account</span>
                 <ChevronRight className="w-6 h-6" />
               </>
             )}
+          </Button>
+
+          <div className="flex items-center space-x-4">
+            <div className="h-px bg-slate-200 flex-1" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">OR</span>
+            <div className="h-px bg-slate-200 flex-1" />
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => signIn("google", { callbackUrl: `/complete-profile?role=${formData.role}` })}
+            className="w-full h-16 rounded-[1.5rem] bg-white border-2 border-slate-900 text-slate-900 text-lg font-black hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-lg"
+          >
+            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+            <span>Continue with Google</span>
           </Button>
         </div>
 
@@ -324,7 +467,7 @@ const InputField = ({ label, icon, placeholder, value, onChange, type = "text", 
       <Input
         type={type}
         placeholder={placeholder}
-        className="h-14 rounded-[1.25rem] bg-gray-50/50 border-gray-200/60 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-bold pr-12"
+        className="h-14 rounded-[1.25rem] bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black pr-12 text-slate-900"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required

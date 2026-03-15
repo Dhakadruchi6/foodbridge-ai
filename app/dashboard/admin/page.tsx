@@ -12,6 +12,7 @@ import {
   Package,
   LogOut,
   ShieldCheck,
+  AlertTriangle,
   Activity,
   ChevronRight,
   RefreshCw,
@@ -23,8 +24,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import AdminReportsPage from "./reports/page";
 
-type Tab = "overview" | "users" | "donations";
+type Tab = "overview" | "users" | "donations" | "reports";
 
 export default function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("overview");
@@ -68,6 +70,7 @@ export default function AdminDashboard() {
     { key: "overview", label: "Operations", icon: Activity },
     { key: "users", label: "Entities", icon: Users },
     { key: "donations", label: "Ledger", icon: Package },
+    { key: "reports", label: "Trust & Safety", icon: AlertTriangle },
   ];
 
   return (
@@ -117,12 +120,12 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl min-w-[140px]">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Nodes</p>
-                  <p className="text-2xl font-black text-slate-900 leading-none">{users.length + ngos.length}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Users</p>
+                  <p className="text-2xl font-black text-slate-900 leading-none">{metrics?.totalUsers ?? users.length}</p>
                 </div>
                 <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl min-w-[140px]">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Success Rate</p>
-                  <p className="text-2xl font-black text-emerald-600 leading-none">{metrics?.successRate || "98"}%</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Deliveries Done</p>
+                  <p className="text-2xl font-black text-emerald-600 leading-none">{metrics?.successfulDeliveries ?? "0"}</p>
                 </div>
               </div>
             </div>
@@ -184,6 +187,12 @@ export default function AdminDashboard() {
                 <DonationTable donations={donations} />
               </div>
             )}
+
+            {tab === "reports" && (
+              <div className="bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm">
+                <AdminReportsPage />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -193,21 +202,33 @@ export default function AdminDashboard() {
 
 const MetricsCards = ({ metrics }: { metrics: any }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-    <MetricsBlock label="Total Ecosystem Recovery" value={metrics ? `${metrics.totalRecovered}kg` : "--"} trend="+24% YoY" />
-    <MetricsBlock label="Verified Food Hubs (NGO)" value={metrics?.activeNgos || "0"} trend="Global" />
-    <MetricsBlock label="Source Entities (Donor)" value={metrics?.activeDonors || "0"} trend="Internal" />
-    <MetricsBlock label="Operational Points" value={metrics ? `${(Number(metrics.totalRecovered) * 12).toLocaleString()}` : "--"} trend="Live" />
+    <MetricsBlock label="Total Donations (All Time)" value={metrics ? `${metrics.totalDonations}` : "--"} trend="Ledger Total" />
+    <MetricsBlock label="Verified Food Hubs (NGO)" value={metrics ? `${metrics.totalNGOs}` : "--"} trend="Active NGOs" />
+    <MetricsBlock label="Actionable Alerts" value={metrics ? `${metrics.totalReports ?? 0}` : "--"} trend="Pending Review" isWarning={metrics?.totalReports > 0} />
+    <MetricsBlock label="Successful Deliveries" value={metrics ? `${metrics.successfulDeliveries}` : "--"} trend="Completed" />
   </div>
 );
 
-const MetricsBlock = ({ label, value, trend }: { label: string, value: string, trend: string }) => (
-  <div className="premium-card p-6 rounded-xl flex flex-col justify-between group">
+const MetricsBlock = ({ label, value, trend, isWarning }: { label: string, value: string, trend: string, isWarning?: boolean }) => (
+  <div className={cn(
+    "premium-card p-6 rounded-xl flex flex-col justify-between group transition-all",
+    isWarning && "border-rose-200 bg-rose-50/30"
+  )}>
     <div className="flex items-center justify-between mb-4">
-      <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 group-hover:text-slate-500 transition-colors">{trend}</div>
-      <ArrowUpRight className="w-4 h-4 text-slate-200 group-hover:text-primary transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      <div className={cn(
+        "text-[9px] font-black uppercase tracking-[0.2em]",
+        isWarning ? "text-rose-500" : "text-slate-300 group-hover:text-slate-500"
+      )}>{trend}</div>
+      <ArrowUpRight className={cn(
+        "w-4 h-4 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5",
+        isWarning ? "text-rose-400" : "text-slate-200 group-hover:text-primary"
+      )} />
     </div>
     <div className="space-y-1">
-      <p className="text-3xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">{value}</p>
+      <p className={cn(
+        "text-3xl font-black tracking-tighter leading-none tabular-nums",
+        isWarning ? "text-rose-600" : "text-slate-900"
+      )}>{value}</p>
       <p className="text-[10px] font-bold text-slate-400 leading-tight pr-4 uppercase tracking-wider">{label}</p>
     </div>
   </div>

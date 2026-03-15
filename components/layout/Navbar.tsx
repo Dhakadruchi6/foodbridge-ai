@@ -19,6 +19,7 @@ import {
 export const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [activeSection, setActiveSection] = useState("home");
     const [user, setUser] = useState<{ role: string } | null>(null);
     const pathname = usePathname();
 
@@ -27,7 +28,43 @@ export const Navbar = () => {
             setIsScrolled(window.scrollY > 10);
         };
 
+        const handleHomeTracking = () => {
+            if (pathname === "/" && window.scrollY < 100) {
+                setActiveSection("home");
+            }
+        };
+
         window.addEventListener("scroll", handleScroll);
+        window.addEventListener("scroll", handleHomeTracking);
+
+        let observer: IntersectionObserver | null = null;
+
+        if (pathname === "/") {
+            const observerOptions = {
+                root: null,
+                rootMargin: '-20% 0px -70% 0px',
+                threshold: 0
+            };
+
+            const observerCallback = (entries: IntersectionObserverEntry[]) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        setActiveSection(entry.target.id || "home");
+                    }
+                });
+            };
+
+            observer = new IntersectionObserver(observerCallback, observerOptions);
+
+            const sections = ['technology', 'network', 'impact'];
+            sections.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) observer?.observe(el);
+            });
+
+            // Initial check
+            handleHomeTracking();
+        }
 
         const token = getToken();
         if (token) {
@@ -39,8 +76,12 @@ export const Navbar = () => {
             }
         }
 
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+            window.removeEventListener("scroll", handleHomeTracking);
+            if (observer) observer.disconnect();
+        };
+    }, [pathname]);
 
     const handleLogout = () => {
         if (typeof window !== 'undefined') {
@@ -74,10 +115,10 @@ export const Navbar = () => {
 
                     {/* Desktop Main Nav */}
                     <nav className="hidden md:flex items-center space-x-8">
-                        <NavLink href="/" active={pathname === "/"}>Home</NavLink>
-                        <NavLink href="/#technology">Intelligence</NavLink>
-                        <NavLink href="/#network">Network</NavLink>
-                        <NavLink href="/#impact">Impact</NavLink>
+                        <NavLink href="/" active={pathname === "/" && activeSection === "home"}>Home</NavLink>
+                        <NavLink href="/#technology" active={pathname === "/" && activeSection === "technology"}>Intelligence</NavLink>
+                        <NavLink href="/#network" active={pathname === "/" && activeSection === "network"}>Network</NavLink>
+                        <NavLink href="/#impact" active={pathname === "/" && activeSection === "impact"}>Impact</NavLink>
                     </nav>
                 </div>
 

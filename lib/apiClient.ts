@@ -1,10 +1,15 @@
+import { getSession } from 'next-auth/react';
 import { getToken } from './auth';
 
 async function handleResponse(response: Response) {
   if (response.status === 401) {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Only redirect if there's no NextAuth session either
+      const session = await getSession();
+      if (!session) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     throw new Error('Unauthorized');
   }

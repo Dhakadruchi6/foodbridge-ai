@@ -11,19 +11,52 @@ const UserSchema = new Schema({
     unique: true,
     index: true,
   },
+  phone: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
+  },
   password: {
     type: String,
-    required: [true, 'Please provide a password'],
+    // Optional for social login users
   },
   role: {
     type: String,
     enum: ['donor', 'ngo', 'admin'],
     default: 'donor',
   },
+  city: String,
+  state: String,
+  address: String,
+  pincode: String,
+  latitude: Number,
+  longitude: Number,
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
+  phoneVerified: {
+    type: Boolean,
+    default: false,
+  },
+  otp: String,
+  otpExpires: Date,
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
   isActive: {
     type: Boolean,
     default: true,
   },
+  isFirstLogin: {
+    type: Boolean,
+    default: true,
+  },
+  pushSubscription: {
+    type: Object,
+  },
+  donationPreferences: String,
 }, {
   timestamps: true,
 });

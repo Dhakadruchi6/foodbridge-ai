@@ -1,3 +1,5 @@
+"use client";
+
 import { LoginForm } from "@/components/forms/LoginForm";
 import { Zap, ShieldCheck } from "lucide-react";
 import Link from "next/link";

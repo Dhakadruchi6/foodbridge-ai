@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
+    "@types/nodemailer": "^7.0.11",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -19,10 +20,15 @@
     "lucide-react": "^0.323.0",
     "mongoose": "^8.23.0",
     "next": "14.1.0",
+    "next-auth": "^4.24.13",
+    "nodemailer": "^7.0.13",
     "react": "^18",
     "react-dom": "^18",
+    "react-joyride": "^2.9.3",
     "tailwind-merge": "^2.6.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "twilio": "^5.13.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -30,6 +36,8 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/twilio": "^3.19.2",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.17",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",

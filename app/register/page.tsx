@@ -1,5 +1,7 @@
+"use client";
+
 import { RegisterForm } from "@/components/forms/RegisterForm";
-import { Zap, Globe2 } from "lucide-react";
+import { Zap, Globe } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -29,7 +31,7 @@ export default function RegisterPage() {
             </Suspense>
           </div>
           <div className="bg-slate-50 px-8 py-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
-            <span className="flex items-center"><Globe2 className="w-3.5 h-3.5 mr-1.5 text-blue-500" /> Global Compliance Certified</span>
+            <span className="flex items-center"><Globe className="w-3.5 h-3.5 mr-1.5 text-blue-500" /> Global Compliance Certified</span>
             <span>Tier: Entry Level Node</span>
           </div>
         </div>

@@ -8,7 +8,17 @@ import { successResponse, errorResponse } from '@/lib/apiResponse';
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, role, address, city, state, pincode, ngoRegNo, contactPhone, latitude, longitude } = await req.json();
+    const { name, email, password, role, address, city, state, pincode, ngoRegNo, contactPhone, phone, latitude, longitude } = await req.json();
+
+    let finalPhone = phone || contactPhone;
+
+    // Normalize phone number to E.164
+    if (finalPhone) {
+      finalPhone = finalPhone.replace(/[^\d+]/g, '');
+      if (!finalPhone.startsWith('+')) {
+        finalPhone = `+91${finalPhone}`;
+      }
+    }
 
     if (!name || !email || !password || !role) {
       return errorResponse('Missing required fields', 400);
@@ -30,12 +40,18 @@ export async function POST(req: Request) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user
+    // Create user with full profile and verified status
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       role,
+      phone: finalPhone, // Use consolidated phone variable
+      city,
+      state,
+      address,
+      pincode,
+      phoneVerified: true, // Registration enforces verification
     });
 
     // Create NGO Profile immediately to capture location data
@@ -47,7 +63,7 @@ export async function POST(req: Request) {
         state: state || 'Not specified',
         pincode: pincode || 'Not specified',
         address: address || 'Not specified',
-        contactPhone: contactPhone || 'Not specified',
+        contactPhone: finalPhone, // Use consolidated phone variable
         registrationNumber: ngoRegNo || 'Pending',
         verificationStatus: 'pending',
         latitude: latitude || null,

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/layout/Navbar";
+import AuthProvider from "@/components/providers/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,11 +31,13 @@ export default function RootLayout({
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full animate-float opacity-30" style={{ animationDelay: '1.5s' }} />
         </div>
 
-        <Navbar />
+        <AuthProvider>
+          <Navbar />
 
-        <main className="relative pt-16">
-          {children}
-        </main>
+          <main className="relative pt-16">
+            {children}
+          </main>
+        </AuthProvider>
 
         <footer className="border-t bg-white relative z-10 py-16">
           <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">

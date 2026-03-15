@@ -21,8 +21,8 @@ const CITY_DISTANCES: Record<string, Record<string, number>> = {
 };
 
 function getDistanceBetweenCities(city1: string, city2: string): number {
-  const c1 = city1.toLowerCase().trim();
-  const c2 = city2.toLowerCase().trim();
+  const c1 = (city1 || "").toLowerCase().trim();
+  const c2 = (city2 || "").toLowerCase().trim();
 
   if (c1 === c2) return 0;
 
@@ -105,8 +105,9 @@ export const POST = asyncHandler(async (req: Request) => {
     const profileScore = getProfileCompletenessScore(ngo);
     const ngoCapacity = 50 + profileScore;
 
-    const foodCategory = donation.foodType.toLowerCase().includes('cooked') ? 0 :
-      donation.foodType.toLowerCase().includes('raw') ? 1 : 2;
+    const foodTypeStr = (donation.foodType || "").toLowerCase();
+    const foodCategory = foodTypeStr.includes('cooked') ? 0 :
+      foodTypeStr.includes('raw') ? 1 : 2;
 
     let finalScore = 0;
 

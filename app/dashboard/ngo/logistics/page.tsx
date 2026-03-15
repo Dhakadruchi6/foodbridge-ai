@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { getRequest } from "@/lib/apiClient";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { ActiveDeliveries } from "@/components/ngo/ActiveDeliveries";
+import { DeliveryStatusUpdater } from "@/components/ngo/DeliveryStatusUpdater";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
     ArrowLeft,
     BarChart3,
@@ -17,8 +19,24 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function LogisticsDashboard() {
+function LogisticsDashboardContent() {
     const [stats, setStats] = useState<any>(null);
+    const searchParams = useSearchParams();
+    const deliveryId = searchParams?.get("deliveryId");
+
+    const [deliveryDetails, setDeliveryDetails] = useState<any>(null);
+
+    useEffect(() => {
+        if (deliveryId) {
+            getRequest("/api/donations/my-deliveries")
+                .then(res => {
+                    if (res.success) {
+                        const target = res.data.find((d: any) => d._id === deliveryId);
+                        if (target) setDeliveryDetails(target);
+                    }
+                }).catch(() => { });
+        }
+    }, [deliveryId]);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -106,25 +124,79 @@ export default function LogisticsDashboard() {
                 {/* Main Content Sections */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
 
-                    {/* Active Fleet View */}
+                    {/* Active Fleet View / Single Delivery Detail */}
                     <div className="lg:col-span-2 space-y-8">
-                        <div className="flex items-center justify-between px-2">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
-                                    <Activity className="w-5 h-5" />
+                        {!deliveryId ? (
+                            <>
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                                            <Activity className="w-5 h-5" />
+                                        </div>
+                                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Active Fleet Control</h2>
+                                    </div>
                                 </div>
-                                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Active Fleet Control</h2>
-                            </div>
-                        </div>
+                                <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-12 opacity-5 scale-150 rotate-12 transition-transform duration-1000 group-hover:rotate-0">
+                                        <Zap className="w-64 h-64 text-indigo-400" />
+                                    </div>
+                                    <div className="relative z-10">
+                                        <ActiveDeliveries />
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                                            <Package className="w-5 h-5" />
+                                        </div>
+                                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Mission Control</h2>
+                                    </div>
+                                    <Link href="/dashboard/ngo/logistics" className="text-xs font-black uppercase text-indigo-600 hover:text-indigo-700 tracking-widest bg-indigo-50 px-4 py-2 rounded-xl">
+                                        View All
+                                    </Link>
+                                </div>
 
-                        <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-12 opacity-5 scale-150 rotate-12 transition-transform duration-1000 group-hover:rotate-0">
-                                <Zap className="w-64 h-64 text-indigo-400" />
-                            </div>
-                            <div className="relative z-10">
-                                <ActiveDeliveries />
-                            </div>
-                        </div>
+                                {deliveryDetails ? (
+                                    <div className="p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl overflow-hidden relative group">
+                                        <div className="space-y-8 relative z-10">
+                                            {/* Mission Details */}
+                                            <div className="pb-8 border-b border-slate-100">
+                                                <h3 className="text-3xl font-black text-slate-900 leading-tight">
+                                                    {deliveryDetails.donationId?.foodType || "Surplus Batch"}
+                                                </h3>
+                                                <div className="grid grid-cols-2 gap-6 mt-6">
+                                                    <div className="bg-slate-50 p-4 rounded-2xl">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Payload</span>
+                                                        <span className="text-xl font-black text-slate-800">{deliveryDetails.donationId?.quantity}kg</span>
+                                                    </div>
+                                                    <div className="bg-slate-50 p-4 rounded-2xl">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Extraction Zone</span>
+                                                        <span className="text-base font-bold text-slate-600">{deliveryDetails.donationId?.city}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Status Updater */}
+                                            <div>
+                                                <h4 className="text-lg font-black text-slate-900 mb-4">Update Mission Status</h4>
+                                                <DeliveryStatusUpdater
+                                                    deliveryId={deliveryDetails._id}
+                                                    currentStatus={deliveryDetails.status}
+                                                    onStatusUpdate={(newS) => setDeliveryDetails({ ...deliveryDetails, status: newS })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-[3rem] text-slate-400 font-bold">
+                                        Loading mission data...
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
 
                     {/* Mission History / Insights */}
@@ -173,6 +245,15 @@ export default function LogisticsDashboard() {
         </ProtectedRoute>
     );
 }
+
+export default function LogisticsDashboard() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading logistics module...</div>}>
+            <LogisticsDashboardContent />
+        </Suspense>
+    );
+}
+
 
 const HistoryItem = ({ title, desc, time }: { title: string; desc: string; time: string }) => (
     <div className="space-y-2 border-l-2 border-slate-200 pl-6 relative">

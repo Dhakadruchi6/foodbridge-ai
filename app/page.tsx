@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -157,25 +157,19 @@ export default function Home() {
         <div className="flex whitespace-nowrap animate-[marquee_25s_linear_infinite] opacity-50">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center space-x-12 mx-6 text-white text-xl font-black tracking-widest uppercase">
-              <span>San Francisco</span>
-              <span className="text-primary">•</span>
-              <span>New York</span>
-              <span className="text-primary">•</span>
-              <span>London</span>
-              <span className="text-primary">•</span>
-              <span>Toronto</span>
-              <span className="text-primary">•</span>
-              <span>Sydney</span>
-              <span className="text-primary">•</span>
-              <span>Tokyo</span>
-              <span className="text-primary">•</span>
+              {(globalStats?.activeCities?.length > 0 ? globalStats.activeCities : ["San Francisco", "Hyderabad", "London", "New York", "Singapore", "Sydney"]).map((city: string, idx: number) => (
+                <Fragment key={idx}>
+                  <span>{city}</span>
+                  <span className="text-primary">•</span>
+                </Fragment>
+              ))}
             </div>
           ))}
         </div>
       </div>
 
       {/* Feature Section */}
-      <section id="features" className="w-full py-32 px-6">
+      <section id="technology" className="w-full py-32 px-6">
         <div className="container max-w-7xl mx-auto">
           <div className="text-center space-y-6 mb-24 max-w-3xl mx-auto stagger-fade-up">
             <span className="text-xs font-black text-primary uppercase tracking-widest bg-primary/10 px-4 py-2 rounded-full">The Technology</span>
@@ -230,11 +224,11 @@ export default function Home() {
               </p>
 
               <div className="grid grid-cols-2 gap-6 pt-4">
-                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm shadow-inner">
                   <p className="text-4xl font-black text-white mb-1">{globalStats?.donorCount || 0}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Active Donors</p>
                 </div>
-                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm shadow-inner">
                   <p className="text-4xl font-black text-white mb-1">{globalStats?.ngoCount || 0}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Verified NGOs</p>
                 </div>
@@ -247,39 +241,42 @@ export default function Home() {
                 <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
 
                 {/* Stylized Network Nodes */}
-                <div className="space-y-6 relative z-10">
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-right duration-500">
+                <div className="space-y-6 relative z-10 max-w-[90%] mx-auto">
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-right duration-500 hover:bg-white/10 transition-colors">
                     <div className="flex items-center space-x-3">
                       <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
                       <span className="text-xs font-black text-white">Global Relief Fdn</span>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500">PHAGWARA, IN</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Phagwara, IN</span>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-white/10 rounded-2xl border border-white/5 ml-8 animate-in slide-in-from-right delay-150 duration-500">
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-right delay-150 duration-500 hover:bg-white/10 transition-colors">
                     <div className="flex items-center space-x-3">
                       <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" />
                       <span className="text-xs font-black text-white">Urban Harvest HQ</span>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500">JALANDHAR, IN</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Jalandhar, IN</span>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-right delay-300 duration-500">
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-right delay-300 duration-500 hover:bg-white/10 transition-colors">
                     <div className="flex items-center space-x-3">
                       <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_#2563eb]" />
                       <span className="text-xs font-black text-white">Grand Plaza Hotel</span>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500">DONOR • ONLINE</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter text-right">NGO • ONLINE</span>
                   </div>
                 </div>
 
-                <div className="absolute bottom-8 left-8 right-8 p-6 bg-primary/20 rounded-[2rem] border border-primary/30 backdrop-blur-md">
+                <Link href="/register" className="absolute bottom-8 left-8 right-8 p-6 bg-primary/20 rounded-[2rem] border border-primary/30 backdrop-blur-md hover:bg-primary/30 transition-all group/ops">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <Globe2 className="w-5 h-5 text-primary" />
+                      <Globe2 className="w-5 h-5 text-primary group-hover/ops:rotate-180 transition-transform duration-1000" />
                       <span className="text-sm font-black text-white">Live Operations</span>
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">Scanning Grid...</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">Scanning Grid...</span>
+                      <ArrowRight className="w-3 h-3 text-primary group-hover/ops:translate-x-1 transition-transform" />
+                    </div>
                   </div>
-                </div>
+                </Link>
               </div>
             </div>
           </div>
@@ -347,7 +344,7 @@ export default function Home() {
       </section>
 
       <footer className="w-full py-12 border-t border-slate-200 bg-white text-center">
-        <p className="text-slate-500 font-bold text-sm">© 2026 FoodBridge AI. Developed by Antigravity.</p>
+        <p className="text-slate-500 font-bold text-sm">© 2026 FoodBridge AI. Developed by Merugu Srikar.</p>
       </footer>
 
       <style dangerouslySetInnerHTML={{
@@ -371,9 +368,9 @@ const FeatureCard = ({ icon, title, description, colorClass, glowClass }: { icon
         <h3 className="text-2xl font-black text-slate-800 tracking-tight">{title}</h3>
         <p className="text-slate-600 font-medium leading-relaxed">{description}</p>
       </div>
-      <div className="pt-4 border-t border-slate-100 flex items-center text-sm font-black text-slate-400 group-hover:text-slate-900 transition-colors cursor-pointer">
+      <Link href="/register" className="pt-4 border-t border-slate-100 flex items-center text-sm font-black text-slate-400 group-hover:text-slate-900 transition-colors cursor-pointer">
         Explore Capabilities <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
-      </div>
+      </Link>
     </CardContent>
   </Card>
 );

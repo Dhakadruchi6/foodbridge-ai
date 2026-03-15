@@ -17,8 +17,15 @@ export const GET = asyncHandler(async (req: Request) => {
     await dbConnect();
 
     const deliveries = await Delivery.find({ ngoId })
-        .populate('donationId', 'foodType quantity pickupAddress city status expiryTime')
+        .populate({
+            path: 'donationId',
+            select: 'foodType quantity pickupAddress city status expiryTime',
+            match: { status: { $ne: 'flagged' } }
+        })
         .sort({ createdAt: -1 });
 
-    return successResponse(deliveries, 'Your active deliveries retrieved successfully');
+    // Filter out deliveries where the donation was flagged (resulting in null donationId due to match clause)
+    const validDeliveries = deliveries.filter(d => d.donationId !== null);
+
+    return successResponse(validDeliveries, 'Your active deliveries retrieved successfully');
 });

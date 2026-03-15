@@ -5,6 +5,8 @@ import { getRequest, postRequest } from "@/lib/apiClient";
 import { AvailableDonations } from "@/components/ngo/AvailableDonations";
 import { ActiveDeliveries } from "@/components/ngo/ActiveDeliveries";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
+import { OnboardingTour } from "@/components/shared/OnboardingTour";
+import { NotificationBell } from "@/components/donor/NotificationBell";
 import Link from "next/link";
 import {
   Search,
@@ -28,6 +30,7 @@ import { cn } from "@/lib/utils";
 
 export default function NGODashboard() {
   const [stats, setStats] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
   const [scanRadius, setScanRadius] = useState(25);
   const [syncing, setSyncing] = useState(false);
 
@@ -58,24 +61,60 @@ export default function NGODashboard() {
         console.error("Failed to fetch NGO stats", err);
       }
     };
+    const fetchProfile = async () => {
+      try {
+        const result = await getRequest("/api/user/profile");
+        if (result.success) setUser(result.data);
+      } catch (err) {
+        console.error("Failed to fetch user profile", err);
+      }
+    };
     fetchStats();
+    fetchProfile();
   }, []);
+
+  const handleTourComplete = async () => {
+    try {
+      await getRequest("/api/user/tour-complete");
+      setUser((prev: any) => ({ ...prev, isFirstLogin: false }));
+    } catch (err) {
+      console.error("Failed to mark tour as complete", err);
+    }
+  };
 
   return (
     <ProtectedRoute allowedRoles={["ngo"]}>
       <div className="min-h-screen saas-gradient">
+        {user && (
+          <OnboardingTour
+            userRole="ngo"
+            isFirstLogin={user.isFirstLogin}
+            onComplete={handleTourComplete}
+          />
+        )}
         <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
 
           {/* SaaS Navigation - Breadcrumbs */}
-          <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
-            <Link href="/" className="hover:text-primary transition-colors">Platform</Link>
-            <ChevronRight className="w-3 h-3 opacity-50" />
-            <span className="text-slate-900">Intelligence Hub</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+              <Link href="/" className="hover:text-primary transition-colors">Platform</Link>
+              <ChevronRight className="w-3 h-3 opacity-50" />
+              <span className="text-slate-900">Intelligence Hub</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Link id="tour-profile" href="/profile" className="flex items-center space-x-1.5 h-10 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-primary hover:border-primary/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
+                <Settings className="w-4 h-4" />
+                <span>My Profile</span>
+              </Link>
+              <div id="tour-notifications">
+                <NotificationBell />
+              </div>
+            </div>
           </div>
 
           {/* Dynamic Header Section */}
           <div className="relative group overflow-hidden bg-white border border-slate-200/60 rounded-2xl p-10 shadow-sm">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000">
+            <div id="tour-nearby-map" className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000">
               <Radar className="w-64 h-64 text-slate-900" />
             </div>
 
@@ -162,7 +201,7 @@ export default function NGODashboard() {
                 </Link>
               </div>
 
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div id="tour-available-list" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <AvailableDonations />
               </div>
             </div>

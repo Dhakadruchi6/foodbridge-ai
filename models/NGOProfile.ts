@@ -43,6 +43,7 @@ const NGOProfileSchema = new Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending',
   },
+  description: String,
 }, {
   timestamps: true,
 });

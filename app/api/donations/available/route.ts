@@ -20,10 +20,14 @@ export const GET = asyncHandler(async (req: Request) => {
 
   await dbConnect();
   const allDonations = await getDonations({ status: 'pending' });
+  const now = new Date();
+
+  // Filter out expired donations at the database/API level
+  const validDonations = allDonations.filter((d: any) => new Date(d.expiryTime) > now);
 
   // Admins see everything
   if (userRole === 'admin') {
-    return successResponse(allDonations, 'All available donations retrieved (Admin)');
+    return successResponse(validDonations, 'All available donations retrieved (Admin)');
   }
 
   // NGO-specific filtering
@@ -32,7 +36,7 @@ export const GET = asyncHandler(async (req: Request) => {
     return errorResponse('NGO Profile not found', 404);
   }
 
-  const filteredDonations = allDonations.map((donation: any) => {
+  const filteredDonations = validDonations.map((donation: any) => {
     let distance = null;
     if (ngoProfile.latitude && ngoProfile.longitude && donation.latitude && donation.longitude) {
       distance = getHaversineDistance(
@@ -50,7 +54,7 @@ export const GET = asyncHandler(async (req: Request) => {
     }
 
     // 2. City-based Fallback (for older data or if browser geolocation fails)
-    return ngoProfile.city.toLowerCase() === donation.city.toLowerCase();
+    return (ngoProfile.city || "").toLowerCase() === (donation.city || "").toLowerCase();
   });
 
   return successResponse(filteredDonations, `Donations within 100km or same city retrieved (${filteredDonations.length} found)`);

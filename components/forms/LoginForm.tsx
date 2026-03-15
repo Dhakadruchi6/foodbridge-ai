@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { signIn, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveToken } from "@/lib/auth";
@@ -33,9 +34,18 @@ export const LoginForm = () => {
     setLoading(true);
     setError("");
 
+    if (!formData.email || !formData.password) {
+      setError("Please fill in all fields.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await postRequest("/api/auth/login", formData);
       if (result.success || result.token) {
+        // Clear any stale Google OAuth session to prevent it from overriding the role
+        await signOut({ redirect: false }).catch(() => { });
+
         // Use the unified saveToken helper (handles Cookies + LocalStorage)
         saveToken(result.token);
         localStorage.setItem("role", result.role);
@@ -73,7 +83,7 @@ export const LoginForm = () => {
             <Input
               type="email"
               placeholder="name@company.com"
-              className="h-14 rounded-2xl bg-gray-50/50 border-gray-200/60 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-bold"
+              className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black text-slate-900"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
@@ -98,7 +108,7 @@ export const LoginForm = () => {
               <Input
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                className="h-14 rounded-2xl bg-gray-50/50 border-gray-200/60 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-bold pr-12"
+                className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black pr-12 text-slate-900"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
@@ -117,7 +127,7 @@ export const LoginForm = () => {
           </div>
         )}
 
-        <div className="form-item pt-2">
+        <div className="form-item pt-2 space-y-6">
           <Button
             type="submit"
             disabled={loading}
@@ -132,11 +142,30 @@ export const LoginForm = () => {
               </>
             )}
           </Button>
+
+          <div className="flex items-center space-x-4">
+            <div className="h-px bg-slate-200 flex-1" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">OR</span>
+            <div className="h-px bg-slate-200 flex-1" />
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => signIn("google", { callbackUrl: "/complete-profile" })}
+            className="w-full h-16 rounded-[1.25rem] bg-white border-2 border-slate-900 text-slate-900 text-lg font-black hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-lg"
+          >
+            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+            <span>Continue with Google</span>
+          </Button>
         </div>
 
-        <div className="form-item flex items-center justify-center space-x-2 text-sm font-bold text-gray-600">
-          <span>Need a partner account?</span>
-          <a href="/register" className="text-primary hover:underline underline-offset-4">Register here</a>
+        <div className="form-item flex flex-col items-center space-y-4 text-sm font-bold text-gray-600">
+          <div>
+            Need a partner account? <a href="/register" className="text-primary hover:underline underline-offset-4 font-black">Register here</a>
+          </div>
+          <a href="/forgot-password" className="text-slate-400 hover:text-primary transition-colors text-xs uppercase tracking-widest font-black">
+            Trouble logging in? Reset Keys
+          </a>
         </div>
       </form>
     </div>

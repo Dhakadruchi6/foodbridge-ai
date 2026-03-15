@@ -17,7 +17,14 @@ import {
   Timer,
   Weight,
   ExternalLink,
-  User
+  User,
+  PhoneCall,
+  X,
+  ShieldCheck,
+  Mail,
+  ThumbsUp,
+  AlertTriangle,
+  ZoomIn
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,7 +33,9 @@ interface Donation {
   _id: string;
   foodType: string;
   quantity: number | string;
+  preparedTime?: string;
   expiryTime: string;
+  foodImage?: string;
   pickupAddress: string;
   city: string;
   status: string;
@@ -42,13 +51,22 @@ export const AvailableDonations = () => {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
+  const [acceptedMission, setAcceptedMission] = useState<Donation | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<string>("pending");
+
 
   const fetchAvailable = async () => {
     try {
       const result = await getRequest("/api/donations/available");
       if (result.success) {
-        setDonations(result.data.sort((a: any, b: any) => (b.prioritizationRank || 0) - (a.prioritizationRank || 0)));
+        setDonations(result.data.sort((a: any, b: any) => {
+          const timeA = new Date(a.expiryTime).getTime();
+          const timeB = new Date(b.expiryTime).getTime();
+          if (timeA !== timeB) return timeA - timeB;
+          return (b.prioritizationRank || 0) - (a.prioritizationRank || 0);
+        }));
       }
     } catch (err: any) {
       setError(err.message || "Failed to load donations");
@@ -59,14 +77,30 @@ export const AvailableDonations = () => {
 
   useEffect(() => {
     fetchAvailable();
+    // Fetch NGO verification status
+    getRequest("/api/user/profile").then(res => {
+      if (res.success) setVerificationStatus(res.data.verificationStatus || "pending");
+    }).catch(() => { });
+
+    // Auto-refresh expiry feed every minute to hide expired ones locally
+    const interval = setInterval(() => {
+      setDonations(prev => prev.filter(d => new Date(d.expiryTime) > new Date()));
+    }, 60000);
+    return () => clearInterval(interval);
   }, []);
 
+
   const handleAccept = async (donationId: string) => {
+    const donationToAccept = donations.find(d => d._id === donationId);
     setProcessingId(donationId);
     setError("");
     try {
       const result = await postRequest(`/api/donations/accept`, { donationId });
       if (result.success) {
+        // Show the mission active panel BEFORE refreshing the list
+        if (donationToAccept) {
+          setAcceptedMission(donationToAccept);
+        }
         fetchAvailable();
       }
     } catch (err: any) {
@@ -76,49 +110,222 @@ export const AvailableDonations = () => {
     }
   };
 
+  const handleDismissMission = () => {
+    setAcceptedMission(null);
+  };
+
+  const handleReject = (id: string) => {
+    setDismissedIds(prev => new Set(prev).add(id));
+  };
+
+  const handleReport = async (id: string) => {
+    try {
+      // Send to admin moderation queue
+      const res = await postRequest('/api/admin/reports', {
+        donationId: id,
+        reason: 'not_food' // Defaulting to generic issue for now
+      });
+
+      if (res.success) {
+        // Visually remove it
+        handleReject(id);
+      } else {
+        setError(res.error || "Failed to submit report.");
+      }
+    } catch (err: any) {
+      console.error("Failed to report", err);
+      setError(err.message || "Failed to submit report.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-64 bg-white border border-slate-100 rounded-xl animate-pulse" />
+          <div key={i} className="h-[450px] bg-white border border-slate-100 rounded-xl animate-pulse" />
         ))}
       </div>
     );
   }
 
-  if (donations.length === 0) {
-    return (
-      <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-20 text-center mt-6">
-        <Navigation className="w-10 h-10 text-slate-300 mx-auto mb-4" />
-        <h3 className="text-lg font-black text-slate-900">No Nearby Batches</h3>
-        <p className="text-slate-500 text-sm font-medium mt-1">We'll alert you when surplus matches your operational zone.</p>
-      </div>
-    );
-  }
+  const visibleDonations = donations.filter(d => !dismissedIds.has(d._id));
 
   return (
     <div className="space-y-6">
+      {/* ✅ Mission Active Panel (shown immediately after accept) */}
+      {acceptedMission && (
+        <div className="relative bg-emerald-950 text-white rounded-2xl p-8 overflow-hidden border border-emerald-800/40 shadow-2xl animate-in slide-in-from-top-4 duration-400">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <ShieldCheck className="w-48 h-48" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-start justify-between mb-6">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Mission Active</span>
+                </div>
+                <h3 className="text-2xl font-black tracking-tight">
+                  {acceptedMission.foodType} — Pickup Confirmed
+                </h3>
+                <p className="text-emerald-300/70 text-sm font-medium">
+                  Head to the donor's location now to collect the batch.
+                </p>
+              </div>
+              <button
+                onClick={handleDismissMission}
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Donor Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
+                <p className="text-[9px] font-black text-emerald-400/70 uppercase tracking-widest">Donor Contact</p>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-sm font-black">
+                    {(acceptedMission.donorId?.name || "?").substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-black text-white">{acceptedMission.donorId?.name || "Anonymous Donor"}</p>
+                    <p className="text-emerald-300/70 text-xs font-medium flex items-center mt-0.5">
+                      <Mail className="w-3 h-3 mr-1" />
+                      {acceptedMission.donorId?.email || "No email on file"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
+                <p className="text-[9px] font-black text-emerald-400/70 uppercase tracking-widest">Pickup Location</p>
+                <div className="flex items-start space-x-2">
+                  <MapPin className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-white text-sm leading-tight">
+                      {acceptedMission.pickupAddress || acceptedMission.city || "Location not specified"}
+                    </p>
+                    {acceptedMission.city && acceptedMission.pickupAddress && (
+                      <p className="text-emerald-300/60 text-xs mt-0.5">{acceptedMission.city}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Batch Details */}
+            <div className="flex items-center space-x-4 mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+              <div className="text-center px-4 border-r border-white/10">
+                <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest">Payload</p>
+                <p className="text-xl font-black">{acceptedMission.quantity}kg</p>
+              </div>
+              <div className="text-center px-4 border-r border-white/10">
+                <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest">Priority</p>
+                <p className="text-xl font-black text-amber-400">{Math.round(acceptedMission.prioritizationRank || 0)}/100</p>
+              </div>
+              <div className="text-center px-4">
+                <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest">Food Type</p>
+                <p className="text-sm font-black">{acceptedMission.foodType}</p>
+              </div>
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {acceptedMission.latitude && acceptedMission.longitude ? (
+                <>
+                  <a
+                    href={`https://www.google.com/maps?q=${acceptedMission.latitude},${acceptedMission.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 h-12 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest flex items-center justify-center space-x-2 transition-all border border-emerald-600/50"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Static Location</span>
+                  </a>
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${acceptedMission.latitude},${acceptedMission.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-black uppercase tracking-widest flex items-center justify-center space-x-2 transition-all border border-white/20"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    <span>Directions</span>
+                  </a>
+                </>
+              ) : (
+                <div className="flex-1 h-12 rounded-xl bg-white/5 text-white/40 text-[11px] font-black uppercase tracking-widest flex items-center justify-center space-x-2 border border-white/10">
+                  <MapPin className="w-4 h-4" />
+                  <span>No GPS — Use address above</span>
+                </div>
+              )}
+              {/* 🔴 LIVE LOCATION TRACKER */}
+              <a
+                href={`/track/${acceptedMission._id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full h-12 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-[11px] font-black uppercase tracking-widest flex items-center justify-center space-x-2 transition-all shadow-lg shadow-rose-900/40"
+              >
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span>Track Donor Live Location</span>
+              </a>
+              <button
+                onClick={handleDismissMission}
+                className="sm:w-auto px-6 h-12 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 text-[11px] font-black uppercase tracking-widest flex items-center justify-center space-x-2 transition-all border border-white/10"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Got it</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="p-3 bg-red-50 text-red-600 rounded-lg border border-red-100 text-xs font-bold flex items-center">
           <Info className="w-4 h-4 mr-2" />
           {error}
         </div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {donations.map((donation) => (
-          <AvailableCard
-            key={donation._id}
-            donation={donation}
-            onAccept={handleAccept}
-            isProcessing={processingId === donation._id}
-          />
-        ))}
-      </div>
+      {visibleDonations.length === 0 && !acceptedMission ? (
+        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-20 text-center">
+          <Navigation className="w-10 h-10 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-black text-slate-900">No Nearby Batches</h3>
+          <p className="text-slate-500 text-sm font-medium mt-1">We'll alert you when surplus matches your operational zone or wait for expiry cycles to complete.</p>
+        </div>
+      ) : visibleDonations.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+          {visibleDonations.map((donation) => (
+            <AvailableCard
+              key={donation._id}
+              donation={donation}
+              onAccept={handleAccept}
+              onReject={() => handleReject(donation._id)}
+              onReport={() => handleReport(donation._id)}
+              isProcessing={processingId === donation._id}
+              verificationStatus={verificationStatus}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 };
 
-const AvailableCard = ({ donation, onAccept, isProcessing }: { donation: Donation; onAccept: (id: string) => void; isProcessing: boolean }) => {
+const AvailableCard = ({
+  donation,
+  onAccept,
+  onReject,
+  onReport,
+  isProcessing,
+  verificationStatus
+}: {
+  donation: Donation;
+  onAccept: (id: string) => void;
+  onReject: () => void;
+  onReport: () => void;
+  isProcessing: boolean;
+  verificationStatus: string
+}) => {
   const urgencyScore = Math.round(donation.prioritizationRank || 65);
 
   const getUrgencyStyles = (score: number) => {
@@ -133,22 +340,34 @@ const AvailableCard = ({ donation, onAccept, isProcessing }: { donation: Donatio
     const date = new Date(dateStr);
     const diff = date.getTime() - Date.now();
     const hours = Math.floor(diff / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     if (hours < 0) return "Expired";
-    if (hours < 1) return "< 1 hour left";
-    return `${hours} hours left`;
+    if (hours === 0 && mins > 0) return `${mins} mins left`;
+    return `${hours}h ${mins}m left`;
   };
 
   return (
-    <div className="premium-card rounded-xl flex flex-col h-full group overflow-hidden bg-white">
-      {/* Upper Section */}
-      <div className="p-5 flex-1 space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors">
-            <Utensils className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
+    <div className="premium-card rounded-2xl flex flex-col h-full group overflow-hidden bg-white hover:border-slate-300 transition-all shadow-sm hover:shadow-xl">
+
+      {/* Visual Image Header */}
+      <div className="relative h-48 w-full bg-slate-100 overflow-hidden">
+        {donation.foodImage ? (
+          <img
+            src={donation.foodImage}
+            alt="Donation Verification"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50">
+            <Utensils className="w-10 h-10 mb-2 opacity-30" />
+            <span className="text-[10px] uppercase font-black tracking-widest">No Visual Auth</span>
           </div>
+        )}
+
+        <div className="absolute top-4 left-4 flex gap-2">
           <div className={cn(
-            "px-2.5 py-1 rounded-md border text-[10px] font-black uppercase tracking-wider flex items-center",
+            "px-2.5 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider flex items-center shadow-lg backdrop-blur-md bg-white/90",
             getUrgencyStyles(urgencyScore)
           )}>
             <Sparkles className="w-3 h-3 mr-1.5" />
@@ -156,21 +375,18 @@ const AvailableCard = ({ donation, onAccept, isProcessing }: { donation: Donatio
           </div>
         </div>
 
-        <div>
-          <h4 className="text-xl font-black text-slate-900 leading-tight truncate">
-            {donation.foodType || "Surplus Batch"}
-          </h4>
-          <div className="flex flex-col space-y-1 mt-1">
-            <div className="flex items-center text-[10px] font-black text-primary uppercase tracking-widest">
-              <User className="w-3.5 h-3.5 mr-1.5" />
-              <span>{donation.donorId?.name || "Anonymous Donor"}</span>
-            </div>
-            <div className="flex items-center text-[11px] font-bold text-slate-400">
-              <MapPin className="w-3.5 h-3.5 mr-1 text-slate-300" />
+        {/* Overlay gradient for readability */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-end p-5">
+          <div className="text-white w-full">
+            <h4 className="text-xl font-black leading-tight truncate">
+              {donation.foodType || "Surplus Batch"}
+            </h4>
+            <div className="flex items-center text-[11px] font-bold text-white/80 mt-1">
+              <MapPin className="w-3.5 h-3.5 mr-1" />
               <span className="truncate">
                 {donation.city ? formatCity(donation.city) : "Zone Restricted"}
                 {donation.distance !== null && donation.distance !== undefined && (
-                  <span className="ml-1 text-primary font-black">
+                  <span className="ml-1 text-emerald-400 font-black">
                     • {donation.distance}km away
                   </span>
                 )}
@@ -178,73 +394,101 @@ const AvailableCard = ({ donation, onAccept, isProcessing }: { donation: Donatio
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Details Section */}
+      <div className="p-5 flex-1 flex flex-col space-y-4">
 
         {donation.description && (
-          <p className="text-[11px] font-medium text-slate-500 line-clamp-2 leading-relaxed italic">
+          <p className="text-[12px] font-medium text-slate-600 line-clamp-2 leading-relaxed">
             "{donation.description}"
           </p>
         )}
 
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-100/50">
-            <div className="flex items-center text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-              <Weight className="w-3 h-3 mr-1.5" /> Payload
+        {/* Timers */}
+        <div className="grid grid-cols-2 gap-3 mt-auto">
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100/50">
+            <div className="flex items-center text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+              <Clock className="w-3 h-3 mr-1" /> Prepared
             </div>
-            <p className="text-sm font-black text-slate-700">{donation.quantity}kg</p>
+            <p className="text-[11px] font-bold text-slate-700 truncate">
+              {donation.preparedTime
+                ? new Date(donation.preparedTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : "Not specified"}
+            </p>
           </div>
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-100/50">
-            <div className="flex items-center text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
-              <Timer className="w-3 h-3 mr-1.5" /> Decay Lock
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100/50">
+            <div className="flex items-center justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+              <div className="flex items-center">
+                <Timer className="w-3 h-3 mr-1" /> Expires
+              </div>
             </div>
             <p className={cn(
-              "text-sm font-black",
-              urgencyScore >= 80 ? "text-rose-600" : "text-slate-700"
+              "text-xs font-black truncate",
+              urgencyScore >= 80 ? "text-rose-600" : "text-emerald-600"
             )}>
               {getExpiryDisplay(donation.expiryTime)}
             </p>
           </div>
         </div>
+
+        {/* Donor Footer info */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+          <div className="flex items-center text-[10px] font-bold text-slate-500">
+            <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-400 flex items-center justify-center mr-2">
+              <User className="w-3 h-3" />
+            </div>
+            <span className="truncate max-w-[120px]">{donation.donorId?.name || "Anonymous"}</span>
+          </div>
+          <div className="flex items-center text-[10px] font-black text-slate-700">
+            {donation.quantity}kg Payload
+          </div>
+        </div>
       </div>
 
-      {/* Navigation & Action Footer */}
-      <div className="px-5 py-4 bg-slate-50/50 border-t border-slate-100 mt-auto space-y-3">
-        {donation.latitude && donation.longitude && (
-          <div className="flex gap-2">
-            <a
-              href={`https://www.google.com/maps?q=${donation.latitude},${donation.longitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 h-10 rounded-lg text-[10px] font-black uppercase tracking-wider bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center space-x-2"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Live Location</span>
-            </a>
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${donation.latitude},${donation.longitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 h-10 rounded-lg text-[10px] font-black uppercase tracking-wider bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center space-x-2"
-            >
-              <Navigation className="w-3.5 h-3.5" />
-              <span>Navigate</span>
-            </a>
+      {/* Action Decision Engine */}
+      <div className="p-2 gap-2 flex bg-slate-50 border-t border-slate-100">
+        {verificationStatus !== "approved" ? (
+          <div className="w-full h-11 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center space-x-2 text-amber-700 m-2">
+            <ShieldCheck className="w-4 h-4" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Account under verification</span>
           </div>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              onClick={onReport}
+              title="Report Fake Donation"
+              className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-400 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50 p-0"
+            >
+              <ThumbsUp className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onReject}
+              title="Hide this donation"
+              className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 p-0"
+            >
+              <AlertTriangle className="w-4 h-4" />
+            </Button>
+            <Button
+              onClick={() => onAccept(donation._id)}
+              disabled={isProcessing}
+              className="flex-1 h-12 rounded-xl text-xs font-black shadow-[0_4px_14px_0_rgba(16,185,129,0.2)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 transition-all bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center space-x-2"
+            >
+              {isProcessing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <span>Accept Mission</span>
+                  <ChevronRight className="w-4 h-4" />
+                </>
+              )}
+            </Button>
+          </>
         )}
-        <Button
-          onClick={() => onAccept(donation._id)}
-          disabled={isProcessing}
-          className="w-full h-11 rounded-lg text-sm font-black shadow-sm hover:shadow-md transition-all bg-primary hover:bg-primary/90 flex items-center justify-center space-x-2"
-        >
-          {isProcessing ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              <span>Accept Mission</span>
-              <ChevronRight className="w-4 h-4" />
-            </>
-          )}
-        </Button>
       </div>
     </div>
   );
 };
+
