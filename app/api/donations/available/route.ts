@@ -5,7 +5,7 @@ import { getDonations } from '@/services/donationService';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 import NGOProfile from '@/models/NGOProfile';
-import { getHaversineDistance } from '@/lib/utils';
+import { calculateHaversineDistance } from '@/lib/utils';
 import dbConnect from '@/lib/db';
 
 export const GET = asyncHandler(async (req: Request) => {
@@ -45,7 +45,7 @@ export const GET = asyncHandler(async (req: Request) => {
   const filteredDonations = validDonations.map((donation: any) => {
     let distance = null;
     if (ngoProfile.latitude && ngoProfile.longitude && donation.latitude && donation.longitude) {
-      distance = getHaversineDistance(
+      distance = calculateHaversineDistance(
         ngoProfile.latitude,
         ngoProfile.longitude,
         donation.latitude,
