@@ -1,15 +1,61 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import { allowRoles } from '@/middleware/roleMiddleware';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 
-// Simulated AI Image Classification Model
-// In an enterprise environment, this would call AWS Rekognition, Google Cloud Vision, or a custom PyTorch model.
-const MOCK_AI_CONFIDENCE = {
-    FOOD_THRESHOLD: 0.85,
-    DETERMINISTIC_PASS_PAGES: ['jpg', 'png', 'jpeg', 'webp'],
-};
+// --- Feature 5: Allowed Food Categories ---
+const FOOD_CATEGORIES = [
+    'rice', 'vegetables', 'bread', 'fruits', 'pizza', 'burger', 'salad',
+    'pasta', 'noodles', 'curry', 'soup', 'sandwich', 'cake', 'cookies',
+    'biryani', 'dosa', 'idli', 'roti', 'dal', 'paneer', 'chapati',
+    'samosa', 'pakora', 'khichdi', 'pulao', 'paratha', 'chole',
+    'stew', 'chowmein', 'fried_rice', 'cereal', 'omelette', 'eggs',
+    'chicken', 'fish', 'meat', 'milk', 'yogurt', 'cheese',
+    'juice', 'cooked_meal', 'fresh_produce', 'snacks', 'dessert',
+    'food', 'perishable', 'organic', 'prepared_meal',
+];
+
+// Non-food categories to reject
+const NON_FOOD_CATEGORIES = [
+    'toy', 'doll', 'gadget', 'plastic', 'electronic', 'phone', 'computer',
+    'shoe', 'clothing', 'vehicle', 'furniture', 'animal', 'person', 'selfie',
+    'screenshot', 'meme', 'text', 'document', 'logo', 'icon', 'abstract',
+];
+
+// --- Feature 4: AI Food Classification ---
+function simulateAIClassification(imageUrl: string): { category: string; confidence: number; isFood: boolean } {
+    // In production, this would call Google Cloud Vision, AWS Rekognition, or a Food-101 model
+    const lowerUrl = imageUrl.toLowerCase();
+
+    // Check for explicit non-food keywords in the URL/filename
+    const matchedNonFood = NON_FOOD_CATEGORIES.find(cat => lowerUrl.includes(cat));
+    if (matchedNonFood) {
+        return {
+            category: matchedNonFood,
+            confidence: 0.15 + Math.random() * 0.25, // 15-40%
+            isFood: false,
+        };
+    }
+
+    // Check for valid image extensions
+    const ext = imageUrl.split('.').pop()?.split('?')[0]?.toLowerCase();
+    const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+    if (!ext || !validExtensions.includes(ext)) {
+        return {
+            category: 'unknown_format',
+            confidence: 0.10,
+            isFood: false,
+        };
+    }
+
+    // Simulate food detection with a random food category
+    const randomCategory = FOOD_CATEGORIES[Math.floor(Math.random() * FOOD_CATEGORIES.length)];
+    return {
+        category: randomCategory,
+        confidence: 0.78 + Math.random() * 0.21, // 78-99%
+        isFood: true,
+    };
+}
 
 export const POST = asyncHandler(async (req: Request) => {
     const authGate = await authMiddleware(req);
@@ -21,44 +67,35 @@ export const POST = asyncHandler(async (req: Request) => {
     const { imageUrl } = await req.json();
 
     if (!imageUrl) {
-        return errorResponse('Image URL payload is required for AI detection', 400);
+        return errorResponse('Image URL is required for AI detection', 400);
     }
 
     try {
-        console.log(`[AI-VISION-ENGINE] Scanning asset from node storage: ${imageUrl}...`);
+        console.log(`[AI-VISION] Scanning: ${imageUrl}`);
 
-        // Simulating ML processing delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Simulate ML processing delay
+        await new Promise(resolve => setTimeout(resolve, 1200));
 
-        // Basic fake heuristic for the prototype:
-        // We assume valid uploads pass. If the user somehow uploaded a .txt or 
-        // the filename contains "fake"/"test_fail", we reject it.
-        const ext = imageUrl.split('.').pop()?.toLowerCase();
-        const isStandardImageFormat = ext && MOCK_AI_CONFIDENCE.DETERMINISTIC_PASS_PAGES.includes(ext);
-        const forbiddenKeywords = ['fake', 'doll', 'toy', 'gadget', 'plastic', 'electronic', 'test_fail'];
-        const hasForbiddenKeyword = forbiddenKeywords.some(kw => imageUrl.toLowerCase().includes(kw));
+        const result = simulateAIClassification(imageUrl);
 
-        let foodDetected = isStandardImageFormat && !hasForbiddenKeyword;
+        console.log(`[AI-VISION] Category: ${result.category} | Confidence: ${(result.confidence * 100).toFixed(1)}% | IsFood: ${result.isFood}`);
 
-        // Simulate a confidence score
-        const confidenceScore = foodDetected
-            ? 0.88 + (Math.random() * 0.11) // 88% - 99% confident it's food
-            : 0.10 + (Math.random() * 0.30); // 10% - 40% confident
-
-        console.log(`[AI-VISION-ENGINE] Scan Complete. Score: ${confidenceScore.toFixed(3)} | Threshold criteria met: ${foodDetected}`);
-
-        if (foodDetected) {
-            return successResponse({
-                foodDetected: true,
-                confidence: confidenceScore,
-                classification: "Food/Perishable"
-            }, 'AI detected organic food assets successfully.');
-        } else {
-            return errorResponse('Invalid image detected. Please upload a valid food image.', 400);
+        // --- Feature 4: Enforce 75% confidence threshold ---
+        if (!result.isFood || result.confidence < 0.75) {
+            return errorResponse(
+                `AI rejected: Detected "${result.category}" with ${(result.confidence * 100).toFixed(0)}% confidence. Only food images with ≥75% confidence are accepted.`,
+                400
+            );
         }
 
+        return successResponse({
+            foodDetected: true,
+            confidence: result.confidence,
+            classification: result.category,
+        }, `AI verified: "${result.category}" detected with ${(result.confidence * 100).toFixed(0)}% confidence.`);
+
     } catch (error) {
-        console.error("[AI-VISION-ENGINE] Processing encountered an error:", error);
-        return errorResponse('AI Vision Node offline. Please try again.', 500);
+        console.error("[AI-VISION] Error:", error);
+        return errorResponse('AI Vision Engine offline. Please try again.', 500);
     }
 });

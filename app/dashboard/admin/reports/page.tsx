@@ -10,9 +10,17 @@ import {
     HelpCircle,
     User,
     ShieldCheck,
+    ShieldAlert,
     Eye,
     Calendar,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Camera,
+    Hash,
+    ThumbsUp,
+    ThumbsDown,
+    BadgeCheck,
+    Trash2,
+    AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,17 +50,18 @@ export default function AdminReportsPage() {
         fetchReports();
     }, []);
 
-    const handleStatusChange = async (reportId: string, newStatus: string) => {
+    const handleModeration = async (reportId: string, newStatus: string, adminAction: string = 'none') => {
         try {
             setActionLoadingId(reportId);
             const res = await patchRequest("/api/admin/reports", {
                 reportId,
                 status: newStatus,
-                adminNotes: `Marked as ${newStatus} by admin`
+                adminNotes: `Action [${adminAction}] taken by admin`,
+                adminAction
             });
             if (res.success) {
                 // Optimistic update
-                setReports(prev => prev.map(r => r._id === reportId ? { ...r, status: newStatus } : r));
+                setReports(prev => prev.map(r => r._id === reportId ? { ...r, status: newStatus, adminAction } : r));
             } else {
                 alert(res.error || "Failed to update report status");
             }
@@ -106,7 +115,7 @@ export default function AdminReportsPage() {
                         <ReportCard
                             key={report._id}
                             report={report}
-                            onStatusChange={handleStatusChange}
+                            onModeration={handleModeration}
                             actionLoading={actionLoadingId === report._id}
                         />
                     ))}
@@ -116,15 +125,15 @@ export default function AdminReportsPage() {
     );
 }
 
-const ReportCard = ({ report, onStatusChange, actionLoading }: { report: any; onStatusChange: (id: string, s: string) => void; actionLoading: boolean }) => {
+const ReportCard = ({ report, onModeration, actionLoading }: { report: any; onModeration: (id: string, s: string, a?: string) => void; actionLoading: boolean }) => {
     const isPending = report.status === 'pending';
-    const isResolved = report.status === 'resolved'; // Action taken against donor
-    const isDismissed = report.status === 'dismissed'; // False alarm
+    const isResolved = report.status === 'resolved';
+    const isDismissed = report.status === 'dismissed';
 
-    // Safely retrieve populated fields
     const donation = report.donationId || {};
     const donor = donation.donorId || {};
     const reportedBy = report.reportedByNgoId || {};
+    const verification = donation.imageVerification || {};
 
     return (
         <div className={cn(
@@ -139,7 +148,7 @@ const ReportCard = ({ report, onStatusChange, actionLoading }: { report: any; on
             )}>
                 <div className="flex items-center space-x-3 text-xs font-black uppercase tracking-wider">
                     {isPending && <span className="text-amber-600 flex items-center"><AlertTriangle className="w-3.5 h-3.5 mr-1.5" /> Needs Review</span>}
-                    {isResolved && <span className="text-rose-600 flex items-center"><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Resolved (Fraud)</span>}
+                    {isResolved && <span className="text-rose-600 flex items-center"><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Resolved ({report.adminAction || 'Fraud'})</span>}
                     {isDismissed && <span className="text-emerald-600 flex items-center"><XCircle className="w-3.5 h-3.5 mr-1.5" /> Dismissed (Safe)</span>}
                     <span className="text-slate-400">• ID: {report._id.substring(report._id.length - 6)}</span>
                 </div>
@@ -166,21 +175,45 @@ const ReportCard = ({ report, onStatusChange, actionLoading }: { report: any; on
                                 <Eye className="w-4 h-4" />
                             </a>
                         </div>
-                    </div>
-                    <div className="mt-3 text-center">
-                        <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] uppercase font-black tracking-widest rounded-md">
-                            Flag: {report.reason.replace('_', ' ')}
-                        </span>
+
+                        {/* Feature 4 & 6: AI & EXIF Badges */}
+                        {verification.aiConfidence && (
+                            <div className="absolute top-2 left-2 flex flex-col gap-1">
+                                <div className={cn(
+                                    "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider flex items-center backdrop-blur-md",
+                                    verification.aiConfidence >= 0.75 ? "bg-emerald-500/90 text-white" : "bg-rose-500/90 text-white"
+                                )}>
+                                    AI: {(verification.aiConfidence * 100).toFixed(0)}%
+                                </div>
+                                {verification.exifPresent ? (
+                                    <div className="px-1.5 py-0.5 rounded-md bg-indigo-500/90 text-white text-[8px] font-black uppercase tracking-wider flex items-center backdrop-blur-md">
+                                        <Camera className="w-2.5 h-2.5 mr-1" /> EXIF
+                                    </div>
+                                ) : (
+                                    <div className="px-1.5 py-0.5 rounded-md bg-amber-500/90 text-white text-[8px] font-black uppercase tracking-wider flex items-center backdrop-blur-md">
+                                        <ShieldAlert className="w-2.5 h-2.5 mr-1" /> NO EXIF
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* 2. Details Col */}
                 <div className="md:col-span-6 space-y-5">
-                    <div>
-                        <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">{donation.foodType || "Unknown Batch"} - {donation.quantity}kg</h4>
-                        <p className="text-base font-medium text-slate-700 italic border-l-2 border-amber-300 pl-3">
-                            "{donation.description || "No description provided by donor."}"
-                        </p>
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">{donation.foodType || "Unknown Batch"} - {donation.quantity}kg</h4>
+                            <p className="text-base font-medium text-slate-700 italic border-l-2 border-amber-300 pl-3">
+                                "{donation.description || "No description provided by donor."}"
+                            </p>
+                        </div>
+                        {donation.verificationCode && (
+                            <div className="bg-primary/5 border border-primary/20 rounded-lg px-2 py-1 flex flex-col items-center">
+                                <span className="text-[8px] font-black uppercase tracking-tighter text-primary/70">Code</span>
+                                <span className="text-xs font-black text-primary">{donation.verificationCode}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -191,48 +224,79 @@ const ReportCard = ({ report, onStatusChange, actionLoading }: { report: any; on
                                     <User className="w-3 h-3 mr-1" /> Reported Donor
                                 </p>
                                 <p className="text-sm font-black text-slate-800 mt-0.5">{donor.name || "Unknown"}</p>
-                                <p className="text-xs text-slate-500 font-medium">{donor.email || "No email"}</p>
-                                <p className="text-xs text-slate-500 font-medium">{donor.phone || "No phone"}</p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                    <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 text-[8px] font-black rounded border border-rose-100 uppercase">
+                                        Warnings: {donor.warnings || 0}
+                                    </span>
+                                    {donor.isSuspended && (
+                                        <span className="px-1.5 py-0.5 bg-slate-900 text-white text-[8px] font-black rounded uppercase">
+                                            Suspended
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="space-y-2 relative">
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-200 rounded-full" />
                             <div className="pl-3">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
-                                    <ShieldCheck className="w-3 h-3 mr-1" /> Flagged By (NGO)
+                                    <ShieldCheck className="w-3 h-3 mr-1" /> Peer Review (NGO)
                                 </p>
-                                <p className="text-sm font-black text-slate-800 mt-0.5">{reportedBy.name || "Unknown NGO"}</p>
-                                <p className="text-xs text-slate-500 font-medium">{reportedBy.email || "No email"}</p>
-                                <p className="text-xs text-slate-500 font-medium">{reportedBy.phone || "No phone"}</p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                    <div className="flex items-center text-emerald-600">
+                                        <ThumbsUp className="w-3 h-3 mr-1" />
+                                        <span className="text-xs font-black">{donation.ngoVerification?.filter((v: any) => v.vote === 'valid').length || 0}</span>
+                                    </div>
+                                    <div className="flex items-center text-rose-600">
+                                        <ThumbsDown className="w-3 h-3 mr-1" />
+                                        <span className="text-xs font-black">{donation.ngoVerification?.filter((v: any) => v.vote === 'fake').length || 0}</span>
+                                    </div>
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-bold mt-1">By: {reportedBy.name || "Unknown NGO"}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* 3. Action Col */}
-                <div className="md:col-span-3 flex flex-col justify-center space-y-3 h-full pb-6">
+                <div className="md:col-span-3 flex flex-col justify-center gap-2 h-full pb-6">
                     {isPending ? (
                         <>
                             <button
-                                onClick={() => onStatusChange(report._id, 'resolved')}
+                                onClick={() => onModeration(report._id, 'resolved', 'warning')}
                                 disabled={actionLoading}
-                                className="w-full h-12 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white border border-rose-200 hover:border-rose-600 transition-all font-black text-[11px] uppercase tracking-widest flex items-center justify-center shadow-sm disabled:opacity-50"
+                                className="w-full h-10 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white border border-amber-200 hover:border-amber-600 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center shadow-sm disabled:opacity-50"
                             >
-                                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Confirm Fraud <XCircle className="w-4 h-4 ml-2" /></>}
+                                {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Issue Warning <AlertCircle className="w-3 h-3 ml-2" /></>}
                             </button>
                             <button
-                                onClick={() => onStatusChange(report._id, 'dismissed')}
+                                onClick={() => onModeration(report._id, 'resolved', 'suspension')}
                                 disabled={actionLoading}
-                                className="w-full h-12 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white border border-emerald-200 hover:border-emerald-600 transition-all font-black text-[11px] uppercase tracking-widest flex items-center justify-center shadow-sm disabled:opacity-50"
+                                className="w-full h-10 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white border border-orange-200 hover:border-orange-600 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center shadow-sm disabled:opacity-50"
                             >
-                                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Safe (Dismiss) <CheckCircle2 className="w-4 h-4 ml-2" /></>}
+                                {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Suspend User <BadgeCheck className="w-3 h-3 ml-2" /></>}
+                            </button>
+                            <button
+                                onClick={() => onModeration(report._id, 'resolved', 'deletion')}
+                                disabled={actionLoading}
+                                className="w-full h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white border border-rose-200 hover:border-rose-600 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center shadow-sm disabled:opacity-50"
+                            >
+                                {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Delete & Ban <Trash2 className="w-3 h-3 ml-2" /></>}
+                            </button>
+                            <div className="h-px bg-slate-100 my-1" />
+                            <button
+                                onClick={() => onModeration(report._id, 'dismissed', 'none')}
+                                disabled={actionLoading}
+                                className="w-full h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white border border-emerald-200 hover:border-emerald-600 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center shadow-sm disabled:opacity-50"
+                            >
+                                {actionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Safe (Dismiss) <ShieldCheck className="w-3 h-3 ml-2" /></>}
                             </button>
                         </>
                     ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-slate-100 p-4">
-                            <ShieldCheck className="w-6 h-6 mb-2 opacity-50" />
-                            <span className="text-center text-[10px] font-black uppercase tracking-widest leading-relaxed">
-                                Moderated by Admin
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100/50 rounded-xl border border-slate-200/50 p-4">
+                            <BadgeCheck className="w-6 h-6 mb-2 text-primary opacity-50" />
+                            <span className="text-center text-[9px] font-black uppercase tracking-widest leading-relaxed">
+                                Moderated: {report.adminAction?.toUpperCase() || 'RESOLVED'}
                             </span>
                         </div>
                     )}

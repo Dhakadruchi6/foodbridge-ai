@@ -11,6 +11,42 @@ cloudinary.config({
     secure: true,
 });
 
+// --- Feature 6: EXIF Metadata Extraction ---
+function extractExifData(buffer: Buffer) {
+    try {
+        const ExifParser = require('exif-parser');
+        const parser = ExifParser.create(buffer);
+        const result = parser.parse();
+
+        const tags = result.tags || {};
+        const exifData: any = {};
+        let exifPresent = false;
+
+        if (tags.Model || tags.Make) {
+            exifData.cameraModel = `${tags.Make || ''} ${tags.Model || ''}`.trim();
+            exifPresent = true;
+        }
+        if (tags.DateTimeOriginal) {
+            exifData.captureDate = new Date(tags.DateTimeOriginal * 1000).toISOString();
+            exifPresent = true;
+        }
+        if (tags.Software || tags.HostComputer) {
+            exifData.deviceName = tags.HostComputer || tags.Software || '';
+            exifPresent = true;
+        }
+        if (tags.GPSLatitude && tags.GPSLongitude) {
+            exifData.gpsLatitude = tags.GPSLatitude;
+            exifData.gpsLongitude = tags.GPSLongitude;
+            exifPresent = true;
+        }
+
+        return { exifPresent, exifData, isSuspicious: !exifPresent };
+    } catch (err) {
+        console.warn('[EXIF] Could not parse EXIF data:', (err as Error).message);
+        return { exifPresent: false, exifData: {}, isSuspicious: true };
+    }
+}
+
 export const POST = asyncHandler(async (req: Request) => {
     const authGate = await authMiddleware(req);
     if (authGate.status !== 200) return authGate;
@@ -27,6 +63,12 @@ export const POST = asyncHandler(async (req: Request) => {
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());
+
+        // Extract EXIF metadata before uploading
+        const exifResult = extractExifData(buffer);
+        console.log(`[UPLOAD] EXIF Present: ${exifResult.exifPresent}, Suspicious: ${exifResult.isSuspicious}`);
+
+        // Upload to Cloudinary
         const base64 = buffer.toString('base64');
         const dataUri = `data:${file.type};base64,${base64}`;
 
@@ -37,7 +79,12 @@ export const POST = asyncHandler(async (req: Request) => {
 
         const imageUrl = uploadResult.secure_url;
 
-        return successResponse({ imageUrl }, 'Image uploaded successfully', 201);
+        return successResponse({
+            imageUrl,
+            exifPresent: exifResult.exifPresent,
+            exifData: exifResult.exifData,
+            isSuspicious: exifResult.isSuspicious,
+        }, 'Image uploaded successfully', 201);
     } catch (error) {
         console.error("Image upload error:", error);
         return errorResponse('Failed to upload image', 500);

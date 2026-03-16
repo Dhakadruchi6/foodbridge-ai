@@ -21,8 +21,12 @@ import {
   PhoneCall,
   X,
   ShieldCheck,
+  ShieldAlert,
+  Camera,
+  Hash,
   Mail,
   ThumbsUp,
+  ThumbsDown,
   AlertTriangle,
   ZoomIn
 } from "lucide-react";
@@ -45,6 +49,14 @@ interface Donation {
   longitude?: number | null;
   description?: string;
   donorId: { name: string; email: string } | null;
+  verificationCode?: string;
+  imageVerification?: {
+    aiConfidence: number;
+    aiCategory: string;
+    exifPresent: boolean;
+    isSuspicious: boolean;
+  };
+  ngoVerification?: { ngoId: string; vote: string }[];
 }
 
 export const AvailableDonations = () => {
@@ -120,14 +132,12 @@ export const AvailableDonations = () => {
 
   const handleReport = async (id: string) => {
     try {
-      // Send to admin moderation queue
       const res = await postRequest('/api/admin/reports', {
         donationId: id,
-        reason: 'not_food' // Defaulting to generic issue for now
+        reason: 'not_food'
       });
 
       if (res.success) {
-        // Visually remove it
         handleReject(id);
       } else {
         setError(res.error || "Failed to submit report.");
@@ -135,6 +145,21 @@ export const AvailableDonations = () => {
     } catch (err: any) {
       console.error("Failed to report", err);
       setError(err.message || "Failed to submit report.");
+    }
+  };
+
+  // --- Feature 7: NGO Human Verification ---
+  const handleVerify = async (donationId: string, vote: 'valid' | 'fake') => {
+    try {
+      const res = await postRequest('/api/donations/verify-donation', { donationId, vote });
+      if (res.success) {
+        // Re-fetch to update vote counts
+        fetchAvailable();
+      } else {
+        setError(res.error || 'Verification failed.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Verification failed.');
     }
   };
 
@@ -301,6 +326,7 @@ export const AvailableDonations = () => {
               onAccept={handleAccept}
               onReject={() => handleReject(donation._id)}
               onReport={() => handleReport(donation._id)}
+              onVerify={(vote: 'valid' | 'fake') => handleVerify(donation._id, vote)}
               isProcessing={processingId === donation._id}
               verificationStatus={verificationStatus}
             />
@@ -316,6 +342,7 @@ const AvailableCard = ({
   onAccept,
   onReject,
   onReport,
+  onVerify,
   isProcessing,
   verificationStatus
 }: {
@@ -323,6 +350,7 @@ const AvailableCard = ({
   onAccept: (id: string) => void;
   onReject: () => void;
   onReport: () => void;
+  onVerify: (vote: 'valid' | 'fake') => void;
   isProcessing: boolean;
   verificationStatus: string
 }) => {
@@ -365,7 +393,7 @@ const AvailableCard = ({
           </div>
         )}
 
-        <div className="absolute top-4 left-4 flex gap-2">
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
           <div className={cn(
             "px-2.5 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider flex items-center shadow-lg backdrop-blur-md bg-white/90",
             getUrgencyStyles(urgencyScore)
@@ -373,6 +401,30 @@ const AvailableCard = ({
             <Sparkles className="w-3 h-3 mr-1.5" />
             Priority: {urgencyScore}/100
           </div>
+
+          {/* Feature 4 & 6: AI & EXIF Badges */}
+          {donation.imageVerification && (
+            <div className="flex flex-col gap-1.5">
+              <div className={cn(
+                "px-2.5 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider flex items-center shadow-lg backdrop-blur-md",
+                donation.imageVerification.aiConfidence >= 0.75 ? "bg-emerald-500/90 text-white border-emerald-400" : "bg-rose-500/90 text-white border-rose-400"
+              )}>
+                <ShieldCheck className="w-3 h-3 mr-1.5" />
+                AI: {(donation.imageVerification.aiConfidence * 100).toFixed(0)}%
+              </div>
+              {donation.imageVerification.exifPresent ? (
+                <div className="px-2.5 py-1.5 rounded-lg border border-indigo-400 bg-indigo-500/90 text-white text-[10px] font-black uppercase tracking-wider flex items-center shadow-lg backdrop-blur-md">
+                  <Camera className="w-3 h-3 mr-1.5" />
+                  Camera Verified
+                </div>
+              ) : (
+                <div className="px-2.5 py-1.5 rounded-lg border border-amber-400 bg-amber-500/90 text-white text-[10px] font-black uppercase tracking-wider flex items-center shadow-lg backdrop-blur-md">
+                  <ShieldAlert className="w-3 h-3 mr-1.5" />
+                  EXIF Missing
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Overlay gradient for readability */}
@@ -403,6 +455,17 @@ const AvailableCard = ({
           <p className="text-[12px] font-medium text-slate-600 line-clamp-2 leading-relaxed">
             "{donation.description}"
           </p>
+        )}
+
+        {/* Feature 1 & 3: Verification Code Display */}
+        {donation.verificationCode && (
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Hash className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary/70 text-nowrap">Proof Code</span>
+            </div>
+            <span className="text-sm font-black text-primary tracking-wider">{donation.verificationCode}</span>
+          </div>
         )}
 
         {/* Timers */}
@@ -447,46 +510,78 @@ const AvailableCard = ({
       </div>
 
       {/* Action Decision Engine */}
-      <div className="p-2 gap-2 flex bg-slate-50 border-t border-slate-100">
-        {verificationStatus !== "approved" ? (
-          <div className="w-full h-11 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center space-x-2 text-amber-700 m-2">
-            <ShieldCheck className="w-4 h-4" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Account under verification</span>
+      <div className="p-2 gap-2 flex flex-col bg-slate-50 border-t border-slate-100">
+        {/* Feature 7: NGO Human Verification Voting */}
+        <div className="px-2 py-1 flex items-center justify-between">
+          <div className="flex items-center space-x-1">
+            <div className="flex -space-x-1.5 overflow-hidden">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="inline-block h-5 w-5 rounded-full ring-2 ring-white bg-slate-200" />
+              ))}
+            </div>
+            <span className="text-[9px] font-bold text-slate-500 ml-1">
+              {donation.ngoVerification?.length || 0} Peer Reviews
+            </span>
           </div>
-        ) : (
-          <>
-            <Button
-              variant="outline"
-              onClick={onReport}
-              title="Report Fake Donation"
-              className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-400 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50 p-0"
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => onVerify('valid')}
+              className="p-1.5 h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 transition-colors flex items-center justify-center"
+              title="Legitimate Food Image"
             >
-              <ThumbsUp className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={onReject}
-              title="Hide this donation"
-              className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 p-0"
+              <ThumbsUp className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onVerify('fake')}
+              className="p-1.5 h-8 w-8 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 transition-colors flex items-center justify-center"
+              title="Flag as Suspicious/Fake"
             >
-              <AlertTriangle className="w-4 h-4" />
-            </Button>
-            <Button
-              onClick={() => onAccept(donation._id)}
-              disabled={isProcessing}
-              className="flex-1 h-12 rounded-xl text-xs font-black shadow-[0_4px_14px_0_rgba(16,185,129,0.2)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 transition-all bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center space-x-2"
-            >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <span>Accept Mission</span>
-                  <ChevronRight className="w-4 h-4" />
-                </>
-              )}
-            </Button>
-          </>
-        )}
+              <ThumbsDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-2 w-full">
+          {verificationStatus !== "approved" ? (
+            <div className="w-full h-11 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center space-x-2 text-amber-700 m-2">
+              <ShieldCheck className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Account under verification</span>
+            </div>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={onReport}
+                title="Report Fraud"
+                className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 p-0"
+              >
+                <AlertTriangle className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                onClick={onReject}
+                title="Hide this donation"
+                className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300 hover:bg-white p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={() => onAccept(donation._id)}
+                disabled={isProcessing}
+                className="flex-1 h-12 rounded-xl text-xs font-black shadow-[0_4px_14px_0_rgba(16,185,129,0.2)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 transition-all bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center space-x-2"
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <span>Accept Mission</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </>
+                )}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -75,9 +75,8 @@ export const PATCH = asyncHandler(async (req: Request) => {
     const roleGate = await allowRoles('admin')(authGate);
     if (roleGate.status !== 200) return roleGate;
 
-    const { url } = req;
     const body = await req.json();
-    const { reportId, status, adminNotes } = body;
+    const { reportId, status, adminNotes, adminAction } = body;
 
     if (!reportId || !status) {
         return errorResponse('Report ID and status are required', 400);
@@ -87,18 +86,32 @@ export const PATCH = asyncHandler(async (req: Request) => {
 
     const report = await Report.findByIdAndUpdate(
         reportId,
-        { status, adminNotes },
+        { status, adminNotes, adminAction: adminAction || 'none' },
         { new: true }
-    );
+    ).populate({
+        path: 'donationId',
+        select: 'donorId',
+    });
 
     if (!report) {
         return errorResponse('Report not found', 404);
     }
 
-    // If Fraud is confirmed, hide the donation from the platform
-    if (status === 'resolved') {
+    // --- Feature 8: Admin Moderation Actions ---
+    const donorId = (report.donationId as any)?.donorId;
+
+    if (status === 'resolved' && donorId) {
+        // Flag the donation
         await Donation.findByIdAndUpdate(report.donationId, { status: 'flagged' });
+
+        if (adminAction === 'warning') {
+            await User.findByIdAndUpdate(donorId, { $inc: { warnings: 1 } });
+        } else if (adminAction === 'suspension') {
+            await User.findByIdAndUpdate(donorId, { isSuspended: true, $inc: { warnings: 1 } });
+        } else if (adminAction === 'deletion') {
+            await Donation.findByIdAndDelete(report.donationId);
+        }
     }
 
-    return successResponse(report, `Report marked as ${status}`, 200);
+    return successResponse(report, `Report marked as ${status}${adminAction && adminAction !== 'none' ? ` with action: ${adminAction}` : ''}`, 200);
 });

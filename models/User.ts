@@ -57,6 +57,14 @@ const UserSchema = new Schema({
     type: Object,
   },
   donationPreferences: String,
+  warnings: {
+    type: Number,
+    default: 0,
+  },
+  isSuspended: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });

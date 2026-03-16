@@ -26,7 +26,12 @@ const ReportSchema = new Schema({
     adminNotes: {
         type: String,
         default: '',
-    }
+    },
+    adminAction: {
+        type: String,
+        enum: ['none', 'warning', 'suspension', 'deletion'],
+        default: 'none',
+    },
 }, {
     timestamps: true,
 });

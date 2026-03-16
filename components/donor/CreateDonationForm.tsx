@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { postRequest } from "@/lib/apiClient";
@@ -19,9 +19,20 @@ import {
   Globe,
   Camera,
   Image as ImageIcon,
-  Clock
+  Clock,
+  ShieldCheck,
+  ShieldAlert,
+  Hash,
+  AlertTriangle,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// --- Feature 1: Generate Verification Code ---
+function generateVerificationCode(): string {
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return `FOD-${num}`;
+}
 
 export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const [formData, setFormData] = useState({
@@ -44,6 +55,18 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  // --- Feature 1 & 3: Verification Code State ---
+  const [verificationCode] = useState<string>(generateVerificationCode);
+
+  // --- Feature 6: EXIF Status ---
+  const [exifStatus, setExifStatus] = useState<'none' | 'present' | 'suspicious'>('none');
+  const [exifData, setExifData] = useState<any>(null);
+
+  // --- Feature 4: AI Status ---
+  const [aiStatus, setAiStatus] = useState<string>('');
+  const [aiConfidence, setAiConfidence] = useState<number>(0);
+  const [aiCategory, setAiCategory] = useState<string>('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,6 +74,8 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
       const file = e.target.files[0];
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+      setExifStatus('none');
+      setAiStatus('');
       setError("");
     }
   };
@@ -100,7 +125,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
 
     // --- Client Side Validation ---
     if (!imageFile) {
-      setError("A photo of the food is required for quality verification.");
+      setError("A photo of the food with the verification code is required.");
       setLoading(false);
       return;
     }
@@ -141,7 +166,8 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
     }
 
     try {
-      // 1. Upload Image to Local Storage
+      // 1. Upload Image + EXIF Extraction
+      setAiStatus('uploading');
       const imageFormData = new FormData();
       imageFormData.append("image", imageFile);
 
@@ -152,17 +178,32 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
       const uploadData = await uploadRes.json();
 
       if (!uploadData.success || !uploadData.data?.imageUrl) {
-        throw new Error("Local image storage failed.");
+        throw new Error("Image upload failed. Please try again.");
       }
+
       const finalImageUrl = uploadData.data.imageUrl;
 
-      // 2. Pass string URL to AI Verification Node
-      const aiRes = await postRequest("/api/ml/detect-food", { imageUrl: finalImageUrl });
-      if (!aiRes.success) {
-        throw new Error(aiRes.error || "Invalid image detected. Please upload a valid food image.");
+      // Feature 6: Process EXIF result
+      if (uploadData.data.exifPresent) {
+        setExifStatus('present');
+        setExifData(uploadData.data.exifData);
+      } else {
+        setExifStatus('suspicious');
       }
 
-      // 3. Final Form Submission
+      // 2. AI Food Detection
+      setAiStatus('scanning');
+      const aiRes = await postRequest("/api/ml/detect-food", { imageUrl: finalImageUrl });
+      if (!aiRes.success) {
+        setAiStatus('rejected');
+        throw new Error(aiRes.error || "AI rejected this image. Please upload a valid food image.");
+      }
+
+      setAiStatus('verified');
+      setAiConfidence(aiRes.data?.confidence || 0);
+      setAiCategory(aiRes.data?.classification || '');
+
+      // 3. Final Form Submission with verification data
       const payload = {
         foodType: formData.foodItem,
         quantity: formData.quantity,
@@ -175,7 +216,15 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
         description: formData.description,
         latitude: formData.latitude,
         longitude: formData.longitude,
-        foodImage: finalImageUrl // Add newly verified path
+        foodImage: finalImageUrl,
+        verificationCode: verificationCode,
+        imageVerification: {
+          aiConfidence: aiRes.data?.confidence || 0,
+          aiCategory: aiRes.data?.classification || '',
+          exifPresent: uploadData.data.exifPresent || false,
+          exifData: uploadData.data.exifData || {},
+          isSuspicious: uploadData.data.isSuspicious || false,
+        }
       };
 
       const result = await postRequest("/api/donations/create", payload);
@@ -196,23 +245,31 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
 
   if (success) {
     return (
-      <div className="bg-white border border-slate-200/60 rounded-2xl p-12 text-center shadow-sm animate-in fade-in zoom-in duration-500">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700 rounded-2xl p-12 text-center shadow-sm animate-in fade-in zoom-in duration-500">
         <div className="flex flex-col items-center space-y-6">
-          <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center border border-emerald-100">
+          <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center border border-emerald-100 dark:border-emerald-800">
             <CheckCircle2 className="w-10 h-10 text-emerald-500" />
           </div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">AI Verified & Registered</h2>
-          <p className="text-slate-500 font-bold max-w-xs mx-auto text-sm">
-            Asset photo authenticated. Operational ledger updated. AI redistribution matching is now active for this batch.
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">AI Verified & Registered</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-bold max-w-xs mx-auto text-sm">
+            Multi-layer verification passed. AI redistribution matching is now active for this batch.
           </p>
+          {aiCategory && (
+            <div className="flex items-center space-x-2 px-4 py-2 bg-primary/5 rounded-full">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-xs font-black text-primary uppercase tracking-wider">
+                {aiCategory} — {(aiConfidence * 100).toFixed(0)}% Confidence
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-slate-900 p-10 text-white relative overflow-hidden group">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-slate-900 dark:bg-slate-950 p-10 text-white relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
           <Box className="w-32 h-32" />
         </div>
@@ -221,15 +278,34 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             <UtensilsIcon className="w-5 h-5 text-white" />
           </div>
           <h3 className="text-2xl font-black tracking-tight">Initiate Surplus Ledger</h3>
-          <p className="text-slate-400 font-bold text-sm">Specify the asset parameters, take a photo, and configure distribution timings.</p>
+          <p className="text-slate-400 font-bold text-sm">Multi-layer verified food donation with AI proof system.</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="p-10 space-y-8">
 
-        {/* IMAGE CAPTURE SECTION */}
+        {/* --- Feature 1 & 3: Verification Code Banner --- */}
+        <div className="relative bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10 border-2 border-dashed border-primary/30 rounded-2xl p-6 space-y-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+              <Hash className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Verification Code</p>
+              <p className="text-3xl font-black text-primary tracking-wider">{verificationCode}</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-2 mt-3 p-3 bg-white/60 dark:bg-slate-800/60 rounded-xl">
+            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">
+              <span className="text-amber-600 dark:text-amber-400 font-black">Required:</span> Write this code on a piece of paper and place it next to the food while taking the photo. This prevents the use of downloaded or old images.
+            </p>
+          </div>
+        </div>
+
+        {/* --- Feature 2 & 3: Camera Capture with Instructions --- */}
         <div className="space-y-4">
-          <FormGroup label="Asset Verification Photo (Required)" icon={<Camera className="w-4 h-4" />}>
+          <FormGroup label="Contextual Proof Photo (Required)" icon={<Camera className="w-4 h-4" />}>
             <div className="mt-2">
               <input
                 type="file"
@@ -243,14 +319,14 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
               {!imagePreview ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-40 border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center text-slate-500 hover:border-primary hover:text-primary transition-colors cursor-pointer bg-slate-50 hover:bg-slate-100/50"
+                  className="w-full h-44 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:border-primary hover:text-primary transition-colors cursor-pointer bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/50"
                 >
                   <Camera className="w-8 h-8 mb-2 opacity-50" />
-                  <span className="text-xs font-black uppercase tracking-wider">Tap to Capture / Upload Photo</span>
-                  <span className="text-[10px] font-bold opacity-60 mt-1">AI will verify food contents</span>
+                  <span className="text-xs font-black uppercase tracking-wider">Tap to Capture Photo</span>
+                  <span className="text-[10px] font-bold opacity-60 mt-1">Make sure <span className="text-primary font-black">{verificationCode}</span> is visible in the photo</span>
                 </div>
               ) : (
-                <div className="relative w-full rounded-2xl overflow-hidden border-2 border-slate-200 group">
+                <div className="relative w-full rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 group">
                   <img src={imagePreview} alt="Food Preview" className="w-full h-48 object-cover" />
                   <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                     <Button
@@ -263,6 +339,38 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
                       Retake Photo
                     </Button>
                   </div>
+
+                  {/* Feature 6: EXIF Status Badge */}
+                  {exifStatus !== 'none' && (
+                    <div className={cn(
+                      "absolute top-3 right-3 flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-sm",
+                      exifStatus === 'present'
+                        ? "bg-emerald-500/90 text-white"
+                        : "bg-amber-500/90 text-white"
+                    )}>
+                      {exifStatus === 'present' ? (
+                        <><ShieldCheck className="w-3.5 h-3.5" /> Camera Verified</>
+                      ) : (
+                        <><ShieldAlert className="w-3.5 h-3.5" /> No EXIF — Suspicious</>
+                      )}
+                    </div>
+                  )}
+
+                  {/* AI Status Badge */}
+                  {aiStatus && (
+                    <div className={cn(
+                      "absolute bottom-3 left-3 flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-sm",
+                      aiStatus === 'uploading' && "bg-blue-500/90 text-white",
+                      aiStatus === 'scanning' && "bg-indigo-500/90 text-white",
+                      aiStatus === 'verified' && "bg-emerald-500/90 text-white",
+                      aiStatus === 'rejected' && "bg-rose-500/90 text-white",
+                    )}>
+                      {aiStatus === 'uploading' && <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...</>}
+                      {aiStatus === 'scanning' && <><Loader2 className="w-3.5 h-3.5 animate-spin" /> AI Scanning...</>}
+                      {aiStatus === 'verified' && <><Sparkles className="w-3.5 h-3.5" /> AI Verified ({(aiConfidence * 100).toFixed(0)}%)</>}
+                      {aiStatus === 'rejected' && <><AlertCircle className="w-3.5 h-3.5" /> AI Rejected</>}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -273,7 +381,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
           <FormGroup label="Asset Category" icon={<Package className="w-4 h-4" />}>
             <Input
               placeholder="e.g. Fresh Produce"
-              className="h-12 rounded-xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900"
+              className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
               value={formData.foodItem}
               onChange={(e) => setFormData({ ...formData, foodItem: e.target.value })}
               required
@@ -284,7 +392,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             <Input
               type="number"
               placeholder="0.00"
-              className="h-12 rounded-xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900"
+              className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
               value={formData.quantity}
               onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
               required
@@ -295,7 +403,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             <FormGroup label="Asset Description" icon={<Box className="w-4 h-4" />}>
               <Input
                 placeholder="e.g. 10 kg of tomatoes, 5 kg of onions"
-                className="h-12 rounded-xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900"
+                className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
@@ -306,7 +414,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
           <FormGroup label="Food Prepared At (Time)" icon={<Clock className="w-4 h-4" />}>
             <Input
               type="datetime-local"
-              className="h-12 rounded-xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900"
+              className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
               value={formData.preparedTime}
               onChange={(e) => setFormData({ ...formData, preparedTime: e.target.value })}
               required
@@ -316,7 +424,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
           <FormGroup label="Best Before (Expiry Time)" icon={<Calendar className="w-4 h-4" />}>
             <Input
               type="datetime-local"
-              className="h-12 rounded-xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900"
+              className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
               value={formData.expiryDate}
               onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
               required
@@ -327,7 +435,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             <FormGroup label="Strategic City" icon={<MapPin className="w-4 h-4" />}>
               <Input
                 placeholder="Pickup City"
-                className="h-12 rounded-xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900"
+                className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 required
@@ -337,7 +445,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             <FormGroup label="Strategic State" icon={<Globe className="w-4 h-4" />}>
               <Input
                 placeholder="State"
-                className="h-12 rounded-xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900"
+                className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
                 value={formData.state}
                 onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                 required
@@ -347,7 +455,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             <FormGroup label="Zip / Pincode" icon={<Navigation className="w-4 h-4" />}>
               <Input
                 placeholder="Pincode"
-                className="h-12 rounded-xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900"
+                className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
                 value={formData.pincode}
                 onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
                 required
@@ -378,7 +486,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
               <div className="relative">
                 <Input
                   placeholder="Street Address, Suite / Room"
-                  className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all font-bold text-xs pr-12 text-slate-700"
+                  className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-bold text-xs pr-12 text-slate-700 dark:text-white"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   required
@@ -392,7 +500,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
         </div>
 
         {error && (
-          <div className="flex items-center space-x-3 p-4 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 italic font-bold text-xs">
+          <div className="flex items-center space-x-3 p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-100 dark:border-rose-800 italic font-bold text-xs">
             <AlertCircle className="w-4 h-4" />
             <span>{error}</span>
           </div>
@@ -407,7 +515,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <>
-              <span>Submit for AI Verification</span>
+              <span>Submit for Multi-Layer Verification</span>
               <ChevronRight className="w-4 h-4" />
             </>
           )}

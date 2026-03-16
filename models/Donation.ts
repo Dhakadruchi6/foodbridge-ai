@@ -77,6 +77,27 @@ const DonationSchema = new Schema({
     type: Date,
     default: null,
   },
+  verificationCode: {
+    type: String,
+  },
+  imageVerification: {
+    aiConfidence: { type: Number, default: 0 },
+    aiCategory: { type: String, default: '' },
+    exifPresent: { type: Boolean, default: false },
+    exifData: {
+      cameraModel: String,
+      captureDate: String,
+      deviceName: String,
+      gpsLatitude: Number,
+      gpsLongitude: Number,
+    },
+    isSuspicious: { type: Boolean, default: false },
+  },
+  ngoVerification: [{
+    ngoId: { type: Schema.Types.ObjectId, ref: 'User' },
+    vote: { type: String, enum: ['valid', 'fake'] },
+    createdAt: { type: Date, default: Date.now },
+  }],
 }, {
   timestamps: true,
 });
