@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,14 +14,16 @@ import {
     Zap,
     LogOut,
     Activity,
-    Compass
+    Compass,
+    User as UserIcon
 } from "lucide-react";
 
 export const Navbar = () => {
+    const { data: session } = useSession();
     const [isOpen, setIsOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const [activeSection, setActiveSection] = useState("home");
-    const [user, setUser] = useState<{ role: string } | null>(null);
+    const [user, setUser] = useState<{ role: string; name?: string } | null>(null);
     const pathname = usePathname();
 
     useEffect(() => {
@@ -74,6 +77,13 @@ export const Navbar = () => {
             } catch (e) {
                 console.error("Failed to parse token");
             }
+        } else if (session?.user) {
+            setUser({
+                role: (session.user as any).role || "donor",
+                name: session.user.name || ""
+            });
+        } else {
+            setUser(null);
         }
 
         return () => {
@@ -81,7 +91,7 @@ export const Navbar = () => {
             window.removeEventListener("scroll", handleHomeTracking);
             if (observer) observer.disconnect();
         };
-    }, [pathname]);
+    }, [pathname, session]);
 
     const handleLogout = () => {
         if (typeof window !== 'undefined') {

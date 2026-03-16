@@ -36,18 +36,24 @@ export const authOptions = {
 
                     if (!existingUser) {
                         console.log("[AUTH] Creating new Google user:", user.email);
-                        await User.create({
+                        const newUser = await User.create({
                             name: user.name,
                             email: user.email,
                             googleId: user.id,
                             role: "donor",
                             phoneVerified: false,
-                            isActive: false,
+                            isActive: true, // Default to true for Google users
                         });
-                    } else if (!existingUser.googleId) {
-                        console.log("[AUTH] Linking Google ID to existing user:", user.email);
-                        existingUser.googleId = user.id;
-                        await existingUser.save();
+                        user.id = newUser._id.toString();
+                        user.role = newUser.role;
+                    } else {
+                        if (!existingUser.googleId) {
+                            console.log("[AUTH] Linking Google ID to existing user:", user.email);
+                            existingUser.googleId = user.id;
+                            await existingUser.save();
+                        }
+                        user.id = existingUser._id.toString();
+                        user.role = existingUser.role;
                     }
                     console.log("[AUTH] SignIn Success for:", user.email);
                     return true;
@@ -58,21 +64,33 @@ export const authOptions = {
             }
             return true;
         },
+        async jwt({ token, user, trigger, session }: any) {
+            // When user first signs in, 'user' is available
+            if (user) {
+                token.id = user.id;
+                token.role = user.role;
+            }
+            return token;
+        },
         async session({ session, token }: any) {
             if (session.user) {
                 await dbConnect();
-                const dbUser = await User.findOne({ email: session.user.email });
+                // Use token.id if available, fallback to email query
+                const query = token?.id ? { _id: token.id } : { email: session.user.email };
+                const dbUser = await User.findOne(query);
 
                 if (dbUser) {
                     session.user.id = dbUser._id.toString();
                     session.user.role = dbUser.role;
-                    // Improved check: requires phone, address, and city
                     session.user.isProfileComplete = !!(dbUser.phone && dbUser.address && dbUser.city);
-                    console.log("[AUTH] Session computed for:", {
+
+                    console.log("[AUTH] Session Computed:", {
                         email: session.user.email,
-                        isProfileComplete: session.user.isProfileComplete,
+                        id: session.user.id,
                         role: session.user.role
                     });
+                } else {
+                    console.error("[AUTH] Session Error: User not found in DB for email:", session.user.email);
                 }
             }
             return session;

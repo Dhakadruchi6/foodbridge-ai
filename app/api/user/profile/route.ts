@@ -10,14 +10,22 @@ export const GET = asyncHandler(async (req: Request) => {
     if (authGate.status !== 200) return authGate;
 
     const userId = authGate.headers.get('x-user-id');
+    const userRole = authGate.headers.get('x-user-role');
+
+    console.log(`[PROFILE-API] Fetching for userId: ${userId}, role: ${userRole}`);
+
     await dbConnect();
 
     const user = await User.findById(userId, '-password -otp -otpExpires -resetPasswordToken -resetPasswordExpires');
-    if (!user) return errorResponse('User not found', 404);
+    if (!user) {
+        console.warn(`[PROFILE-API] User not found in DB: ${userId}`);
+        return errorResponse('User not found', 404);
+    }
 
     let ngoProfile = null;
     if (user.role === 'ngo') {
         ngoProfile = await NGOProfile.findOne({ userId });
+        console.log(`[PROFILE-API] NGO profile status for ${userId}: ${!!ngoProfile}`);
     }
 
     return successResponse({

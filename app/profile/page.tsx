@@ -46,7 +46,7 @@ export default function ProfilePage() {
                     setForm(result.data);
                 }
             } catch (err: any) {
-                setError("Failed to load profile");
+                setError(err.message || "Failed to load profile");
             } finally {
                 setLoading(false);
             }

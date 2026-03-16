@@ -12,7 +12,9 @@ export const setToken = saveToken;
 
 export const getToken = () => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (token === 'undefined' || token === 'null') return null;
+    return token;
   }
   return null;
 };
