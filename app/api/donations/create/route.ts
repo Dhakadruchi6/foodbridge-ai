@@ -30,7 +30,9 @@ export const POST = asyncHandler(async (req: Request) => {
     pincode,
     description,
     latitude,
-    longitude
+    longitude,
+    verificationCode,
+    imageVerification
   } = body;
 
   if (!foodType || !quantity || !expiryTime || !pickupAddress || !city || !preparedTime || !foodImage) {
@@ -51,6 +53,8 @@ export const POST = asyncHandler(async (req: Request) => {
     description,
     latitude,
     longitude,
+    verificationCode,
+    imageVerification,
     status: 'pending',
   });
 

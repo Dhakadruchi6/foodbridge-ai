@@ -59,7 +59,7 @@ interface Donation {
   ngoVerification?: { ngoId: string; vote: string }[];
 }
 
-export const AvailableDonations = () => {
+export const AvailableDonations = ({ radius = 100 }: { radius?: number }) => {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export const AvailableDonations = () => {
 
   const fetchAvailable = async () => {
     try {
-      const result = await getRequest("/api/donations/available");
+      const result = await getRequest(`/api/donations/available?radius=${radius}`);
       if (result.success) {
         setDonations(result.data.sort((a: any, b: any) => {
           const timeA = new Date(a.expiryTime).getTime();
@@ -99,7 +99,7 @@ export const AvailableDonations = () => {
       setDonations(prev => prev.filter(d => new Date(d.expiryTime) > new Date()));
     }, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [radius]);
 
 
   const handleAccept = async (donationId: string) => {

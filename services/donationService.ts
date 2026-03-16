@@ -29,8 +29,15 @@ export const createDonation = async (donationData: any) => {
     donationData.prioritizationRank = 0;
   }
 
+  console.log(`[SERVICE-DONATION] Creating donation for donor: ${donationData.donorId}`);
+  if (donationData.imageVerification) {
+    console.log(`[SERVICE-DONATION] AI Confidence to save: ${donationData.imageVerification.aiConfidence}`);
+  }
+
   const donation = new Donation(donationData);
-  return await donation.save();
+  const savedDonation = await donation.save();
+  console.log(`[SERVICE-DONATION] Saved donation ID: ${savedDonation._id}, Conf: ${savedDonation.imageVerification?.aiConfidence}`);
+  return savedDonation;
 };
 
 export const getDonations = async (filter: any = {}) => {

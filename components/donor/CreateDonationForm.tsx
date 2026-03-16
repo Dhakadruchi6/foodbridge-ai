@@ -193,7 +193,10 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
 
       // 2. AI Food Detection
       setAiStatus('scanning');
-      const aiRes = await postRequest("/api/ml/detect-food", { imageUrl: finalImageUrl });
+      const aiRes = await postRequest("/api/ml/detect-food", {
+        imageUrl: finalImageUrl,
+        claimedCategory: formData.foodItem
+      });
       if (!aiRes.success) {
         setAiStatus('rejected');
         throw new Error(aiRes.error || "AI rejected this image. Please upload a valid food image.");
@@ -201,9 +204,12 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
 
       setAiStatus('verified');
       setAiConfidence(aiRes.data?.confidence || 0);
-      setAiCategory(aiRes.data?.classification || '');
+      setAiCategory(aiRes.data?.category || '');
 
       // 3. Final Form Submission with verification data
+      const finalConfidence = aiRes.data?.confidence || aiConfidence || 0;
+      const finalCategoryName = aiRes.data?.category || aiCategory || '';
+
       const payload = {
         foodType: formData.foodItem,
         quantity: formData.quantity,
@@ -219,13 +225,15 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
         foodImage: finalImageUrl,
         verificationCode: verificationCode,
         imageVerification: {
-          aiConfidence: aiRes.data?.confidence || 0,
-          aiCategory: aiRes.data?.classification || '',
+          aiConfidence: finalConfidence,
+          aiCategory: finalCategoryName,
           exifPresent: uploadData.data.exifPresent || false,
           exifData: uploadData.data.exifData || {},
           isSuspicious: uploadData.data.isSuspicious || false,
         }
       };
+
+      console.log("[DONATION-CREATE] Sending payload:", JSON.stringify(payload, null, 2));
 
       const result = await postRequest("/api/donations/create", payload);
       if (result.success) {

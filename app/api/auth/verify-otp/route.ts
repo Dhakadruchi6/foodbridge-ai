@@ -12,44 +12,60 @@ export async function POST(req: Request) {
             return errorResponse('Phone and OTP are required', 400);
         }
 
-        // Normalize phone number to E.164
-        phone = phone.replace(/[^\d+]/g, ''); // Remove spaces, dashes, etc.
-        if (!phone.startsWith('+')) {
-            phone = `+91${phone}`; // Default to India if no country code
+        // Normalize phone number
+        phone = phone.replace(/[^\d]/g, '');
+        if (phone.length === 10) {
+            phone = `91${phone}`;
         }
 
         await dbConnect();
 
-        // 1. DEVELOPMENT BYPASS (Optional/Dev only)
-        if (otp === '123456') {
-            const user = await User.findOne({ phone });
-            if (user) {
-                user.phoneVerified = true;
-                await user.save();
-            }
-            return successResponse({}, 'Phone verified via development bypass');
-        }
-
-        // 2. Normal Check Verification collection
-        const verification = await Verification.findOne({
-            phone,
-            otp,
-            expiresAt: { $gt: new Date() }
-        });
+        // 1. Get Verification record
+        const verification = await Verification.findOne({ phone });
 
         if (!verification) {
-            return errorResponse('Invalid or expired OTP', 400);
+            return errorResponse('No OTP request found for this number.', 404);
         }
 
-        // Cleanup verification code
+        // --- Feature 4: Security Rules ---
+
+        // Expiry check (5 mins)
+        if (new Date() > verification.expiresAt) {
+            return errorResponse('OTP has expired. Please request a new one.', 400);
+        }
+
+        // Attempt count check (Max 3)
+        if (verification.attemptCount >= 3) {
+            return errorResponse('Too many incorrect attempts. Please request a new OTP.', 429);
+        }
+
+        // Verify OTP
+        if (verification.otp !== otp) {
+            // Increment attempt count
+            verification.attemptCount += 1;
+            await verification.save();
+
+            // Also sync to user if exists
+            const user = await User.findOne({ phone });
+            if (user) {
+                user.otpAttemptCount = (user.otpAttemptCount || 0) + 1;
+                await user.save();
+            }
+
+            return errorResponse('Incorrect OTP. Please try again.', 400);
+        }
+
+        // --- Success ---
+        // Cleanup verification record
         await Verification.deleteOne({ _id: verification._id });
 
-        // If user exists, mark them as verified
+        // Update User (Feature 5: Database Fields)
         const user = await User.findOne({ phone });
         if (user) {
             user.phoneVerified = true;
             user.otp = undefined;
             user.otpExpires = undefined;
+            user.otpAttemptCount = 0;
             await user.save();
         }
 

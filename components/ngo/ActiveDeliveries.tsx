@@ -54,15 +54,17 @@ export const ActiveDeliveries = () => {
         </div>
     );
 
-    if (deliveries.length === 0) return (
-        <div className="p-6 text-center border border-white/10 rounded-xl bg-white/5">
-            <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">No Active Fleet Missions</p>
+    const activeOnlyDeliveries = deliveries.filter(d => d.status !== 'completed');
+
+    if (activeOnlyDeliveries.length === 0) return (
+        <div className="p-6 text-center border border-slate-200/50 rounded-xl bg-slate-50/50">
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">No Active Fleet Missions</p>
         </div>
     );
 
     return (
         <div className="space-y-3">
-            {deliveries.slice(0, 4).map((delivery) => (
+            {activeOnlyDeliveries.slice(0, 4).map((delivery) => (
                 <div key={delivery._id} className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-between group">
                     <div className="flex items-center space-x-3 min-w-0">
                         <div className={cn(

@@ -43,6 +43,10 @@ const UserSchema = new Schema({
   },
   otp: String,
   otpExpires: Date,
+  otpAttemptCount: {
+    type: Number,
+    default: 0,
+  },
   resetPasswordToken: String,
   resetPasswordExpires: Date,
   isActive: {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,9 +25,11 @@ export const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [activeSection, setActiveSection] = useState("home");
     const [user, setUser] = useState<{ role: string; name?: string } | null>(null);
+    const [mounted, setMounted] = useState(false);
     const pathname = usePathname();
 
     useEffect(() => {
+        setMounted(true);
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);
         };
@@ -70,13 +72,29 @@ export const Navbar = () => {
             handleHomeTracking();
         }
 
-        const token = getToken();
+        const token = localStorage.getItem('token');
         if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                setUser(payload);
-            } catch (e) {
-                console.error("Failed to parse token");
+            if (token.startsWith('social-')) {
+                // For Google Auth users, rely on NextAuth session or localStorage role
+                if (session?.user) {
+                    setUser({
+                        role: (session.user as any).role || localStorage.getItem('role') || "donor",
+                        name: session.user.name || ""
+                    });
+                } else if (localStorage.getItem('role')) {
+                    setUser({ role: localStorage.getItem('role') as string });
+                } else {
+                    setUser(null);
+                }
+            } else {
+                try {
+                    // For standard credential users, parse the JWT
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    setUser(payload);
+                } catch (e) {
+                    console.error("Failed to parse token");
+                    setUser(null);
+                }
             }
         } else if (session?.user) {
             setUser({
@@ -94,10 +112,13 @@ export const Navbar = () => {
         };
     }, [pathname, session]);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('token');
             localStorage.removeItem('role');
+            if (session) {
+                await signOut({ redirect: false });
+            }
             window.location.href = "/login";
         }
     };
@@ -138,35 +159,42 @@ export const Navbar = () => {
                     <div className="hidden sm:flex">
                         <ThemeToggle />
                     </div>
-                    {user ? (
-                        <div className="flex items-center space-x-3">
-                            <Link href={dashboardLink}>
-                                <Button className="h-10 px-5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-[0.98]">
-                                    <LayoutDashboard className="w-3.5 h-3.5 mr-2" />
-                                    <span>{dashboardLabel}</span>
+
+                    {/* Only render auth buttons after client mount to prevent Hydration Mismatch */}
+                    {mounted ? (
+                        user ? (
+                            <div className="flex items-center space-x-3">
+                                <Link href={dashboardLink}>
+                                    <Button className="h-10 px-5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-[0.98] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+                                        <LayoutDashboard className="w-3.5 h-3.5 mr-2" />
+                                        <span>{dashboardLabel}</span>
+                                    </Button>
+                                </Link>
+                                <Button
+                                    onClick={handleLogout}
+                                    variant="ghost"
+                                    className="h-10 w-10 rounded-lg p-0 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100 dark:hover:bg-rose-950 dark:hover:border-rose-900"
+                                >
+                                    <LogOut className="w-4 h-4" />
                                 </Button>
-                            </Link>
-                            <Button
-                                onClick={handleLogout}
-                                variant="ghost"
-                                className="h-10 w-10 rounded-lg p-0 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100"
-                            >
-                                <LogOut className="w-4 h-4" />
-                            </Button>
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="hidden md:flex items-center space-x-2">
+                                <Link href="/login">
+                                    <Button variant="ghost" className="h-10 px-5 font-black text-[10px] uppercase tracking-widest text-slate-600 hover:text-slate-900 transition-colors">
+                                        Auth Access
+                                    </Button>
+                                </Link>
+                                <Link href="/register">
+                                    <Button className="h-10 px-6 rounded-lg bg-primary text-white shadow-lg shadow-primary/20 font-black text-[10px] uppercase tracking-widest hover:translate-y-[-1px] active:translate-y-0 transition-all">
+                                        Join Network
+                                    </Button>
+                                </Link>
+                            </div>
+                        )
                     ) : (
-                        <div className="hidden md:flex items-center space-x-2">
-                            <Link href="/login">
-                                <Button variant="ghost" className="h-10 px-5 font-black text-[10px] uppercase tracking-widest text-slate-600 hover:text-slate-900 transition-colors">
-                                    Auth Access
-                                </Button>
-                            </Link>
-                            <Link href="/register">
-                                <Button className="h-10 px-6 rounded-lg bg-primary text-white shadow-lg shadow-primary/20 font-black text-[10px] uppercase tracking-widest hover:translate-y-[-1px] active:translate-y-0 transition-all">
-                                    Join Network
-                                </Button>
-                            </Link>
-                        </div>
+                        /* Skeleton loader to hold layout space during SSR hydration */
+                        <div className="hidden md:flex items-center space-x-2 w-[200px] h-10 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
                     )}
 
                     {/* Mobile Toggle */}
@@ -190,28 +218,31 @@ export const Navbar = () => {
                     <Link href="/#technology" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 py-2">Technology</Link>
                     <Link href="/#impact" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 py-2">Impact</Link>
                     <hr className="border-slate-100" />
-                    {user ? (
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                            <Link href={dashboardLink} onClick={() => setIsOpen(false)}>
-                                <Button className="w-full h-12 bg-primary text-white font-black text-[10px] uppercase tracking-widest">Dashboard</Button>
-                            </Link>
-                            <Button
-                                onClick={handleLogout}
-                                variant="ghost"
-                                className="w-full h-12 text-rose-500 font-black text-[10px] uppercase tracking-widest border border-rose-100 bg-rose-50"
-                            >
-                                Logout Access
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                            <Link href="/login" onClick={() => setIsOpen(false)}>
-                                <Button variant="outline" className="w-full h-12 font-black text-[10px] uppercase tracking-widest border-slate-200">Sign In</Button>
-                            </Link>
-                            <Link href="/register" onClick={() => setIsOpen(false)}>
-                                <Button className="w-full h-12 bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">Join</Button>
-                            </Link>
-                        </div>
+
+                    {mounted && (
+                        user ? (
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <Link href={dashboardLink} onClick={() => setIsOpen(false)}>
+                                    <Button className="w-full h-12 bg-primary text-white font-black text-[10px] uppercase tracking-widest">Dashboard</Button>
+                                </Link>
+                                <Button
+                                    onClick={handleLogout}
+                                    variant="ghost"
+                                    className="w-full h-12 text-rose-500 font-black text-[10px] uppercase tracking-widest border border-rose-100 bg-rose-50"
+                                >
+                                    Logout Access
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <Link href="/login" onClick={() => setIsOpen(false)}>
+                                    <Button variant="outline" className="w-full h-12 font-black text-[10px] uppercase tracking-widest border-slate-200">Sign In</Button>
+                                </Link>
+                                <Link href="/register" onClick={() => setIsOpen(false)}>
+                                    <Button className="w-full h-12 bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">Join</Button>
+                                </Link>
+                            </div>
+                        )
                     )}
                 </div>
             )}

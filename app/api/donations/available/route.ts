@@ -9,6 +9,9 @@ import { getHaversineDistance } from '@/lib/utils';
 import dbConnect from '@/lib/db';
 
 export const GET = asyncHandler(async (req: Request) => {
+  const { searchParams } = new URL(req.url);
+  const requestedRadius = parseInt(searchParams.get('radius') || '100');
+
   const authGate = await authMiddleware(req);
   if (authGate.status !== 200) return authGate;
 
@@ -33,8 +36,11 @@ export const GET = asyncHandler(async (req: Request) => {
   // NGO-specific filtering
   const ngoProfile = await NGOProfile.findOne({ userId });
   if (!ngoProfile) {
-    return errorResponse('NGO Profile not found', 404);
+    return successResponse([], 'NGO Profile not found - setup required');
   }
+
+  const ngoCity = (ngoProfile.city || "").trim().toLowerCase();
+
 
   const filteredDonations = validDonations.map((donation: any) => {
     let distance = null;
@@ -48,14 +54,17 @@ export const GET = asyncHandler(async (req: Request) => {
     }
     return { ...donation.toObject(), distance: distance ? Math.round(distance * 10) / 10 : null };
   }).filter((donation: any) => {
-    // 1. Strict Geospatial Match (100km radius)
+    // 1. Strict Geospatial Match (requested radius)
     if (donation.distance !== null) {
-      return donation.distance <= 100;
+      return donation.distance <= requestedRadius;
     }
 
-    // 2. City-based Fallback (for older data or if browser geolocation fails)
-    return (ngoProfile.city || "").toLowerCase() === (donation.city || "").toLowerCase();
+    // 2. City-based Fallback (trimmed & lowercase)
+    const donorCity = (donation.city || "").trim().toLowerCase();
+    return donorCity !== "" && donorCity === ngoCity;
   });
 
-  return successResponse(filteredDonations, `Donations within 100km or same city retrieved (${filteredDonations.length} found)`);
+  console.log(`[API-AVAILABLE] NGO: ${userId}, Radius: ${requestedRadius}km, City: ${ngoCity}, Found: ${filteredDonations.length}`);
+
+  return successResponse(filteredDonations, `Donations within ${requestedRadius}km or same city retrieved`);
 });

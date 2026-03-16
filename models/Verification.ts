@@ -10,6 +10,11 @@ const VerificationSchema = new Schema({
         type: String,
         required: true,
     },
+    attemptCount: {
+        type: Number,
+        default: 0,
+    },
+    requestHistory: [Date], // Track timestamps of OTP requests per hour
     expiresAt: {
         type: Date,
         required: true,

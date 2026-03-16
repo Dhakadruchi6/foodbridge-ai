@@ -55,6 +55,9 @@ export const RegisterForm = () => {
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [error, setError] = useState("");
+  const [debugOtp, setDebugOtp] = useState("");
+  const [isSandbox, setIsSandbox] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,6 +65,16 @@ export const RegisterForm = () => {
       setFormData(prev => ({ ...prev, role: queryRole }));
     }
   }, [queryRole]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendTimer > 0) {
+      timer = setInterval(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendTimer]);
 
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
@@ -112,7 +125,15 @@ export const RegisterForm = () => {
       if (res.success) {
         setIsOtpSent(true);
         setError("");
-        // Alert removed for real SMS delivery
+        setResendTimer(30); // 30s cooldown
+
+        if (res.data?.isSandbox) {
+          setIsSandbox(true);
+          setDebugOtp(res.data.debugOtp);
+        } else {
+          setIsSandbox(false);
+          setDebugOtp("");
+        }
       }
     } catch (err: any) {
       setError(err.message || "Failed to send OTP");
@@ -241,17 +262,34 @@ export const RegisterForm = () => {
             className="reg-item"
             action={
               !isPhoneVerified && (
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={otpLoading || !formData.phone}
-                  className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest disabled:opacity-30"
-                >
-                  {otpLoading ? "Sending..." : "Send OTP"}
-                </button>
+                <div className="flex flex-col items-end space-y-1">
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={otpLoading || !formData.phone || resendTimer > 0}
+                    className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest disabled:opacity-30"
+                  >
+                    {otpLoading ? "Sending..." : isOtpSent ? (resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP") : "Send OTP"}
+                  </button>
+                </div>
               )
             }
           />
+
+
+          {/* Sandbox display for DLT-blocked environments */}
+          {isSandbox && debugOtp && !isPhoneVerified && (
+            <div className="md:col-span-2 space-y-2 p-4 bg-amber-50 border-2 border-dashed border-amber-200 rounded-2xl animate-in zoom-in duration-300">
+              <div className="flex items-center space-x-2 text-amber-700">
+                <ShieldCheck className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">MSG91 Testing Mode</span>
+              </div>
+              <p className="text-xs font-bold text-amber-600">
+                SMS delivery is currently restricted by DLT/regulatory rules.
+                Use this testing code: <span className="text-sm font-black text-amber-900 bg-amber-200 px-2 py-0.5 rounded ml-1">{debugOtp}</span>
+              </p>
+            </div>
+          )}
 
           {isOtpSent && !isPhoneVerified && (
             <div className="md:col-span-2 space-y-3 reg-item animate-in slide-in-from-top duration-300">

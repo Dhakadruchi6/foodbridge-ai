@@ -7,6 +7,7 @@ import { ActiveDeliveries } from "@/components/ngo/ActiveDeliveries";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import { NotificationBell } from "@/components/donor/NotificationBell";
+import { CertificationModal } from "@/components/ngo/CertificationModal";
 import Link from "next/link";
 import {
   Search,
@@ -33,6 +34,7 @@ export default function NGODashboard() {
   const [user, setUser] = useState<any>(null);
   const [scanRadius, setScanRadius] = useState(25);
   const [syncing, setSyncing] = useState(false);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
 
   const handleAdjustRadar = () => {
     const radiuses = [10, 25, 50, 100];
@@ -202,7 +204,7 @@ export default function NGODashboard() {
               </div>
 
               <div id="tour-available-list" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <AvailableDonations />
+                <AvailableDonations radius={scanRadius} />
               </div>
             </div>
 
@@ -233,7 +235,10 @@ export default function NGODashboard() {
                   <p className="text-slate-400 text-xs font-medium leading-relaxed">
                     All data points in this perimeter are verified for safety compliance and source authenticity.
                   </p>
-                  <Button className="h-10 px-5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-md transition-all">
+                  <Button
+                    onClick={() => setIsCertModalOpen(true)}
+                    className="h-10 px-5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-md transition-all"
+                  >
                     View Certifications
                   </Button>
                 </div>
@@ -241,6 +246,10 @@ export default function NGODashboard() {
             </div>
           </div>
 
+          <CertificationModal
+            isOpen={isCertModalOpen}
+            onClose={() => setIsCertModalOpen(false)}
+          />
         </div>
       </div>
     </ProtectedRoute>
