@@ -37,6 +37,36 @@
     --radius: 0.75rem;
     /* More precise, less 'bubbly' radius for SaaS */
   }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 224 71% 6%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 243 75% 59%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 222.2 47.4% 11.2%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222.2 47.4% 11.2%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 222.2 47.4% 11.2%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222.2 47.4% 11.2%;
+    --input: 222.2 47.4% 11.2%;
+    --ring: 243 75% 59%;
+  }
 }
 
 @layer base {

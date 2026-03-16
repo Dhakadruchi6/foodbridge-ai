@@ -17,6 +17,7 @@ import {
     Compass,
     User as UserIcon
 } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 
 export const Navbar = () => {
     const { data: session } = useSession();
@@ -134,6 +135,9 @@ export const Navbar = () => {
 
                 {/* Actions */}
                 <div className="flex items-center space-x-4">
+                    <div className="hidden sm:flex">
+                        <ThemeToggle />
+                    </div>
                     {user ? (
                         <div className="flex items-center space-x-3">
                             <Link href={dashboardLink}>
@@ -177,8 +181,12 @@ export const Navbar = () => {
 
             {/* Mobile Menu */}
             {isOpen && (
-                <div className="absolute top-full left-0 right-0 bg-white border-b border-slate-200 shadow-2xl p-6 flex flex-col space-y-4 animate-in slide-in-from-top-2 duration-300 md:hidden">
-                    <Link href="/" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 py-2">Home</Link>
+                <div className="absolute top-full left-0 right-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shadow-2xl p-6 flex flex-col space-y-4 animate-in slide-in-from-top-2 duration-300 md:hidden">
+                    <div className="flex items-center justify-between py-2">
+                        <span className="font-black text-xs uppercase tracking-widest text-slate-500">Appearance</span>
+                        <ThemeToggle />
+                    </div>
+                    <Link href="/" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Home</Link>
                     <Link href="/#technology" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 py-2">Technology</Link>
                     <Link href="/#impact" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 py-2">Impact</Link>
                     <hr className="border-slate-100" />

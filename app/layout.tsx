@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/layout/Navbar";
 import AuthProvider from "@/components/providers/AuthProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,18 +26,25 @@ export default function RootLayout({
         "min-h-screen bg-background antialiased selection:bg-primary/20 selection:text-primary"
       )}>
         {/* Background Grids & Blobs */}
-        <div className="fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full bg-grid-white pointer-events-none opacity-50" />
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] rounded-full animate-float opacity-50" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full animate-float opacity-30" style={{ animationDelay: '1.5s' }} />
+        <div className="fixed inset-0 -z-10 overflow-hidden bg-background">
+          <div className="absolute top-0 left-0 w-full h-full bg-grid-slate-200/20 dark:bg-grid-white/5 pointer-events-none opacity-50" />
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 dark:bg-primary/10 blur-[120px] rounded-full animate-float opacity-50" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 dark:bg-primary/20 blur-[120px] rounded-full animate-float opacity-30" style={{ animationDelay: '1.5s' }} />
         </div>
 
         <AuthProvider>
-          <Navbar />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Navbar />
 
-          <main className="relative pt-16">
-            {children}
-          </main>
+            <main className="relative pt-16">
+              {children}
+            </main>
+          </ThemeProvider>
         </AuthProvider>
 
         <footer className="border-t bg-white relative z-10 py-16">
