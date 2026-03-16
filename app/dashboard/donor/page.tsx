@@ -128,7 +128,9 @@ export default function DonorDashboard() {
                   onClick={() => setShowAddForm(!showAddForm)}
                   className={cn(
                     "h-14 px-8 rounded-xl font-black text-xs uppercase tracking-[0.1em] shadow-xl transition-all active:scale-[0.98] flex items-center space-x-3",
-                    showAddForm ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-primary text-white hover:bg-primary/90"
+                    showAddForm
+                      ? "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90"
                   )}
                 >
                   {showAddForm ? (

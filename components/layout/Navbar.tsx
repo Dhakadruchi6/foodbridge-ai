@@ -136,11 +136,11 @@ export const Navbar = () => {
             <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
                 {/* Brand */}
                 <div className="flex items-center space-x-10">
-                    <Link href="/" className="flex items-center space-x-2.5 group">
-                        <div className="bg-primary p-2 rounded-lg shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform duration-500">
-                            <Zap className="w-5 h-5 text-white fill-white/20" />
+                    <Link href="/" className="flex items-center space-x-3 group">
+                        <div className="bg-primary p-2.5 rounded-xl shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform duration-500 flex items-center justify-center border border-white/10">
+                            <Zap className="w-5 h-5 text-primary-foreground fill-primary-foreground/20" />
                         </div>
-                        <span className="font-black text-xl tracking-tighter text-slate-900 uppercase">
+                        <span className="font-black text-xl tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
                             FoodBridge <span className="text-primary italic">AI</span>
                         </span>
                     </Link>
@@ -186,7 +186,7 @@ export const Navbar = () => {
                                     </Button>
                                 </Link>
                                 <Link href="/register">
-                                    <Button className="h-10 px-6 rounded-lg bg-primary text-white shadow-lg shadow-primary/20 font-black text-[10px] uppercase tracking-widest hover:translate-y-[-1px] active:translate-y-0 transition-all">
+                                    <Button className="h-11 px-8 rounded-xl bg-primary text-primary-foreground shadow-xl shadow-primary/20 font-black text-[10px] uppercase tracking-[0.2em] hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0 transition-all border border-primary">
                                         Join Network
                                     </Button>
                                 </Link>
@@ -215,8 +215,8 @@ export const Navbar = () => {
                         <ThemeToggle />
                     </div>
                     <Link href="/" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Home</Link>
-                    <Link href="/#technology" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 py-2">Technology</Link>
-                    <Link href="/#impact" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 py-2">Impact</Link>
+                    <Link href="/#technology" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Technology</Link>
+                    <Link href="/#impact" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Impact</Link>
                     <hr className="border-slate-100" />
 
                     {mounted && (
@@ -239,7 +239,7 @@ export const Navbar = () => {
                                     <Button variant="outline" className="w-full h-12 font-black text-[10px] uppercase tracking-widest border-slate-200">Sign In</Button>
                                 </Link>
                                 <Link href="/register" onClick={() => setIsOpen(false)}>
-                                    <Button className="w-full h-12 bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">Join</Button>
+                                    <Button className="w-full h-12 bg-primary text-primary-foreground font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 border border-primary">Join Network</Button>
                                 </Link>
                             </div>
                         )

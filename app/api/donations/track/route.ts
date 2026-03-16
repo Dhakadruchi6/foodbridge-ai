@@ -52,6 +52,8 @@ export const GET = asyncHandler(async (req: Request) => {
             city: donation.city,
             pickupAddress: donation.pickupAddress,
             expiryTime: donation.expiryTime,
+            latitude: donation.latitude,
+            longitude: donation.longitude,
         } : null,
         pickupTime: delivery.pickupTime || null,
         deliveryTime: delivery.deliveryTime || null,

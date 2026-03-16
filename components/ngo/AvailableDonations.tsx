@@ -28,10 +28,12 @@ import {
   ThumbsUp,
   ThumbsDown,
   AlertTriangle,
-  ZoomIn
+  ZoomIn,
+  Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface Donation {
   _id: string;
@@ -48,7 +50,7 @@ interface Donation {
   latitude?: number | null;
   longitude?: number | null;
   description?: string;
-  donorId: { name: string; email: string } | null;
+  donorId: { name: string; email: string; phone?: string } | null;
   verificationCode?: string;
   imageVerification?: {
     aiConfidence: number;
@@ -215,10 +217,18 @@ export const AvailableDonations = ({ radius = 100 }: { radius?: number }) => {
                   </div>
                   <div>
                     <p className="font-black text-white">{acceptedMission.donorId?.name || "Anonymous Donor"}</p>
-                    <p className="text-emerald-300/70 text-xs font-medium flex items-center mt-0.5">
-                      <Mail className="w-3 h-3 mr-1" />
-                      {acceptedMission.donorId?.email || "No email on file"}
-                    </p>
+                    <div className="flex flex-col gap-1 mt-1">
+                      <p className="text-emerald-300/70 text-xs font-medium flex items-center">
+                        <Mail className="w-3 h-3 mr-1" />
+                        {acceptedMission.donorId?.email || "No email on file"}
+                      </p>
+                      {acceptedMission.donorId?.phone && (
+                        <p className="text-emerald-300/70 text-xs font-medium flex items-center">
+                          <PhoneCall className="w-3 h-3 mr-1" />
+                          {acceptedMission.donorId.phone}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -239,18 +249,22 @@ export const AvailableDonations = ({ radius = 100 }: { radius?: number }) => {
             </div>
 
             {/* Batch Details */}
-            <div className="flex items-center space-x-4 mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-              <div className="text-center px-4 border-r border-white/10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
                 <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest">Payload</p>
                 <p className="text-xl font-black">{acceptedMission.quantity}kg</p>
               </div>
-              <div className="text-center px-4 border-r border-white/10">
+              <div className="bg-white/10 rounded-xl p-4 border border-emerald-400/30 text-center shadow-lg shadow-emerald-400/10">
+                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Proof Code</p>
+                <p className="text-xl font-black tracking-widest">{acceptedMission.verificationCode || "----"}</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
                 <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest">Priority</p>
                 <p className="text-xl font-black text-amber-400">{Math.round(acceptedMission.prioritizationRank || 0)}/100</p>
               </div>
-              <div className="text-center px-4">
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
                 <p className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest">Food Type</p>
-                <p className="text-sm font-black">{acceptedMission.foodType}</p>
+                <p className="text-sm font-black whitespace-nowrap overflow-hidden text-ellipsis">{acceptedMission.foodType}</p>
               </div>
             </div>
 
@@ -315,7 +329,18 @@ export const AvailableDonations = ({ radius = 100 }: { radius?: number }) => {
         <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-20 text-center">
           <Navigation className="w-10 h-10 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-black text-slate-900">No Nearby Batches</h3>
-          <p className="text-slate-500 text-sm font-medium mt-1">We'll alert you when surplus matches your operational zone or wait for expiry cycles to complete.</p>
+          <p className="text-slate-500 text-sm font-medium mt-1 mb-6">We'll alert you when surplus matches your operational zone.</p>
+
+          {(!donations.some(d => d.distance !== undefined)) && (
+            <div className="max-w-xs mx-auto p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Discovery Optimization</p>
+              <Link href="/profile">
+                <Button variant="outline" className="w-full h-10 text-[10px] font-black uppercase tracking-widest border-primary/30 text-primary hover:bg-primary/5">
+                  Set Base Coordinates
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       ) : visibleDonations.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -457,14 +482,14 @@ const AvailableCard = ({
           </p>
         )}
 
-        {/* Feature 1 & 3: Verification Code Display */}
+        {/* Proof Code - Hidden until acceptance */}
         {donation.verificationCode && (
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-center justify-between">
+          <div className="bg-slate-100/50 border border-slate-200/50 rounded-xl p-3 flex items-center justify-between opacity-60">
             <div className="flex items-center space-x-2">
-              <Hash className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary/70 text-nowrap">Proof Code</span>
+              <Hash className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500/70 text-nowrap">Proof Code</span>
             </div>
-            <span className="text-sm font-black text-primary tracking-wider">{donation.verificationCode}</span>
+            <span className="text-xs font-black text-slate-400 tracking-wider">••••••</span>
           </div>
         )}
 
@@ -501,7 +526,9 @@ const AvailableCard = ({
             <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-400 flex items-center justify-center mr-2">
               <User className="w-3 h-3" />
             </div>
-            <span className="truncate max-w-[120px]">{donation.donorId?.name || "Anonymous"}</span>
+            <span className="truncate max-w-[120px]">
+              {(donation.donorId?.name || "Anonymous").split(' ')[0]} •••
+            </span>
           </div>
           <div className="flex items-center text-[10px] font-black text-slate-700">
             {donation.quantity}kg Payload

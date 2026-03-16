@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 export default function NGODashboard() {
   const [stats, setStats] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
-  const [scanRadius, setScanRadius] = useState(25);
+  const [scanRadius, setScanRadius] = useState(100);
   const [syncing, setSyncing] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
 
@@ -121,14 +121,19 @@ export default function NGODashboard() {
             </div>
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative z-10">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3 mb-2">
+              <div className="space-y-4 flex-1">
+                <div className="flex flex-wrap items-center gap-3 mb-2">
                   <div className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-md flex items-center">
                     <Activity className="w-3 h-3 mr-1.5" /> Live Radar
                   </div>
                   <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    <CircleDot className="w-3 h-3 mr-1.5 text-emerald-500 animate-pulse" /> Scanning {scanRadius}km
+                    <CircleDot className="w-3 h-3 mr-1.5 text-emerald-500 animate-pulse" /> Scanning 100km Zone
                   </div>
+                  {user && (!user.latitude || !user.longitude) && (
+                    <Link href="/profile" className="px-2.5 py-1 bg-amber-500/10 text-amber-600 text-[10px] font-black uppercase tracking-widest rounded-md flex items-center hover:bg-amber-500/20 transition-colors">
+                      <MapPin className="w-3 h-3 mr-1.5" /> Location Missing — Update Profile
+                    </Link>
+                  )}
                 </div>
                 <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-[1.1]">
                   Operational <span className="text-primary tracking-normal font-serif italic text-3xl opacity-80 pl-2">Visibility</span>
@@ -150,9 +155,9 @@ export default function NGODashboard() {
                 <Button
                   onClick={handleAdjustRadar}
                   variant="outline"
-                  className="h-12 px-6 rounded-xl border-slate-200 font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center space-x-2"
+                  className="h-12 px-6 rounded-xl border-slate-200 font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center space-x-2 active:scale-95"
                 >
-                  <Radar className="w-4 h-4 text-slate-400" />
+                  <Radar className="w-4 h-4 text-primary animate-pulse" />
                   <span>Range: {scanRadius}km</span>
                 </Button>
               </div>

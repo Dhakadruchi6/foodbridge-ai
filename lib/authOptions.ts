@@ -1,7 +1,10 @@
-import { DefaultSession } from "next-auth";
+import { NextAuthOptions, DefaultSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import dbConnect from "@/lib/db";
-import User from "@/models/User";
+import mongoose from "mongoose";
+
+// Define the User interface locally or import it if you have a separate type file
+// For now, using any for the model since it's lazy-loaded
 
 declare module "next-auth" {
     interface Session {
@@ -19,7 +22,7 @@ declare module "next-auth" {
     }
 }
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID || "",
@@ -27,11 +30,13 @@ export const authOptions = {
         }),
     ],
     callbacks: {
-        async signIn({ user, account, profile }: any) {
+        async signIn({ user, account }: any) {
             console.log("[AUTH] SignIn Attempt:", { email: user.email, provider: account?.provider });
             if (account?.provider === "google") {
                 try {
                     await dbConnect();
+                    const User = mongoose.models.User || (await import("@/models/User")).default;
+
                     const existingUser = await User.findOne({ email: user.email });
 
                     if (!existingUser) {
@@ -42,7 +47,7 @@ export const authOptions = {
                             googleId: user.id,
                             role: "donor",
                             phoneVerified: false,
-                            isActive: true, // Default to true for Google users
+                            isActive: true,
                         });
                         user.id = newUser._id.toString();
                         user.role = newUser.role;
@@ -64,8 +69,7 @@ export const authOptions = {
             }
             return true;
         },
-        async jwt({ token, user, trigger, session }: any) {
-            // When user first signs in, 'user' is available
+        async jwt({ token, user }: any) {
             if (user) {
                 token.id = user.id;
                 token.role = user.role;
@@ -74,28 +78,31 @@ export const authOptions = {
         },
         async session({ session, token }: any) {
             if (session.user) {
-                await dbConnect();
-                // Use token.id if available, fallback to email query
-                const query = token?.id ? { _id: token.id } : { email: session.user.email };
-                const dbUser = await User.findOne(query);
+                try {
+                    await dbConnect();
+                    const User = mongoose.models.User || (await import("@/models/User")).default;
 
-                if (dbUser) {
-                    session.user.id = dbUser._id.toString();
-                    session.user.role = dbUser.role;
-                    session.user.isProfileComplete = !!(dbUser.phone && dbUser.address && dbUser.city);
+                    const query = token?.id ? { _id: token.id } : { email: session.user.email };
+                    const dbUser = await User.findOne(query);
 
-                    console.log("[AUTH] Session Computed:", {
-                        email: session.user.email,
-                        id: session.user.id,
-                        role: session.user.role
-                    });
-                } else {
-                    console.error("[AUTH] Session Error: User not found in DB for email:", session.user.email);
+                    if (dbUser) {
+                        session.user.id = dbUser._id.toString();
+                        session.user.role = dbUser.role;
+                        session.user.isProfileComplete = !!(dbUser.phone && dbUser.address && dbUser.city);
+
+                        console.log("[AUTH] Session Computed:", {
+                            email: session.user.email,
+                            id: session.user.id,
+                            role: session.user.role
+                        });
+                    }
+                } catch (err) {
+                    console.error("[AUTH] Session Error:", err);
                 }
             }
             return session;
         },
-        async redirect({ url, baseUrl }: any) {
+        async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
             if (url.startsWith("/")) return `${baseUrl}${url}`;
             else if (new URL(url).origin === baseUrl) return url;
             return baseUrl;

@@ -10,7 +10,8 @@ import dbConnect from '@/lib/db';
 
 export const GET = asyncHandler(async (req: Request) => {
   const { searchParams } = new URL(req.url);
-  const requestedRadius = parseInt(searchParams.get('radius') || '100');
+  let requestedRadius = parseInt(searchParams.get('radius') || '100');
+  if (requestedRadius > 100) requestedRadius = 100; // Hard cap for NGO missions
 
   const authGate = await authMiddleware(req);
   if (authGate.status !== 200) return authGate;
@@ -44,7 +45,10 @@ export const GET = asyncHandler(async (req: Request) => {
 
   const filteredDonations = validDonations.map((donation: any) => {
     let distance = null;
-    if (ngoProfile.latitude && ngoProfile.longitude && donation.latitude && donation.longitude) {
+    const hasNgoCoords = typeof ngoProfile.latitude === 'number' && typeof ngoProfile.longitude === 'number';
+    const hasDonationCoords = typeof donation.latitude === 'number' && typeof donation.longitude === 'number';
+
+    if (hasNgoCoords && hasDonationCoords) {
       distance = calculateHaversineDistance(
         ngoProfile.latitude,
         ngoProfile.longitude,
@@ -52,19 +56,32 @@ export const GET = asyncHandler(async (req: Request) => {
         donation.longitude
       );
     }
-    return { ...donation.toObject(), distance: distance ? Math.round(distance * 10) / 10 : null };
+
+    // Fix: distance 0 was being treated as falsy and becoming null
+    const finalDistance = (distance !== null) ? Math.round(distance * 10) / 10 : null;
+
+    return {
+      ...donation.toObject(),
+      distance: finalDistance
+    };
   }).filter((donation: any) => {
     // 1. Strict Geospatial Match (requested radius)
     if (donation.distance !== null) {
-      return donation.distance <= requestedRadius;
+      const inRadius = donation.distance <= requestedRadius;
+      if (inRadius) return true;
     }
 
     // 2. City-based Fallback (trimmed & lowercase)
     const donorCity = (donation.city || "").trim().toLowerCase();
-    return donorCity !== "" && donorCity === ngoCity;
+    const isCityMatch = donorCity !== "" && donorCity === ngoCity;
+
+    return isCityMatch;
   });
 
-  console.log(`[API-AVAILABLE] NGO: ${userId}, Radius: ${requestedRadius}km, City: ${ngoCity}, Found: ${filteredDonations.length}`);
+  console.log(`[API-AVAILABLE] NGO: ${userId}, Radius: ${requestedRadius}km, City: ${ngoCity}, Valid: ${validDonations.length}, Filtered: ${filteredDonations.length}`);
+  if (filteredDonations.length === 0 && validDonations.length > 0) {
+    console.log(`[API-DEBUG] No matches for NGO ${userId}. First pend donation: ${validDonations[0].city} (${validDonations[0].latitude},${validDonations[0].longitude})`);
+  }
 
   return successResponse(filteredDonations, `Donations within ${requestedRadius}km or same city retrieved`);
 });

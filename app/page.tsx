@@ -101,7 +101,7 @@ export default function Home() {
             </div>
 
             <div className="space-y-4">
-              <h1 className="hero-title-line text-6xl sm:text-8xl lg:text-[100px] font-black tracking-tighter text-slate-900 leading-[0.85] text-balance">
+              <h1 className="hero-title-line text-6xl sm:text-8xl lg:text-[100px] font-black tracking-tighter text-slate-900 dark:text-white leading-[0.85] text-balance">
                 Redefining <span className="text-primary italic">Waste</span> <br />
                 into <span className="relative">
                   Impact
@@ -112,7 +112,7 @@ export default function Home() {
               </h1>
             </div>
 
-            <p className="hero-desc text-lg sm:text-2xl text-slate-600 font-bold leading-relaxed max-w-2xl text-balance">
+            <p className="hero-desc text-lg sm:text-2xl text-slate-600 dark:text-slate-400 font-bold leading-relaxed max-w-2xl text-balance">
               Automated food redistribution powered by AI. Connecting corporate surplus with verified NGOs in real-time.
             </p>
 
@@ -144,8 +144,8 @@ export default function Home() {
                 ))}
               </div>
               <div className="text-left">
-                <p className="text-sm font-black text-slate-900 leading-none mb-1 uppercase tracking-widest">500+ Verified Partners</p>
-                <p className="text-xs font-bold text-slate-500">Joining the fight against food insecurity</p>
+                <p className="text-sm font-black text-slate-900 dark:text-white leading-none mb-1 uppercase tracking-widest">500+ Verified Partners</p>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Joining the fight against food insecurity</p>
               </div>
             </div>
           </div>
@@ -173,7 +173,7 @@ export default function Home() {
         <div className="container max-w-7xl mx-auto">
           <div className="text-center space-y-6 mb-24 max-w-3xl mx-auto stagger-fade-up">
             <span className="text-xs font-black text-primary uppercase tracking-widest bg-primary/10 px-4 py-2 rounded-full">The Technology</span>
-            <h2 className="text-4xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[0.95]">
+            <h2 className="text-4xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[0.95]">
               Intelligence that <br />
               <span className="text-primary">actually works.</span>
             </h2>
@@ -288,26 +288,26 @@ export default function Home() {
         <div className="container max-w-7xl mx-auto">
           <div className="text-center space-y-6 mb-24 max-w-3xl mx-auto stagger-fade-up">
             <span className="text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-4 py-2 rounded-full">Environmental ROI</span>
-            <h2 className="text-5xl lg:text-7xl font-black tracking-tight text-slate-900 leading-[0.95]">
+            <h2 className="text-5xl lg:text-7xl font-black tracking-tight text-slate-900 dark:text-white leading-[0.95]">
               Real change. <br />
               <span className="text-emerald-500 italic">By the numbers.</span>
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-12 rounded-[3.5rem] bg-slate-50 border border-slate-100 flex flex-col items-center text-center space-y-4 hover:bg-emerald-50 hover:border-emerald-100 transition-all duration-500 group">
-              <div className="p-4 bg-white rounded-3xl shadow-xl shadow-emerald-500/10 group-hover:scale-110 transition-transform"><Package className="w-10 h-10 text-emerald-500" /></div>
-              <h3 className="text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter">{globalStats?.totalKg || 0}kg</h3>
+            <div className="p-12 rounded-[3.5rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center space-y-4 hover:bg-emerald-50 hover:border-emerald-100 transition-all duration-500 group">
+              <div className="p-4 bg-white dark:bg-slate-800 rounded-3xl shadow-xl shadow-emerald-500/10 group-hover:scale-110 transition-transform"><Package className="w-10 h-10 text-emerald-500" /></div>
+              <h3 className="text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{globalStats?.totalKg || 0}kg</h3>
               <p className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Total Food Recovered</p>
             </div>
-            <div className="p-12 rounded-[3.5rem] bg-slate-50 border border-slate-100 flex flex-col items-center text-center space-y-4 hover:bg-blue-50 hover:border-blue-100 transition-all duration-500 group">
-              <div className="p-4 bg-white rounded-3xl shadow-xl shadow-blue-500/10 group-hover:scale-110 transition-transform"><Leaf className="w-10 h-10 text-blue-500" /></div>
-              <h3 className="text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter">{globalStats?.co2Mitigated || 0}t</h3>
+            <div className="p-12 rounded-[3.5rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center space-y-4 hover:bg-blue-50 hover:border-blue-100 transition-all duration-500 group">
+              <div className="p-4 bg-white dark:bg-slate-800 rounded-3xl shadow-xl shadow-blue-500/10 group-hover:scale-110 transition-transform"><Leaf className="w-10 h-10 text-blue-500" /></div>
+              <h3 className="text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{globalStats?.co2Mitigated || 0}t</h3>
               <p className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">CO2 Emissions Mitigated</p>
             </div>
-            <div className="p-12 rounded-[3.5rem] bg-slate-50 border border-slate-100 flex flex-col items-center text-center space-y-4 hover:bg-amber-50 hover:border-amber-100 transition-all duration-500 group">
-              <div className="p-4 bg-white rounded-3xl shadow-xl shadow-amber-500/10 group-hover:scale-110 transition-transform"><TrendingUp className="w-10 h-10 text-amber-500" /></div>
-              <h3 className="text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter">{(Number(globalStats?.totalKg || 0) * 1.4).toFixed(0)}</h3>
+            <div className="p-12 rounded-[3.5rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center space-y-4 hover:bg-amber-50 hover:border-amber-100 transition-all duration-500 group">
+              <div className="p-4 bg-white dark:bg-slate-800 rounded-3xl shadow-xl shadow-amber-500/10 group-hover:scale-110 transition-transform"><TrendingUp className="w-10 h-10 text-amber-500" /></div>
+              <h3 className="text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{(Number(globalStats?.totalKg || 0) * 1.4).toFixed(0)}</h3>
               <p className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Total Meals Provided</p>
             </div>
           </div>

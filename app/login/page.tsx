@@ -16,10 +16,12 @@ export default function LoginPage() {
             <Zap className="w-8 h-8 text-white fill-white/20 group-hover:scale-110 transition-transform" />
           </Link>
           <div className="text-center space-y-2">
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none">
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
               Operational <span className="text-primary italic font-serif opacity-80 pl-1">Access</span>
             </h1>
-            <p className="text-slate-500 font-bold text-lg">Secure entry to the humanitarian node network</p>
+            <p className="hero-desc text-lg sm:text-2xl text-slate-600 dark:text-slate-400 font-bold leading-relaxed max-w-2xl text-balance">
+              Automated food redistribution powered by AI. Connecting corporate surplus with verified NGOs in real-time.
+            </p>
           </div>
         </div>
 

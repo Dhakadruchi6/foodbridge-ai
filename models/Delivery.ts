@@ -22,6 +22,22 @@ const DeliverySchema = new Schema({
     enum: ['assigned', 'picked_up', 'completed'],
     default: 'assigned',
   },
+  liveLatitude: {
+    type: Number,
+    default: null,
+  },
+  liveLongitude: {
+    type: Number,
+    default: null,
+  },
+  liveLocationUpdatedAt: {
+    type: Date,
+    default: null,
+  },
+  isLive: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });

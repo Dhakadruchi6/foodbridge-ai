@@ -17,10 +17,10 @@ export default function RegisterPage() {
             <Zap className="w-8 h-8 text-white fill-white/20 group-hover:scale-110 transition-transform" />
           </Link>
           <div className="text-center space-y-2">
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-none text-center">
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-none text-center">
               Network <span className="text-primary italic font-serif opacity-80 pl-1">Onboarding</span>
             </h1>
-            <p className="text-slate-500 font-bold text-lg text-center">Join 500+ verified nodes in the global food recovery ecosystem</p>
+            <p className="text-slate-500 dark:text-slate-400 font-bold text-lg text-center">Join 500+ verified nodes in the global food recovery ecosystem</p>
           </div>
         </div>
 

@@ -17,6 +17,12 @@ import {
     Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
+
+const LiveTrackingMap = dynamic(() => import("./LiveTrackingMap"), {
+    ssr: false,
+    loading: () => <div className="h-48 bg-slate-50 animate-pulse rounded-2xl border border-slate-100 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-slate-300">Loading Geospatial Engine...</div>
+});
 
 interface TrackingInfo {
     status: 'assigned' | 'picked_up' | 'completed';
@@ -37,6 +43,8 @@ interface TrackingInfo {
         city: string;
         pickupAddress: string;
         expiryTime: string;
+        latitude?: number;
+        longitude?: number;
     } | null;
     pickupTime: string | null;
     deliveryTime: string | null;
@@ -143,6 +151,17 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
                             {info.donation.expiryTime ? new Date(info.donation.expiryTime).toLocaleDateString() : "N/A"}
                         </span>
                     </div>
+                </div>
+            )}
+
+            {/* LIVE TRACKING MAP */}
+            {info.status !== 'completed' && info.donation?.latitude && info.donation?.longitude && (
+                <div className="animate-in fade-in duration-700">
+                    <LiveTrackingMap
+                        donationId={donationId}
+                        pickupLat={info.donation.latitude}
+                        pickupLon={info.donation.longitude}
+                    />
                 </div>
             )}
 

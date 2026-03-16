@@ -44,7 +44,7 @@ export const getDonations = async (filter: any = {}) => {
   await dbConnect();
   // Sort by prioritizationRank first (highest urgency), then by creation date
   return await Donation.find(filter)
-    .populate('donorId', 'name email')
+    .populate('donorId', 'name email phone')
     .sort({ prioritizationRank: -1, createdAt: -1 });
 };
 
