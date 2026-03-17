@@ -2,12 +2,6 @@ import { authMiddleware } from '@/middleware/authMiddleware';
 import { allowRoles } from '@/middleware/roleMiddleware';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
-import vision from '@google-cloud/vision';
-
-// Initialize Google Vision client using the API Key
-const client = new vision.ImageAnnotatorClient({
-    apiKey: process.env.GOOGLE_VISION_API_KEY
-});
 
 // --- Feature 5: Valid Food Keywords ---
 const FOOD_KEYWORDS = [
