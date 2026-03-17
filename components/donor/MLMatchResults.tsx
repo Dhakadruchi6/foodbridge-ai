@@ -67,23 +67,31 @@ export const MLMatchResults = ({
         }
     };
 
-    if (!result && !loading) {
-        return (
-            <Button
-                onClick={runSmartMatching}
-                className="w-full mt-4 h-12 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center group"
-            >
-                <Target className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                Find Best NGO
-            </Button>
-        );
-    }
-
     if (loading) {
         return (
             <div className="w-full mt-4 h-12 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-200">
                 <Loader2 className="w-5 h-5 text-primary animate-spin mr-2" />
                 <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Calculating Smart Match...</span>
+            </div>
+        );
+    }
+
+    if (!result) {
+        return (
+            <div className="space-y-4 mt-4">
+                {error && (
+                    <div className="p-4 bg-rose-50 text-rose-600 rounded-xl text-[11px] font-black border border-rose-100 uppercase tracking-wider flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-2 shrink-0" />
+                        {error}
+                    </div>
+                )}
+                <Button
+                    onClick={runSmartMatching}
+                    className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center group"
+                >
+                    <Target className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                    Find Best NGO
+                </Button>
             </div>
         );
     }

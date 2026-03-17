@@ -51,11 +51,9 @@ export const POST = asyncHandler(async (req: Request) => {
     }, "Food is expired.");
   }
 
-  // 3. Fetch approved NGOs with coordinates
+  // 3. Fetch approved NGOs
   const ngos = await NGOProfile.find({
-    verificationStatus: 'approved',
-    latitude: { $ne: null },
-    longitude: { $ne: null }
+    verificationStatus: 'approved'
   });
 
   if (ngos.length === 0) {
@@ -64,17 +62,42 @@ export const POST = asyncHandler(async (req: Request) => {
 
   // 4. Filter and Score NGOs
   let matchedNgoList = ngos.map(ngo => {
-    const distance = calculateDistance(donorLat, donorLon, ngo.latitude, ngo.longitude);
+    // Coordinate check
+    const hasNgoCoords = ngo.latitude != null && ngo.longitude != null;
+    const hasDonorCoords = donorLat != null && donorLon != null;
 
-    // Step 1: 10km Radius Filter
-    if (distance > 10) return null;
+    let distance: number;
+    let matchedBy = "CITY";
+
+    if (hasNgoCoords && hasDonorCoords) {
+      distance = calculateDistance(donorLat, donorLon, ngo.latitude, ngo.longitude);
+      matchedBy = "GEO";
+
+      // Step 1: 10km Radius Filter for GEO matching
+      if (distance > 10) return null;
+    } else {
+      // City-based fallback
+      const dCity = (donation.city || "").toLowerCase().trim();
+      const nCity = (ngo.city || "").toLowerCase().trim();
+
+      if (dCity === "" || nCity === "") {
+        return null; // Cannot match by city if city info is missing for either
+      }
+
+      if (dCity !== nCity && !dCity.includes(nCity) && !nCity.includes(dCity)) {
+        return null; // Not in same city
+      }
+      distance = 2; // Arbitrary low distance for same city match when coords missing
+      matchedBy = "CITY";
+    }
 
     // Step 2: Calculate Priority Score (0-100)
     let score = 0;
 
     // A. Distance Component (Max 40 pts)
-    // 0km = 40pts, 10km = 0pts
-    const distScore = Math.max(0, 40 * (1 - distance / 10));
+    const distScore = matchedBy === "GEO"
+      ? Math.max(0, 40 * (1 - distance / 10))
+      : 35; // Fixed high score for same city
     score += distScore;
 
     // B. Urgency Component (Max 30 pts)
@@ -82,8 +105,7 @@ export const POST = asyncHandler(async (req: Request) => {
     score += urgencyMap[ngo.urgency] || 15;
 
     // C. Capacity Component (Max 30 pts)
-    // Full capacity (>=100) = 30pts, 0 capacity = 0pts (scaled)
-    const capScore = Math.min(30, (ngo.capacity / 100) * 30);
+    const capScore = Math.min(30, ((ngo.capacity || 50) / 100) * 30);
     score += capScore;
 
     return {
@@ -91,14 +113,15 @@ export const POST = asyncHandler(async (req: Request) => {
       ngoName: ngo.ngoName,
       distance: Math.round(distance * 10) / 10,
       score: Math.round(score),
-      urgency: ngo.urgency,
-      capacity: ngo.capacity,
-      priorityLevel: score > 70 ? 'CRITICAL' : score > 40 ? 'HIGH' : 'STABLE'
+      urgency: ngo.urgency || 'medium',
+      capacity: ngo.capacity || 50,
+      priorityLevel: score > 70 ? 'CRITICAL' : score > 40 ? 'HIGH' : 'STABLE',
+      matchedBy
     };
   }).filter(n => n !== null);
 
   if (matchedNgoList.length === 0) {
-    return successResponse([], 'No NGOs available within 10km radius.');
+    return successResponse({ allMatches: [] }, 'No NGOs available nearby or in the same city.');
   }
 
   // 5. Expiry Logic Override (< 4 hours)
@@ -108,11 +131,12 @@ export const POST = asyncHandler(async (req: Request) => {
   if (diffHours < 4) {
     // Choose absolute nearest NGO
     selectedNgo = matchedNgoList.sort((a, b) => a!.distance - b!.distance)[0];
-    reason = "Critical: Nearest NGO selected due to fast expiry (< 4h)";
+    reason = "Critical: Immediate pickup recommended due to fast expiry (< 4h)";
   } else {
     // Choose highest priority score
     selectedNgo = matchedNgoList.sort((a, b) => b!.score - a!.score)[0];
-    reason = `${selectedNgo!.priorityLevel} Match: Optimized for ${selectedNgo!.distance}km distance and ${selectedNgo!.urgency} urgency.`;
+    const method = selectedNgo!.matchedBy === "GEO" ? "GPS Proximity" : "Regional Node";
+    reason = `${selectedNgo!.priorityLevel} Priority: Optimized via ${method}. ${selectedNgo!.distance}km distance with ${selectedNgo!.urgency} urgency status.`;
   }
 
   // Save selection result for legacy compatibility if needed
