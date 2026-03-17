@@ -43,6 +43,15 @@ const NGOProfileSchema = new Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending',
   },
+  capacity: {
+    type: Number,
+    default: 100, // Default capacity in units/kg
+  },
+  urgency: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'medium',
+  },
   description: String,
 }, {
   timestamps: true,
