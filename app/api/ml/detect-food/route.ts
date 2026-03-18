@@ -33,19 +33,24 @@ export const POST = asyncHandler(async (req: Request) => {
     }
 
     try {
-        console.log(`[AI-VISION-REST] Scanning: ${imageUrl} | Claimed: ${claimedCategory}`);
+        console.log(`[AI-VISION-REST] Fetching & Scanning: ${imageUrl} | Claimed: ${claimedCategory}`);
 
-        // Call Google Vision REST API instead of using SDK to allow API Key usage
+        // 1. Fetch image bits to send as base64 (more robust than imageUri)
+        const imageRes = await fetch(imageUrl);
+        if (!imageRes.ok) throw new Error(`Failed to fetch image from URL: ${imageRes.statusText}`);
+        const imageBuffer = await imageRes.arrayBuffer();
+        const base64Image = Buffer.from(imageBuffer).toString('base64');
+
+        // 2. Call Google Vision REST API with CONTENT instead of imageUri
         const visionUrl = `https://vision.googleapis.com/v1/images:annotate?key=${API_KEY}`;
-
         const response = await fetch(visionUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 requests: [
                     {
-                        image: { source: { imageUri: imageUrl } },
-                        features: [{ type: 'LABEL_DETECTION', maxResults: 10 }]
+                        image: { content: base64Image },
+                        features: [{ type: 'LABEL_DETECTION', maxResults: 15 }]
                     }
                 ]
             })
