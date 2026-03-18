@@ -4,7 +4,16 @@ import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 
 const HF_MODEL_URL = "https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224";
-const FOOD_KEYWORDS = ["food", "dish", "meal", "fruit", "vegetable"];
+const FOOD_KEYWORDS = [
+    "food", "dish", "meal", "fruit", "vegetable", "meat", "poultry", "fish",
+    "bread", "cake", "dessert", "snack", "soup", "salad", "sandwich", "pizza",
+    "burger", "pasta", "rice", "noodle", "cheese", "egg", "apple", "banana",
+    "orange", "plate", "bowl", "cup", "sauce", "bean", "cookie", "chocolate",
+    "pastry", "grocery", "produce", "strawberry", "broccoli", "hotdog",
+    "hamburger", "drink", "beverage", "croissant", "donut", "bagel", "pretzel",
+    "ice cream", "lemon", "fig", "pineapple", "pomegranate", "corn", "mushroom",
+    "cucumber", "bell pepper", "bakery", "restaurant", "menu"
+];
 
 export const POST = asyncHandler(async (req: Request) => {
     // 1. Authentication & Authorization
