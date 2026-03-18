@@ -5,6 +5,8 @@ import { getDonations } from '@/services/donationService';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 import NGOProfile from '@/models/NGOProfile';
+import Donation from '@/models/Donation';
+import User from '@/models/User';
 import { calculateHaversineDistance } from '@/lib/utils';
 import dbConnect from '@/lib/db';
 
