@@ -3,7 +3,7 @@ import { allowRoles } from '@/middleware/roleMiddleware';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 
-const HF_MODEL_URL = "https://api-inference.huggingface.co/models/google/vit-base-patch16-224";
+const HF_MODEL_URL = "https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224";
 const FOOD_KEYWORDS = ["food", "dish", "meal", "fruit", "vegetable"];
 
 export const POST = asyncHandler(async (req: Request) => {
