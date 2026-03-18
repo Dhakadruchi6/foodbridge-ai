@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { postRequest } from "@/lib/apiClient";
-import { CheckCircle2, Truck, Package, Loader2, ChevronRight, ShieldCheck, Wifi, WifiOff } from "lucide-react";
+import { CheckCircle2, Truck, Package, Loader2, ChevronRight, ShieldCheck, Wifi, WifiOff, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useWebSocketLocation } from "@/hooks/useWebSocketLocation";
 import { useSession } from "next-auth/react";
 
-type DeliveryStatus = "accepted" | "pickup_in_progress" | "delivered" | "completed";
+type DeliveryStatus = "accepted" | "on_the_way" | "arrived" | "collected" | "delivered" | "completed";
 
 interface StatusStep {
     key: DeliveryStatus;
@@ -26,44 +26,64 @@ const steps: StatusStep[] = [
         sublabel: "NGO has confirmed the donation",
         icon: <CheckCircle2 className="w-5 h-5" />,
         color: "bg-indigo-50 text-indigo-600 border-indigo-200",
-        wsStatus: "accepted",
+        wsStatus: "ACCEPTED",
     },
     {
-        key: "pickup_in_progress",
-        label: "Pickup In Progress",
-        sublabel: "Team is heading to pickup location",
+        key: "on_the_way",
+        label: "On The Way",
+        sublabel: "Team is heading to your location",
         icon: <Truck className="w-5 h-5" />,
         color: "bg-amber-50 text-amber-600 border-amber-200",
         wsStatus: "ON_THE_WAY",
     },
     {
-        key: "delivered",
-        label: "Arrived at Destination",
-        sublabel: "Food has reached the NGO/Beneficiary",
-        icon: <Package className="w-5 h-5" />,
+        key: "arrived",
+        label: "Arrived at Pickup",
+        sublabel: "Team is at the donor's location",
+        icon: <MapPin className="w-5 h-5" />,
         color: "bg-blue-50 text-blue-600 border-blue-200",
         wsStatus: "ARRIVED",
+    },
+    {
+        key: "collected",
+        label: "Food Collected",
+        sublabel: "Items received and secured",
+        icon: <Package className="w-5 h-5" />,
+        color: "bg-purple-50 text-purple-600 border-purple-200",
+        wsStatus: "COLLECTED",
+    },
+    {
+        key: "delivered",
+        label: "Arrived at Destination",
+        sublabel: "Food has reached the destination",
+        icon: <Package className="w-5 h-5" />,
+        color: "bg-emerald-50 text-emerald-600 border-emerald-200",
+        wsStatus: "DELIVERED",
     },
     {
         key: "completed",
         label: "Mission Completed",
         sublabel: "Verification and distribution complete",
         icon: <ShieldCheck className="w-5 h-5" />,
-        color: "bg-emerald-50 text-emerald-600 border-emerald-200",
-        wsStatus: "COLLECTED",
+        color: "bg-emerald-500 text-white border-emerald-600",
+        wsStatus: "COMPLETED",
     },
 ];
 
 const nextStatus: Record<DeliveryStatus, DeliveryStatus | null> = {
-    accepted: "pickup_in_progress",
-    pickup_in_progress: "delivered",
+    accepted: "on_the_way",
+    on_the_way: "arrived",
+    arrived: "collected",
+    collected: "delivered",
     delivered: "completed",
     completed: null,
 };
 
 const nextLabel: Record<DeliveryStatus, string> = {
     accepted: "Start Pickup Mission",
-    pickup_in_progress: "Confirm Arrival/Delivery",
+    on_the_way: "Confirm Arrival at Donor",
+    arrived: "Confirm Food Collection",
+    collected: "Confirm Final Delivery",
     delivered: "Finalize & Complete Mission",
     completed: "Mission Complete",
 };
@@ -86,7 +106,7 @@ export const DeliveryStatusUpdater = ({
     const [success, setSuccess] = useState("");
 
     // ── WebSocket location streaming (replaces HTTP polling) ──────────────────
-    const isTrackingActive = status === "pickup_in_progress";
+    const isTrackingActive = status === "on_the_way" || status === "arrived";
     const { emitStatus, isConnected } = useWebSocketLocation({
         donationId: donationId || null,
         userId: (session?.user as any)?.id || null,
@@ -151,7 +171,7 @@ export const DeliveryStatusUpdater = ({
                                         "text-xs font-black uppercase tracking-widest",
                                         isDone ? "text-slate-900" : "text-slate-400"
                                     )}>{step.label}</p>
-                                    {isCurrent && step.key === 'pickup_in_progress' && (
+                                    {isCurrent && (step.key === 'on_the_way' || step.key === 'arrived') && (
                                         <div className="flex items-center space-x-1 px-2 py-0.5 bg-emerald-500 rounded text-[8px] font-black text-white animate-pulse">
                                             <Wifi className="w-2.5 h-2.5" />
                                             <span>LIVE WS</span>

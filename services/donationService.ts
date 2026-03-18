@@ -78,7 +78,11 @@ export const acceptDonation = async (donationId: string, ngoId: string) => {
   // 2. Atomic update to 'accepted'
   const donation = await Donation.findOneAndUpdate(
     { _id: donationId, status: { $in: ['pending_request', 'pending'] } },
-    { status: 'accepted' },
+    {
+      status: 'accepted',
+      ngoId,
+      acceptedAt: new Date()
+    },
     { new: true }
   );
 
@@ -130,10 +134,12 @@ export const updateDeliveryLifecycle = async (deliveryId: string, nextStatus: st
     throw new AppError('Unauthorized: You are not assigned to this mission.', 403);
   }
 
-  // Strict transition validation
+  // Strict transition validation based on user request
   const validTransitions: Record<string, string[]> = {
-    'accepted': ['pickup_in_progress'],
-    'pickup_in_progress': ['delivered'],
+    'accepted': ['on_the_way'],
+    'on_the_way': ['arrived'],
+    'arrived': ['collected'],
+    'collected': ['delivered'],
     'delivered': ['completed'],
     'completed': [],
   };
@@ -145,24 +151,23 @@ export const updateDeliveryLifecycle = async (deliveryId: string, nextStatus: st
 
   // Apply updates
   const updateData: any = { status: nextStatus };
-  if (nextStatus === 'pickup_in_progress') {
+  const donationUpdate: any = { status: nextStatus };
+
+  if (nextStatus === 'on_the_way') {
     updateData.pickupTime = new Date();
+    donationUpdate.pickupTime = new Date();
+  } else if (nextStatus === 'collected') {
+    updateData.collectedAt = new Date();
+    // No specific field in Donation for collectedAt yet, but we sync status
   } else if (nextStatus === 'delivered' || nextStatus === 'completed') {
     updateData.deliveryTime = new Date();
+    donationUpdate.deliveredAt = new Date();
   }
 
   const updatedDelivery = await Delivery.findByIdAndUpdate(deliveryId, updateData, { new: true });
 
-  // Sync Donation status
-  const donationStatusMap: Record<string, string> = {
-    'pickup_in_progress': 'pickup_in_progress',
-    'delivered': 'delivered',
-    'completed': 'completed',
-  };
-
-  if (donationStatusMap[nextStatus]) {
-    await Donation.findByIdAndUpdate(delivery.donationId, { status: donationStatusMap[nextStatus] });
-  }
+  // Sync Donation status and timestamps
+  await Donation.findByIdAndUpdate(delivery.donationId, donationUpdate);
 
   return updatedDelivery;
 };

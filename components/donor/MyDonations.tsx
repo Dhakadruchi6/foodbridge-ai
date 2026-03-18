@@ -16,7 +16,8 @@ import {
   Box,
   ArrowRight,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Truck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,11 @@ interface Donation {
   expiryTime: string;
   address: string;
   city: string;
-  status: "pending" | "pending_request" | "accepted" | "delivered" | "completed" | "pickup_in_progress" | "flagged";
+  status: "pending" | "pending_request" | "request_sent" | "accepted" | "on_the_way" | "arrived" | "collected" | "delivered" | "completed" | "flagged";
+  ngoId?: {
+    name: string;
+    phone: string;
+  };
 }
 
 export const MyDonations = () => {
@@ -54,7 +59,21 @@ export const MyDonations = () => {
 
   useEffect(() => {
     fetchDonations();
-  }, []);
+
+    // Auto-refresh if there are active missions
+    const hasActiveMissions = donations.some(d =>
+      ['pending_request', 'request_sent', 'accepted', 'on_the_way', 'arrived', 'collected'].includes(d.status)
+    );
+
+    let intervalId: NodeJS.Timeout;
+    if (hasActiveMissions) {
+      intervalId = setInterval(fetchDonations, 5000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [donations.length]); // Simple dependency for now
 
   if (loading) {
     return (
@@ -123,13 +142,16 @@ const DonationCard = ({
   onAssignSuccess?: () => void;
 }) => {
   const statusMap = {
-    pending: { color: "bg-amber-50 text-amber-600 border-amber-100", icon: <Clock className="w-3 h-3" />, label: "Awaiting Match" },
-    pending_request: { color: "bg-orange-50 text-orange-600 border-orange-100", icon: <Clock className="w-3 h-3 animate-pulse" />, label: "Request Sent" },
-    accepted: { color: "bg-indigo-50 text-indigo-600 border-indigo-100", icon: <CheckCircle2 className="w-3 h-3" />, label: "Entity Matched" },
-    pickup_in_progress: { color: "bg-blue-50 text-blue-600 border-blue-100", icon: <Activity className="w-3 h-3" />, label: "Live Transit" },
-    delivered: { color: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: <CheckCircle2 className="w-3 h-3" />, label: "Delivered" },
-    completed: { color: "bg-emerald-500 text-white border-emerald-600", icon: <ShieldCheck className="w-3 h-3" />, label: "Mission Complete" },
-    flagged: { color: "bg-rose-50 text-rose-600 border-rose-100", icon: <AlertCircle className="w-3 h-3" />, label: "Flagged" }
+    pending: { color: "bg-slate-50 text-slate-500 border-slate-200", icon: <Clock className="w-3 h-3" />, label: "Pending Layout", message: "Your asset is registered. Initiate matching to find an NGO." },
+    pending_request: { color: "bg-orange-50 text-orange-600 border-orange-100", icon: <Clock className="w-3 h-3 animate-pulse" />, label: "Request Sent", message: "Request sent. Waiting for NGO approval." },
+    request_sent: { color: "bg-orange-50 text-orange-600 border-orange-100", icon: <Clock className="w-3 h-3 animate-pulse" />, label: "Request Sent", message: "Request sent. Waiting for NGO approval." },
+    accepted: { color: "bg-indigo-50 text-indigo-600 border-indigo-100", icon: <CheckCircle2 className="w-3 h-3" />, label: "NGO Matched", message: "NGO accepted your request. They are preparing for pickup." },
+    on_the_way: { color: "bg-amber-50 text-amber-600 border-amber-100", icon: <Truck className="w-3 h-3 animate-bounce" />, label: "In Transit", message: "NGO is on the way to your location." },
+    arrived: { color: "bg-blue-50 text-blue-600 border-blue-100", icon: <MapPin className="w-3 h-3" />, label: "Arrived", message: "NGO has arrived at your location." },
+    collected: { color: "bg-purple-50 text-purple-600 border-purple-100", icon: <Package className="w-3 h-3" />, label: "Collected", message: "Food has been collected. On the way to beneficiaries." },
+    delivered: { color: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: <CheckCircle2 className="w-3 h-3" />, label: "Delivered", message: "Donation successfully delivered." },
+    completed: { color: "bg-emerald-500 text-white border-emerald-600", icon: <ShieldCheck className="w-3 h-3" />, label: "Mission Complete", message: "Mission finalized. Thank you for your contribution!" },
+    flagged: { color: "bg-rose-50 text-rose-600 border-rose-100", icon: <AlertCircle className="w-3 h-3" />, label: "Flagged", message: "Review required. Please contact support." }
   };
 
   const statusObj = statusMap[donation.status] || statusMap.pending;
@@ -173,9 +195,12 @@ const DonationCard = ({
             variant="ghost"
             size="sm"
             onClick={onToggle}
-            className="h-8 px-3 rounded-lg text-primary text-[9px] font-black uppercase tracking-[0.15em] hover:bg-primary/5 transition-all"
+            className={cn(
+              "h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-[0.15em] transition-all",
+              isExpanded ? "bg-slate-100 text-slate-900" : "text-primary hover:bg-primary/5"
+            )}
           >
-            {isExpanded ? "Close Control" : "Track Matrix"}
+            {isExpanded ? "Close Console" : (donation.status === 'pending' ? "Match NGO" : "Track Mission")}
             <ArrowRight className={cn(
               "ml-1.5 w-3 h-3 transition-transform duration-300",
               isExpanded ? "-rotate-90" : "group-hover:translate-x-0.5"
@@ -184,20 +209,64 @@ const DonationCard = ({
         </div>
       </div>
 
+      {/* Status Banner */}
+      <div className={cn(
+        "px-5 py-2.5 border-t border-slate-50 flex items-center space-x-3",
+        statusObj.color.split(' ')[0], // bg color
+        "bg-opacity-30"
+      )}>
+        <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
+        <p className="text-[10px] font-bold tracking-tight opacity-80">{statusObj.message}</p>
+      </div>
+
       {/* Control Expansion */}
       {isExpanded && (
         <div className="px-5 pb-5 border-t border-slate-100 bg-slate-50/30 animate-in slide-in-from-top-2 duration-500">
           <div className="pt-5 space-y-4 overflow-hidden">
-            {donation.status === "pending" || donation.status === "pending_request" ? (
+            {donation.status === "pending" ? (
               <MLMatchResults donationId={donation._id} onSuccess={onAssignSuccess} />
+            ) : donation.status === "pending_request" || donation.status === "request_sent" ? (
+              <div className="p-8 text-center bg-white rounded-xl border border-dashed border-slate-200">
+                <Clock className="w-8 h-8 text-slate-300 mx-auto mb-3 animate-pulse" />
+                <h5 className="text-xs font-black uppercase tracking-widest text-slate-900 mb-1">Waiting for Response</h5>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">The matched NGO has been notified. This usually takes 5-10 minutes.</p>
+              </div>
             ) : (
-              <>
-                {/* Go Live Button for active missions */}
-                {(donation.status === 'accepted' || donation.status === 'pickup_in_progress') && (
-                  <LiveLocationShare donationId={donation._id} donationStatus={donation.status} />
-                )}
-                <DeliveryTracking donationId={donation._id} />
-              </>
+              <div className="space-y-6">
+                {/* Live Tracking Page Link */}
+                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/10">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Activity className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">Live Operation Map</p>
+                      <p className="text-[9px] font-medium text-slate-500">Real-time NGO coordinate synchronization</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => window.open(`/track/${donation._id}`, '_blank')}
+                    className="h-8 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest px-4 rounded-lg flex items-center"
+                  >
+                    <span>Open Map</span>
+                    <ExternalLink className="ml-2 w-3 h-3" />
+                  </Button>
+                </div>
+
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900">Mission Progress</h5>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Syncing...</span>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <DeliveryTracking donationId={donation._id} />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

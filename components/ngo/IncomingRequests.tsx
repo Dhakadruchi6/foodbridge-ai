@@ -133,7 +133,10 @@ export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
         </div>
     );
 
-    const pendingRequests = requests.filter(r => r.donationId?.status === 'pending_request');
+    const pendingRequests = requests.filter(r =>
+        r.donationId?.status === 'pending_request' ||
+        r.donationId?.status === 'request_sent'
+    );
 
     if (pendingRequests.length === 0) return null;
 

@@ -55,9 +55,9 @@ export const POST = asyncHandler(async (req: Request) => {
     }
 
     // Update donation status to indicate a request is active
-    donation.status = 'pending_request';
+    donation.status = 'request_sent';
     await donation.save();
-    console.log("[API-REQUEST] Donation status updated to pending_request");
+    console.log("[API-REQUEST] Donation status updated to request_sent");
 
     // Use findOneAndUpdate with upsert to prevent duplicates
     const delivery = await Delivery.findOneAndUpdate(

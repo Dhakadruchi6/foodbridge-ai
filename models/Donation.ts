@@ -50,9 +50,37 @@ const DonationSchema = new Schema({
   longitude: {
     type: Number,
   },
+  ngoId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  acceptedAt: {
+    type: Date,
+    default: null,
+  },
+  pickupTime: {
+    type: Date,
+    default: null,
+  },
+  deliveredAt: {
+    type: Date,
+    default: null,
+  },
   status: {
     type: String,
-    enum: ['pending', 'pending_request', 'accepted', 'pickup_in_progress', 'delivered', 'completed', 'flagged'],
+    enum: [
+      'pending',
+      'pending_request',
+      'request_sent',
+      'accepted',
+      'on_the_way',
+      'arrived',
+      'collected',
+      'delivered',
+      'completed',
+      'flagged'
+    ],
     default: 'pending',
     index: true,
   },

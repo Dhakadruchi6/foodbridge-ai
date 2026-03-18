@@ -53,48 +53,13 @@ export const MLMatchResults = ({
 
     const [currentStep, setCurrentStep] = useState<string>('accepted');
 
-    // Polling for status updates if pending or approved (to track progress)
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (status === 'pending' || status === 'approved') {
-            interval = setInterval(async () => {
-                try {
-                    const response = await postRequest("/api/donations/status", { donationId });
-                    if (response.success) {
-                        const newStatus = response.data.status;
-
-                        if (['accepted', 'pickup_in_progress', 'delivered', 'completed'].includes(newStatus)) {
-                            setStatus('approved');
-                            setCurrentStep(newStatus);
-                            if (newStatus === 'completed') {
-                                clearInterval(interval);
-                                if (onSuccess) onSuccess();
-                            }
-                        } else if (newStatus === 'pending' || newStatus === 'pending_request') {
-                            setStatus('pending');
-                        } else {
-                            // Likely rejected or reset
-                            setStatus('idle');
-                            runSmartMatching();
-                            clearInterval(interval);
-                        }
-                    }
-                } catch (err) {
-                    console.error("Polling error:", err);
-                }
-            }, 5000);
-        }
-        return () => clearInterval(interval);
-    }, [status, donationId, onSuccess]);
-
-
     const handleSendRequest = async (ngoId: string) => {
         setRequestingId(ngoId);
         setError("");
         try {
             const response = await postRequest("/api/donations/request", { donationId, ngoId });
             if (response.success) {
-                setStatus('pending');
+                if (onSuccess) onSuccess();
             } else {
                 setError(response.message || "Failed to send request.");
             }
