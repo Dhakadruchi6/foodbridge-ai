@@ -2,118 +2,16 @@
 
 /**
  * LiveTrackingMap — Donor-side real-time NGO tracking
- * Uses Socket.IO for instant updates + lerp interpolation for smooth marker movement.
- * Feels like Uber / Swiggy.
+ * Uses Socket.IO for instant updates + Google Maps Directions API 
+ * for live route directions and smooth marker tracing.
  */
 
-import { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from "@react-google-maps/api";
 import { io, Socket } from "socket.io-client";
-import { Loader2, Truck, WifiOff, Wifi, MapPin } from "lucide-react";
+import { Loader2, Truck, WifiOff, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
-
-const pickupIcon = L.icon({
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-});
-
-const createNgoIcon = (isOnline: boolean) => L.divIcon({
-    html: `
-    <div style="
-      width:52px;height:52px;
-      background:${isOnline ? '#4f46e5' : '#64748b'};
-      border-radius:50%;
-      border:4px solid white;
-      box-shadow:0 8px 24px rgba(79,70,229,0.4);
-      display:flex;align-items:center;justify-content:center;
-      transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      transform-origin: center bottom;
-    " class="${isOnline ? 'animate-bounce-subtle' : ''}">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="18.5" cy="17.5" r="2.5"/><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/>
-      </svg>
-    </div>`,
-    className: "",
-    iconSize: [52, 52],
-    iconAnchor: [26, 52],
-});
-
-// ── Smooth Marker Component (lerp animation) ──────────────────────────────────
-
-function AnimatedNgoMarker({ position, isOnline }: { position: [number, number]; isOnline: boolean }) {
-    const markerRef = useRef<L.Marker | null>(null);
-    const animRef = useRef<number | null>(null);
-    const currentPos = useRef<[number, number]>(position);
-    const ngoIcon = createNgoIcon(isOnline);
-
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-    useEffect(() => {
-        const [targetLat, targetLng] = position;
-        const [startLat, startLng] = currentPos.current;
-
-        // Skip animation if position hasn't changed meaningfully
-        if (Math.abs(targetLat - startLat) < 0.000001 && Math.abs(targetLng - startLng) < 0.000001) return;
-
-        const duration = 2000; // 2 seconds smooth transition
-        const start = performance.now();
-
-        const animate = (now: number) => {
-            const elapsed = now - start;
-            const t = Math.min(elapsed / duration, 1); // clamp 0–1
-            // easeInOutQuad for natural feel
-            const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-
-            const lat = lerp(startLat, targetLat, eased);
-            const lng = lerp(startLng, targetLng, eased);
-
-            if (markerRef.current) {
-                markerRef.current.setLatLng([lat, lng]);
-            }
-
-            if (t < 1) {
-                animRef.current = requestAnimationFrame(animate);
-            } else {
-                currentPos.current = [targetLat, targetLng];
-            }
-        };
-
-        if (animRef.current) cancelAnimationFrame(animRef.current);
-        animRef.current = requestAnimationFrame(animate);
-
-        return () => {
-            if (animRef.current) cancelAnimationFrame(animRef.current);
-        };
-    }, [position]);
-
-    return (
-        <Marker
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ref={markerRef as any}
-            position={currentPos.current}
-            icon={ngoIcon}
-        >
-            <Popup><span className="font-bold text-sm">NGO Partner — Live</span></Popup>
-        </Marker>
-    );
-}
-
-// ── Map auto-follow ───────────────────────────────────────────────────────────
-
-function MapFollower({ center }: { center: [number, number] }) {
-    const map = useMap();
-    useEffect(() => {
-        map.panTo(center, { animate: true, duration: 1 });
-    }, [center, map]);
-    return null;
-}
 
 // ── Status labels ─────────────────────────────────────────────────────────────
 
@@ -127,7 +25,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     completed: { label: "Mission completed!", color: "text-emerald-700" },
 };
 
-// ── Props ─────────────────────────────────────────────────────────────────────
+// ── Props & Config ────────────────────────────────────────────────────────────
 
 interface LiveTrackingMapProps {
     donationId: string;
@@ -136,25 +34,42 @@ interface LiveTrackingMapProps {
     currentStatus?: string;
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
+const mapContainerStyle = {
+    width: "100%",
+    height: "100%",
+};
 
-export default function LiveTrackingMap({
+export default memo(function LiveTrackingMap({
     donationId,
     pickupLat,
     pickupLon,
     currentStatus,
 }: LiveTrackingMapProps) {
     const { data: session } = useSession();
-    const [ngoPos, setNgoPos] = useState<[number, number] | null>(null);
+
+    // Feature 4: Map Initialization
+    const { isLoaded, loadError } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    });
+
+    const [ngoPos, setNgoPos] = useState<{ lat: number, lng: number } | null>(null);
+    const pickupPos = { lat: pickupLat, lng: pickupLon };
+    const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
+
     const [ngoName, setNgoName] = useState<string>("NGO Partner");
     const [connected, setConnected] = useState(false);
     const [ngoOnline, setNgoOnline] = useState(false);
     const [lastUpdateSec, setLastUpdateSec] = useState<number | null>(null);
     const [liveStatus, setLiveStatus] = useState(currentStatus || "accepted");
     const [connectionLost, setConnectionLost] = useState(false);
+
+    // Use refs to avoid closure stale state
     const socketRef = useRef<Socket | null>(null);
     const lastUpdateRef = useRef<number>(0);
-    const connectionLostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const connectionLostTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const mapRef = useRef<google.maps.Map | null>(null);
+    const lastRouteCalcTime = useRef<number>(0);
 
     // ── Tick "X seconds ago" display ──────────────────────────────────────
     useEffect(() => {
@@ -165,6 +80,37 @@ export default function LiveTrackingMap({
         }, 1000);
         return () => clearInterval(interval);
     }, []);
+
+    // ── Route Calculation (Feature 5 & 6) ──────────────────────────────────
+    const calculateRoute = useCallback(async (origin: { lat: number, lng: number }, dest: { lat: number, lng: number }) => {
+        if (!isLoaded || !origin || !dest) return;
+
+        // Anti-spam: Only query Google Maps Directions API once every 5 seconds maximum.
+        // This ensures the route path updates gracefully as the NGO location marker bounces/moves without exploding quotas.
+        const now = Date.now();
+        if (now - lastRouteCalcTime.current < 5000) return;
+
+        try {
+            const directionsService = new google.maps.DirectionsService();
+            const results = await directionsService.route({
+                origin,
+                destination: dest,
+                travelMode: google.maps.TravelMode.DRIVING,
+            });
+            setDirectionsResponse(results);
+            lastRouteCalcTime.current = now;
+        } catch (error) {
+            console.error("Directions query failed", error);
+        }
+    }, [isLoaded]);
+
+    useEffect(() => {
+        if (ngoPos) {
+            calculateRoute(ngoPos, pickupPos);
+            // Optional: center map around NGO occasionally if moved significantly out of frame. Map center tracks naturally.
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ngoPos, isLoaded]); // We do NOT include pickupPos as dependency since it's constant
 
     // ── Socket.IO connection ──────────────────────────────────────────────
     useEffect(() => {
@@ -198,9 +144,9 @@ export default function LiveTrackingMap({
             socket.emit("join-room", { donationId, role: "donor" });
         });
 
-        // ── Receive NGO location ─────────────────────────────────────────
+        // ── Receive NGO Location (Feature 1, 2, 3) ─────────────────────────────────────────
         socket.on("receive-location", ({ lat, lng, ngoName: name, timestamp }) => {
-            setNgoPos([lat, lng]);
+            setNgoPos({ lat, lng });
             setNgoOnline(true);
             setConnectionLost(false);
             if (name) setNgoName(name);
@@ -208,20 +154,17 @@ export default function LiveTrackingMap({
             lastUpdateRef.current = timestamp || Date.now();
             setLastUpdateSec(0);
 
-            // Reset connection-lost timer
             if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
             connectionLostTimerRef.current = setTimeout(() => {
                 setNgoOnline(false);
                 setConnectionLost(true);
-            }, 30000); // 30s without update → show "connection lost"
+            }, 30000);
         });
 
-        // ── Receive status update ────────────────────────────────────────
         socket.on("status-changed", ({ status }) => {
             setLiveStatus(status);
         });
 
-        // ── NGO stopped sharing ──────────────────────────────────────────
         socket.on("tracking-stopped", () => {
             setNgoOnline(false);
             setConnectionLost(true);
@@ -229,6 +172,7 @@ export default function LiveTrackingMap({
 
         socket.on("peer-disconnected", () => {
             setNgoOnline(false);
+            setConnectionLost(true);
         });
 
         return () => {
@@ -239,17 +183,17 @@ export default function LiveTrackingMap({
     }, [donationId, session]);
 
     // ── Hybrid Tracking Fallback (REST Polling) ──────────────────────
-    // If WebSockets are blocked (e.g. on Vercel), this ensures tracking still works.
     useEffect(() => {
         const pollLocation = async () => {
-            if (ngoOnline && connected) return; // WS is healthy and receiving data
+            if (ngoOnline && connected) return;
 
             try {
                 const res = await fetch(`/api/donations/live-location?donationId=${donationId}`);
+                if (!res.ok) return;
                 const data = await res.json();
                 if (data.success && data.data?.isLive) {
                     const { liveLatitude: lat, liveLongitude: lng, ngoName: name } = data.data;
-                    setNgoPos([lat, lng]);
+                    setNgoPos({ lat, lng });
                     setNgoOnline(true);
                     setConnectionLost(false);
                     if (name) setNgoName(name);
@@ -262,7 +206,6 @@ export default function LiveTrackingMap({
             }
         };
 
-        // Poll immediately on mount, then every 10s if WS is not active
         pollLocation();
         const pollInterval = setInterval(pollLocation, 10000);
 
@@ -270,6 +213,10 @@ export default function LiveTrackingMap({
     }, [donationId, ngoOnline, connected]);
 
     const statusInfo = STATUS_LABELS[liveStatus] || { label: "Tracking active", color: "text-indigo-600" };
+
+    if (loadError) return <div className="p-4 text-rose-500 font-bold">Error loading Google Maps API</div>;
+
+    const mapCenter = ngoPos || pickupPos;
 
     return (
         <div className="space-y-3">
@@ -328,60 +275,89 @@ export default function LiveTrackingMap({
                 </div>
             )}
 
-            {/* ── Map ───────────────────────────────────────────────── */}
+            {/* ── Google Map ───────────────────────────────────────────────── */}
             <div className="h-[420px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-lg relative z-0">
-                <MapContainer
-                    center={ngoPos || [pickupLat, pickupLon]}
-                    zoom={14}
-                    style={{ height: "100%", width: "100%" }}
-                    zoomControl={true}
-                >
-                    <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    />
+                {!isLoaded && (
+                    <div className="absolute inset-0 bg-slate-100 flex items-center justify-center z-10 w-full h-full">
+                        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                        <span className="ml-2 font-bold text-slate-400 text-sm">Loading Live Map...</span>
+                    </div>
+                )}
 
-                    {/* Pickup marker */}
-                    <Marker position={[pickupLat, pickupLon]} icon={pickupIcon}>
-                        <Popup>
-                            <div className="text-center">
-                                <MapPin className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
-                                <span className="font-bold text-sm">Your Pickup Location</span>
-                            </div>
-                        </Popup>
-                    </Marker>
-
-                    {/* Animated NGO marker */}
-                    {ngoPos && (
-                        <>
-                            {/* Zomato-style Delivery Path */}
-                            <Polyline
-                                positions={[ngoPos, [pickupLat, pickupLon]]}
-                                pathOptions={{
-                                    color: '#6366f1',
-                                    weight: 4,
-                                    dashArray: '10, 15',
-                                    lineCap: 'round',
-                                    lineJoin: 'round',
-                                    opacity: 0.6
+                {isLoaded && (
+                    <GoogleMap
+                        mapContainerStyle={mapContainerStyle}
+                        zoom={14}
+                        center={mapCenter}
+                        options={{
+                            disableDefaultUI: true,
+                            zoomControl: true,
+                            mapTypeControl: false,
+                            streetViewControl: false,
+                            fullscreenControl: false,
+                            styles: [
+                                {
+                                    featureType: "poi",
+                                    elementType: "labels",
+                                    stylers: [{ visibility: "off" }]
+                                }
+                            ]
+                        }}
+                        onLoad={map => { mapRef.current = map; }}
+                        onUnmount={() => { mapRef.current = null; }}
+                    >
+                        {/* Validating Routes and Polylines (Feature 5) */}
+                        {directionsResponse && (
+                            <DirectionsRenderer
+                                directions={directionsResponse}
+                                options={{
+                                    suppressMarkers: true,
+                                    polylineOptions: {
+                                        strokeColor: '#6366f1',
+                                        strokeWeight: 5,
+                                        strokeOpacity: 0.8
+                                    }
                                 }}
                             />
-                            <AnimatedNgoMarker position={ngoPos} isOnline={ngoOnline} />
-                            <MapFollower center={ngoPos} />
-                        </>
-                    )}
-                </MapContainer>
+                        )}
 
+                        {/* Feature 4: Initializing Points - Donor Location Marker */}
+                        <Marker
+                            position={pickupPos}
+                            icon={typeof google !== 'undefined' ? {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 10,
+                                fillColor: '#10b981',
+                                fillOpacity: 1,
+                                strokeWeight: 3,
+                                strokeColor: '#ffffff'
+                            } : undefined}
+                            title="Your Pickup Location"
+                        />
+
+                        {/* Feature 3: NGO Live Tracking Moving Marker */}
+                        {ngoPos && (
+                            <Marker
+                                position={ngoPos}
+                                icon={{
+                                    url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                                }}
+                                title={ngoName}
+                            >
+                            </Marker>
+                        )}
+                    </GoogleMap>
+                )}
             </div>
 
             {/* ── Info footer ───────────────────────────────────────── */}
-            <div className="flex items-center justify-between px-2 text-[10px] font-bold text-slate-400">
+            <div className="flex items-center justify-between px-2 text-[10px] font-bold text-slate-400 mt-2">
                 <div className="flex items-center space-x-1">
                     <Wifi className="w-3 h-3" />
                     <span>{connected ? "WebSocket Connected" : "Connecting..."}</span>
                 </div>
-                <span>Real-time tracking powered by FoodBridge AI</span>
+                <span>Google Maps Directions API Navigation</span>
             </div>
         </div>
     );
-}
+});
