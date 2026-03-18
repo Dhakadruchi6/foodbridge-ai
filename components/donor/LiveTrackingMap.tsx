@@ -1,129 +1,370 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+/**
+ * LiveTrackingMap — Donor-side real-time NGO tracking
+ * Uses Socket.IO for instant updates + lerp interpolation for smooth marker movement.
+ * Feels like Uber / Swiggy.
+ */
+
+import { useEffect, useState, useRef, useCallback } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { getRequest } from "@/lib/apiClient";
-import { Navigation, Loader2, MapPin, Truck } from "lucide-react";
+import { io, Socket } from "socket.io-client";
+import { Navigation, Loader2, Truck, WifiOff, Wifi, Clock, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
-// Fix Leaflet marker icon issue in Next.js
-const defaultIcon = L.icon({
+// ── Icons ─────────────────────────────────────────────────────────────────────
+
+const pickupIcon = L.icon({
     iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
     shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
     iconSize: [25, 41],
     iconAnchor: [12, 41],
 });
 
-const ngoIcon = L.divIcon({
-    html: `<div class="w-10 h-10 bg-indigo-600 rounded-full border-4 border-white shadow-lg flex items-center justify-center animate-bounce">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3m15 0h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"></path><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>
-           </div>`,
+const createNgoIcon = (isOnline: boolean) => L.divIcon({
+    html: `
+    <div style="
+      width:48px;height:48px;
+      background:${isOnline ? '#4f46e5' : '#64748b'};
+      border-radius:50%;
+      border:4px solid white;
+      box-shadow:0 4px 20px rgba(79,70,229,0.5);
+      display:flex;align-items:center;justify-content:center;
+      transition:background 0.3s;
+    ">
+      <svg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 24 24'
+        fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+        <path d='M10 17h4V5H2v12h3m15 0h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5'/>
+        <circle cx='7.5' cy='17.5' r='2.5'/><circle cx='17.5' cy='17.5' r='2.5'/>
+      </svg>
+    </div>`,
     className: "",
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
+    iconSize: [48, 48],
+    iconAnchor: [24, 48],
 });
 
-function MapRecenter({ center }: { center: [number, number] }) {
+// ── Smooth Marker Component (lerp animation) ──────────────────────────────────
+
+function AnimatedNgoMarker({ position, isOnline }: { position: [number, number]; isOnline: boolean }) {
+    const markerRef = useRef<L.Marker | null>(null);
+    const animRef = useRef<number | null>(null);
+    const currentPos = useRef<[number, number]>(position);
+    const ngoIcon = createNgoIcon(isOnline);
+
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+    useEffect(() => {
+        const [targetLat, targetLng] = position;
+        const [startLat, startLng] = currentPos.current;
+
+        // Skip animation if position hasn't changed meaningfully
+        if (Math.abs(targetLat - startLat) < 0.000001 && Math.abs(targetLng - startLng) < 0.000001) return;
+
+        const duration = 2000; // 2 seconds smooth transition
+        const start = performance.now();
+
+        const animate = (now: number) => {
+            const elapsed = now - start;
+            const t = Math.min(elapsed / duration, 1); // clamp 0–1
+            // easeInOutQuad for natural feel
+            const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+            const lat = lerp(startLat, targetLat, eased);
+            const lng = lerp(startLng, targetLng, eased);
+
+            if (markerRef.current) {
+                markerRef.current.setLatLng([lat, lng]);
+            }
+
+            if (t < 1) {
+                animRef.current = requestAnimationFrame(animate);
+            } else {
+                currentPos.current = [targetLat, targetLng];
+            }
+        };
+
+        if (animRef.current) cancelAnimationFrame(animRef.current);
+        animRef.current = requestAnimationFrame(animate);
+
+        return () => {
+            if (animRef.current) cancelAnimationFrame(animRef.current);
+        };
+    }, [position]);
+
+    return (
+        <Marker
+            ref={markerRef as any}
+            position={currentPos.current}
+            icon={ngoIcon}
+        >
+            <Popup><span className="font-bold text-sm">NGO Partner — Live</span></Popup>
+        </Marker>
+    );
+}
+
+// ── Map auto-follow ───────────────────────────────────────────────────────────
+
+function MapFollower({ center }: { center: [number, number] }) {
     const map = useMap();
     useEffect(() => {
-        map.setView(center);
+        map.panTo(center, { animate: true, duration: 1 });
     }, [center, map]);
     return null;
 }
+
+// ── Status labels ─────────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+    accepted: { label: "NGO accepted your request", color: "text-indigo-600" },
+    ON_THE_WAY: { label: "NGO is on the way", color: "text-blue-600" },
+    NEARBY: { label: "NGO is nearby — almost here!", color: "text-amber-600" },
+    ARRIVED: { label: "NGO has arrived!", color: "text-emerald-600" },
+    pickup_in_progress: { label: "Pickup in progress", color: "text-indigo-600" },
+    delivered: { label: "Food delivered successfully", color: "text-emerald-600" },
+    completed: { label: "Mission completed!", color: "text-emerald-700" },
+};
+
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface LiveTrackingMapProps {
     donationId: string;
     pickupLat: number;
     pickupLon: number;
+    currentStatus?: string;
 }
 
-export default function LiveTrackingMap({ donationId, pickupLat, pickupLon }: LiveTrackingMapProps) {
+// ── Main Component ────────────────────────────────────────────────────────────
+
+export default function LiveTrackingMap({
+    donationId,
+    pickupLat,
+    pickupLon,
+    currentStatus,
+}: LiveTrackingMapProps) {
+    const { data: session } = useSession();
     const [ngoPos, setNgoPos] = useState<[number, number] | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [ngoInfo, setNgoInfo] = useState<any>(null);
+    const [ngoName, setNgoName] = useState<string>("NGO Partner");
+    const [connected, setConnected] = useState(false);
+    const [ngoOnline, setNgoOnline] = useState(false);
+    const [lastUpdateSec, setLastUpdateSec] = useState<number | null>(null);
+    const [liveStatus, setLiveStatus] = useState(currentStatus || "accepted");
+    const [connectionLost, setConnectionLost] = useState(false);
+    const socketRef = useRef<Socket | null>(null);
+    const lastUpdateRef = useRef<number>(0);
+    const connectionLostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const fetchNgoLocation = async () => {
-        try {
-            const res = await getRequest(`/api/donations/live-location?donationId=${donationId}`);
-            if (res.success && res.data.isLive) {
-                setNgoPos([res.data.liveLatitude, res.data.liveLongitude]);
-                setNgoInfo(res.data);
-            }
-        } catch (err) {
-            console.error("Map tracking fetch error:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    // ── Tick "X seconds ago" display ──────────────────────────────────────
     useEffect(() => {
-        fetchNgoLocation();
-        const interval = setInterval(fetchNgoLocation, 5000);
+        const interval = setInterval(() => {
+            if (lastUpdateRef.current > 0) {
+                setLastUpdateSec(Math.round((Date.now() - lastUpdateRef.current) / 1000));
+            }
+        }, 1000);
         return () => clearInterval(interval);
-    }, [donationId]);
+    }, []);
 
-    if (loading) return (
-        <div className="h-64 flex flex-col items-center justify-center bg-slate-100 rounded-2xl border border-slate-200">
-            <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Initializing Satellite Uplink...</p>
-        </div>
-    );
+    // ── Socket.IO connection ──────────────────────────────────────────────
+    useEffect(() => {
+        if (!donationId) return;
+
+        const socket = io(window.location.origin, {
+            transports: ["websocket", "polling"],
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1500,
+        });
+
+        socketRef.current = socket;
+
+        socket.on("connect", () => {
+            setConnected(true);
+            setConnectionLost(false);
+            socket.emit("join-room", {
+                donationId,
+                role: "donor",
+                userId: (session?.user as any)?.id || "anonymous",
+            });
+        });
+
+        socket.on("disconnect", () => {
+            setConnected(false);
+        });
+
+        socket.on("reconnect", () => {
+            setConnected(true);
+            setConnectionLost(false);
+            socket.emit("join-room", { donationId, role: "donor" });
+        });
+
+        // ── Receive NGO location ─────────────────────────────────────────
+        socket.on("receive-location", ({ lat, lng, ngoName: name, timestamp }) => {
+            setNgoPos([lat, lng]);
+            setNgoOnline(true);
+            setConnectionLost(false);
+            if (name) setNgoName(name);
+
+            lastUpdateRef.current = timestamp || Date.now();
+            setLastUpdateSec(0);
+
+            // Reset connection-lost timer
+            if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
+            connectionLostTimerRef.current = setTimeout(() => {
+                setNgoOnline(false);
+                setConnectionLost(true);
+            }, 30000); // 30s without update → show "connection lost"
+        });
+
+        // ── Receive status update ────────────────────────────────────────
+        socket.on("status-changed", ({ status }) => {
+            setLiveStatus(status);
+        });
+
+        // ── NGO stopped sharing ──────────────────────────────────────────
+        socket.on("tracking-stopped", () => {
+            setNgoOnline(false);
+            setConnectionLost(true);
+        });
+
+        socket.on("peer-disconnected", () => {
+            setNgoOnline(false);
+        });
+
+        return () => {
+            socket.disconnect();
+            socketRef.current = null;
+            if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
+        };
+    }, [donationId, session]);
+
+    // ── Fallback to REST if WS has no data after 5s ─────────────────────
+    useEffect(() => {
+        const fallbackTimer = setTimeout(async () => {
+            if (ngoPos) return; // Already got WS data
+            try {
+                const res = await fetch(`/api/donations/live-location?donationId=${donationId}`);
+                const data = await res.json();
+                if (data.success && data.data?.isLive) {
+                    setNgoPos([data.data.liveLatitude, data.data.liveLongitude]);
+                    setNgoName(data.data.ngoName || "NGO Partner");
+                    setNgoOnline(true);
+                }
+            } catch (_) { }
+        }, 5000);
+        return () => clearTimeout(fallbackTimer);
+    }, [donationId, ngoPos]);
+
+    const statusInfo = STATUS_LABELS[liveStatus] || { label: "Tracking active", color: "text-indigo-600" };
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between px-2">
+        <div className="space-y-3">
+            {/* ── Status header ─────────────────────────────────────── */}
+            <div className="flex items-center justify-between px-1">
                 <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center border border-indigo-200">
                         <Truck className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div>
-                        <h4 className="text-sm font-black text-slate-900 leading-none">
-                            {ngoInfo?.ngoName || "NGO Partner"}
-                        </h4>
-                        <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">
-                            {ngoPos ? "In Transit (Real-Time)" : "Waiting for NGO to start transit"}
+                        <h4 className="text-sm font-black text-slate-900 leading-none">{ngoName}</h4>
+                        <p className={cn("text-[10px] font-bold mt-1 uppercase tracking-widest", statusInfo.color)}>
+                            {statusInfo.label}
                         </p>
                     </div>
                 </div>
-                {ngoInfo?.ageSeconds !== undefined && (
-                    <div className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 flex items-center space-x-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Updated {ngoInfo.ageSeconds}s ago</span>
-                    </div>
-                )}
+
+                {/* Connection indicator */}
+                <div className={cn(
+                    "px-3 py-1.5 rounded-full border flex items-center space-x-2",
+                    connectionLost
+                        ? "bg-red-50 border-red-100"
+                        : ngoOnline
+                            ? "bg-emerald-50 border-emerald-100"
+                            : "bg-slate-50 border-slate-100"
+                )}>
+                    {connectionLost ? (
+                        <>
+                            <WifiOff className="w-3 h-3 text-red-500" />
+                            <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">Connection Lost</span>
+                        </>
+                    ) : ngoOnline ? (
+                        <>
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                                {lastUpdateSec !== null ? `${lastUpdateSec}s ago` : "LIVE"}
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Waiting...</span>
+                        </>
+                    )}
+                </div>
             </div>
 
-            <div className="h-[400px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-md relative z-0">
+            {/* ── Connection Lost Banner ─────────────────────────────── */}
+            {connectionLost && !ngoOnline && (
+                <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center space-x-3">
+                    <WifiOff className="w-4 h-4 text-red-500 shrink-0" />
+                    <div>
+                        <p className="text-xs font-black text-red-700">NGO location signal lost</p>
+                        <p className="text-[10px] text-red-500">Showing last known position. Waiting to reconnect...</p>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Map ───────────────────────────────────────────────── */}
+            <div className="h-[420px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-lg relative z-0">
                 <MapContainer
-                    center={[pickupLat, pickupLon]}
-                    zoom={13}
-                    style={{ height: '100%', width: '100%' }}
+                    center={ngoPos || [pickupLat, pickupLon]}
+                    zoom={14}
+                    style={{ height: "100%", width: "100%" }}
+                    zoomControl={true}
                 >
                     <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     />
 
-                    {/* Pickup Point */}
-                    <Marker position={[pickupLat, pickupLon]} icon={defaultIcon}>
+                    {/* Pickup marker */}
+                    <Marker position={[pickupLat, pickupLon]} icon={pickupIcon}>
                         <Popup>
-                            <span className="font-bold">Pickup Location</span>
+                            <div className="text-center">
+                                <MapPin className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
+                                <span className="font-bold text-sm">Your Pickup Location</span>
+                            </div>
                         </Popup>
                     </Marker>
 
-                    {/* NGO Live Position */}
+                    {/* Animated NGO marker */}
                     {ngoPos && (
                         <>
-                            <Marker position={ngoPos} icon={ngoIcon}>
-                                <Popup>
-                                    <span className="font-bold">{ngoInfo.ngoName}</span>
-                                </Popup>
-                            </Marker>
-                            <MapRecenter center={ngoPos} />
+                            <AnimatedNgoMarker position={ngoPos} isOnline={ngoOnline} />
+                            <MapFollower center={ngoPos} />
                         </>
                     )}
                 </MapContainer>
+
+                {/* Overlay: no location yet */}
+                {!ngoPos && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm z-[1000]">
+                        <div className="text-center text-white space-y-3">
+                            <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+                            <p className="text-xs font-black uppercase tracking-widest">Awaiting NGO location signal...</p>
+                            <p className="text-[10px] text-white/60">Will appear when NGO starts pickup</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ── Info footer ───────────────────────────────────────── */}
+            <div className="flex items-center justify-between px-2 text-[10px] font-bold text-slate-400">
+                <div className="flex items-center space-x-1">
+                    <Wifi className="w-3 h-3" />
+                    <span>{connected ? "WebSocket Connected" : "Connecting..."}</span>
+                </div>
+                <span>Real-time tracking powered by FoodBridge AI</span>
             </div>
         </div>
     );

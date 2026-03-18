@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { postRequest } from "@/lib/apiClient";
-import { CheckCircle2, Truck, Package, Loader2, ChevronRight } from "lucide-react";
+import { CheckCircle2, Truck, Package, Loader2, ChevronRight, ShieldCheck, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useWebSocketLocation } from "@/hooks/useWebSocketLocation";
+import { useSession } from "next-auth/react";
 
-type DeliveryStatus = "assigned" | "picked_up" | "completed";
+type DeliveryStatus = "accepted" | "pickup_in_progress" | "delivered" | "completed";
 
 interface StatusStep {
     key: DeliveryStatus;
@@ -14,41 +16,55 @@ interface StatusStep {
     sublabel: string;
     icon: React.ReactNode;
     color: string;
+    wsStatus: string; // WebSocket status string for donors
 }
 
 const steps: StatusStep[] = [
     {
-        key: "assigned",
-        label: "Accepted",
+        key: "accepted",
+        label: "Mission Accepted",
         sublabel: "NGO has confirmed the donation",
         icon: <CheckCircle2 className="w-5 h-5" />,
         color: "bg-indigo-50 text-indigo-600 border-indigo-200",
+        wsStatus: "accepted",
     },
     {
-        key: "picked_up",
+        key: "pickup_in_progress",
         label: "Pickup In Progress",
         sublabel: "Team is heading to pickup location",
         icon: <Truck className="w-5 h-5" />,
         color: "bg-amber-50 text-amber-600 border-amber-200",
+        wsStatus: "ON_THE_WAY",
+    },
+    {
+        key: "delivered",
+        label: "Arrived at Destination",
+        sublabel: "Food has reached the NGO/Beneficiary",
+        icon: <Package className="w-5 h-5" />,
+        color: "bg-blue-50 text-blue-600 border-blue-200",
+        wsStatus: "ARRIVED",
     },
     {
         key: "completed",
-        label: "Delivered to Beneficiaries",
-        sublabel: "Food successfully distributed",
-        icon: <Package className="w-5 h-5" />,
+        label: "Mission Completed",
+        sublabel: "Verification and distribution complete",
+        icon: <ShieldCheck className="w-5 h-5" />,
         color: "bg-emerald-50 text-emerald-600 border-emerald-200",
+        wsStatus: "COLLECTED",
     },
 ];
 
 const nextStatus: Record<DeliveryStatus, DeliveryStatus | null> = {
-    assigned: "picked_up",
-    picked_up: "completed",
+    accepted: "pickup_in_progress",
+    pickup_in_progress: "delivered",
+    delivered: "completed",
     completed: null,
 };
 
 const nextLabel: Record<DeliveryStatus, string> = {
-    assigned: "Mark Pickup In Progress",
-    picked_up: "Mark Delivered",
+    accepted: "Start Pickup Mission",
+    pickup_in_progress: "Confirm Arrival/Delivery",
+    delivered: "Finalize & Complete Mission",
     completed: "Mission Complete",
 };
 
@@ -56,15 +72,27 @@ export const DeliveryStatusUpdater = ({
     deliveryId,
     currentStatus,
     onStatusUpdate,
+    donationId,
 }: {
     deliveryId: string;
     currentStatus: DeliveryStatus;
     onStatusUpdate?: (newStatus: DeliveryStatus) => void;
+    donationId?: string;
 }) => {
+    const { data: session } = useSession();
     const [status, setStatus] = useState<DeliveryStatus>(currentStatus);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
+    // ── WebSocket location streaming (replaces HTTP polling) ──────────────────
+    const isTrackingActive = status === "pickup_in_progress";
+    const { emitStatus, isConnected } = useWebSocketLocation({
+        donationId: donationId || null,
+        userId: (session?.user as any)?.id || null,
+        ngoName: (session?.user as any)?.name || "NGO Partner",
+        enabled: isTrackingActive,
+    });
 
     const currentStepIdx = steps.findIndex(s => s.key === status);
 
@@ -81,6 +109,10 @@ export const DeliveryStatusUpdater = ({
             });
             if (result.success) {
                 setStatus(next);
+                // Broadcast status to donor via WebSocket instantly
+                const nextStep = steps.find(s => s.key === next);
+                if (nextStep) emitStatus(nextStep.wsStatus);
+
                 setSuccess(`Status updated to "${steps.find(s => s.key === next)?.label}"!`);
                 setTimeout(() => setSuccess(""), 3000);
                 onStatusUpdate?.(next);
@@ -114,10 +146,18 @@ export const DeliveryStatusUpdater = ({
                                 {step.icon}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className={cn(
-                                    "text-xs font-black uppercase tracking-widest",
-                                    isDone ? "text-slate-900" : "text-slate-400"
-                                )}>{step.label}</p>
+                                <div className="flex items-center space-x-2">
+                                    <p className={cn(
+                                        "text-xs font-black uppercase tracking-widest",
+                                        isDone ? "text-slate-900" : "text-slate-400"
+                                    )}>{step.label}</p>
+                                    {isCurrent && step.key === 'pickup_in_progress' && (
+                                        <div className="flex items-center space-x-1 px-2 py-0.5 bg-emerald-500 rounded text-[8px] font-black text-white animate-pulse">
+                                            <Wifi className="w-2.5 h-2.5" />
+                                            <span>LIVE WS</span>
+                                        </div>
+                                    )}
+                                </div>
                                 <p className="text-[10px] text-slate-400 font-medium">{step.sublabel}</p>
                             </div>
                             {isCurrent && (
@@ -130,6 +170,31 @@ export const DeliveryStatusUpdater = ({
                     );
                 })}
             </div>
+
+            {/* WebSocket Sync Status */}
+            {isTrackingActive && (
+                <div className={cn(
+                    "p-3 border rounded-xl flex items-center justify-between",
+                    isConnected
+                        ? "bg-indigo-50 border-indigo-100"
+                        : "bg-yellow-50 border-yellow-100"
+                )}>
+                    <div className="flex items-center space-x-2">
+                        {isConnected ? (
+                            <>
+                                <Wifi className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">WebSocket Streaming Active</span>
+                            </>
+                        ) : (
+                            <>
+                                <WifiOff className="w-3.5 h-3.5 text-yellow-600" />
+                                <span className="text-[10px] font-black text-yellow-600 uppercase tracking-widest">Connecting to Socket...</span>
+                            </>
+                        )}
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-400">Real-time • 2.5s</span>
+                </div>
+            )}
 
             {/* Error/Success */}
             {error && <p className="text-[11px] text-rose-600 font-bold">{error}</p>}

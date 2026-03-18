@@ -35,7 +35,7 @@ export const POST = asyncHandler(async (req: Request) => {
     const delivery = await Delivery.create({
         donationId,
         ngoId,
-        status: 'assigned'
+        status: 'accepted'
     });
 
     return successResponse({ donation, delivery }, 'Donation successfully assigned to NGO');

@@ -14,7 +14,8 @@ import {
     User,
     MapPin,
     Package,
-    Calendar
+    Calendar,
+    Navigation
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
@@ -25,7 +26,7 @@ const LiveTrackingMap = dynamic(() => import("./LiveTrackingMap"), {
 });
 
 interface TrackingInfo {
-    status: 'assigned' | 'picked_up' | 'completed';
+    status: 'accepted' | 'pickup_in_progress' | 'delivered' | 'completed';
     ngoId: {
         _id: string;
         name: string;
@@ -95,15 +96,15 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
 
     const steps = [
         {
-            key: 'assigned',
+            key: 'accepted',
             label: 'Mission Accepted',
             desc: 'NGO has secured the batch',
             icon: <CheckCircle2 className="w-5 h-5" />,
             time: info.createdAt
         },
         {
-            key: 'picked_up',
-            label: 'In Transit',
+            key: 'pickup_in_progress',
+            label: 'Pickup In Progress',
             desc: 'Fleet has collected the batch',
             icon: <Truck className="w-5 h-5" />,
             time: info.pickupTime
@@ -156,7 +157,30 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
 
             {/* LIVE TRACKING MAP */}
             {info.status !== 'completed' && info.donation?.latitude && info.donation?.longitude && (
-                <div className="animate-in fade-in duration-700">
+                <div className="space-y-4 animate-in fade-in duration-700">
+                    {/* Zomato-style Status Banner */}
+                    {info.status === 'pickup_in_progress' && (
+                        <div className="p-4 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-600/20 text-white flex items-center justify-between overflow-hidden relative group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                <Navigation className="w-12 h-12" />
+                            </div>
+                            <div className="flex items-center space-x-4 relative z-10">
+                                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 animate-pulse">
+                                    <Truck className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200 mb-1">Real-Time Insight</p>
+                                    <h4 className="text-sm font-black tracking-tight">
+                                        NGO Partner is navigating to your location
+                                    </h4>
+                                </div>
+                            </div>
+                            <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10 text-[9px] font-black uppercase tracking-widest relative z-10">
+                                Arriving Soon
+                            </div>
+                        </div>
+                    )}
+
                     <LiveTrackingMap
                         donationId={donationId}
                         pickupLat={info.donation.latitude}

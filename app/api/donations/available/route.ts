@@ -79,9 +79,16 @@ export const GET = asyncHandler(async (req: Request) => {
   });
 
   console.log(`[API-AVAILABLE] NGO: ${userId}, Radius: ${requestedRadius}km, City: ${ngoCity}, Valid: ${validDonations.length}, Filtered: ${filteredDonations.length}`);
-  if (filteredDonations.length === 0 && validDonations.length > 0) {
-    console.log(`[API-DEBUG] No matches for NGO ${userId}. First pend donation: ${validDonations[0].city} (${validDonations[0].latitude},${validDonations[0].longitude})`);
-  }
+  // Sort by priority: Rank DESC, Expiry ASC
+  const sortedDonations = filteredDonations.sort((a: any, b: any) => {
+    const rankA = a.prioritizationRank || 0;
+    const rankB = b.prioritizationRank || 0;
+    if (rankB !== rankA) return rankB - rankA;
 
-  return successResponse(filteredDonations, `Donations within ${requestedRadius}km or same city retrieved`);
+    const expiryA = new Date(a.expiryTime).getTime();
+    const expiryB = new Date(b.expiryTime).getTime();
+    return expiryA - expiryB;
+  });
+
+  return successResponse(sortedDonations, `Donations within ${requestedRadius}km or same city retrieved`);
 });

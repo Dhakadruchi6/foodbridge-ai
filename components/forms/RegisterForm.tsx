@@ -50,7 +50,7 @@ export const RegisterForm = () => {
   });
   const [otp, setOtp] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -115,13 +115,13 @@ export const RegisterForm = () => {
   };
 
   const handleSendOtp = async () => {
-    if (!formData.phone) {
-      setError("Please enter a phone number first.");
+    if (!formData.email) {
+      setError("Please enter your email address first.");
       return;
     }
     setOtpLoading(true);
     try {
-      const res = await postRequest("/api/auth/send-otp", { phone: formData.phone });
+      const res = await postRequest("/api/auth/send-otp", { email: formData.email });
       if (res.success) {
         setIsOtpSent(true);
         setError("");
@@ -129,7 +129,7 @@ export const RegisterForm = () => {
 
         if (res.data?.isSandbox) {
           setIsSandbox(true);
-          setDebugOtp(res.data.debugOtp);
+          setDebugOtp(res.data.debugOtp || "123456");
         } else {
           setIsSandbox(false);
           setDebugOtp("");
@@ -146,9 +146,9 @@ export const RegisterForm = () => {
     if (!otp) return;
     setOtpLoading(true);
     try {
-      const res = await postRequest("/api/auth/verify-otp", { phone: formData.phone, otp });
+      const res = await postRequest("/api/auth/verify-otp", { email: formData.email, otp });
       if (res.success) {
-        setIsPhoneVerified(true);
+        setIsEmailVerified(true);
         setIsOtpSent(false);
         setError("");
       }
@@ -171,8 +171,8 @@ export const RegisterForm = () => {
       return;
     }
 
-    if (!isPhoneVerified) {
-      setError("Please verify your phone number using OTP first.");
+    if (!isEmailVerified) {
+      setError("Please verify your email address using OTP first.");
       setLoading(false);
       return;
     }
@@ -249,24 +249,18 @@ export const RegisterForm = () => {
             type="email"
             placeholder="name@company.com"
             value={formData.email}
-            onChange={(val) => setFormData({ ...formData, email: val })}
-            className="reg-item"
-          />
-          <InputField
-            label="Phone Number"
-            icon={<Phone className="w-4 h-4" />}
-            type="tel"
-            placeholder="+1 555-0100"
-            value={formData.phone}
-            onChange={(val) => setFormData({ ...formData, phone: val })}
+            onChange={(val) => {
+              setFormData({ ...formData, email: val });
+              if (isEmailVerified) setIsEmailVerified(false);
+            }}
             className="reg-item"
             action={
-              !isPhoneVerified && (
+              !isEmailVerified && (
                 <div className="flex flex-col items-end space-y-1">
                   <button
                     type="button"
                     onClick={handleSendOtp}
-                    disabled={otpLoading || !formData.phone || resendTimer > 0}
+                    disabled={otpLoading || !formData.email || resendTimer > 0}
                     className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest disabled:opacity-30"
                   >
                     {otpLoading ? "Sending..." : isOtpSent ? (resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP") : "Send OTP"}
@@ -276,25 +270,24 @@ export const RegisterForm = () => {
             }
           />
 
-
           {/* Sandbox display for DLT-blocked environments */}
-          {isSandbox && debugOtp && !isPhoneVerified && (
+          {isSandbox && debugOtp && !isEmailVerified && (
             <div className="md:col-span-2 space-y-2 p-4 bg-amber-50 border-2 border-dashed border-amber-200 rounded-2xl animate-in zoom-in duration-300">
               <div className="flex items-center space-x-2 text-amber-700">
                 <ShieldCheck className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">MSG91 Testing Mode</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Email Testing Mode</span>
               </div>
               <p className="text-xs font-bold text-amber-600">
-                SMS delivery is currently restricted by DLT/regulatory rules.
+                Email delivery is in sandbox mode.
                 Use this testing code: <span className="text-sm font-black text-amber-900 bg-amber-200 px-2 py-0.5 rounded ml-1">{debugOtp}</span>
               </p>
             </div>
           )}
 
-          {isOtpSent && !isPhoneVerified && (
+          {isOtpSent && !isEmailVerified && (
             <div className="md:col-span-2 space-y-3 reg-item animate-in slide-in-from-top duration-300">
               <InputField
-                label="Enter 6-Digit OTP"
+                label="Enter 6-Digit Email OTP"
                 icon={<ShieldCheck className="w-4 h-4" />}
                 placeholder="000000"
                 value={otp}
@@ -313,12 +306,22 @@ export const RegisterForm = () => {
             </div>
           )}
 
-          {isPhoneVerified && (
+          {isEmailVerified && (
             <div className="md:col-span-2 flex items-center space-x-2 p-3 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 reg-item">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Phone Verified Successfully</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Email Verified Successfully</span>
             </div>
           )}
+
+          <InputField
+            label="Phone Number"
+            icon={<Phone className="w-4 h-4" />}
+            type="tel"
+            placeholder="+1 555-0100"
+            value={formData.phone}
+            onChange={(val) => setFormData({ ...formData, phone: val })}
+            className="reg-item"
+          />
 
           <InputField
             label="Security Key"
@@ -433,7 +436,7 @@ export const RegisterForm = () => {
         <div className="reg-item pt-4 space-y-6">
           <Button
             type="submit"
-            disabled={loading || !isPhoneVerified}
+            disabled={loading || !isEmailVerified}
             className="w-full h-16 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 text-white text-xl font-black shadow-2xl shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:grayscale"
           >
             {loading ? (

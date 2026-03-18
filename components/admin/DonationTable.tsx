@@ -8,7 +8,7 @@ interface Donation {
     _id: string;
     foodType: string;
     quantity: number;
-    status: "pending" | "accepted" | "picked_up" | "delivered";
+    status: "pending" | "accepted" | "pickup_in_progress" | "delivered" | "completed" | "flagged";
     city: string;
     createdAt: string;
     prioritizationRank?: number;
@@ -20,15 +20,19 @@ interface Donation {
 const statusStyle: Record<string, string> = {
     pending: "bg-amber-50 text-amber-700 border-amber-100/50",
     accepted: "bg-indigo-50 text-indigo-700 border-indigo-100/50",
-    picked_up: "bg-blue-50 text-blue-700 border-blue-100/50",
+    pickup_in_progress: "bg-blue-50 text-blue-700 border-blue-100/50",
     delivered: "bg-emerald-50 text-emerald-700 border-emerald-100/50",
+    completed: "bg-emerald-500 text-white border-emerald-600",
+    flagged: "bg-rose-50 text-rose-600 border-rose-100",
 };
 
 const statusLabel: Record<string, string> = {
     pending: "Awaiting",
     accepted: "Matched",
-    picked_up: "Transit",
-    delivered: "Success",
+    pickup_in_progress: "In Pickup",
+    delivered: "Delivered",
+    completed: "Completed",
+    flagged: "Flagged"
 };
 
 export const DonationTable = ({ donations }: { donations: Donation[] }) => {
@@ -57,7 +61,7 @@ export const DonationTable = ({ donations }: { donations: Donation[] }) => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center space-x-2 bg-slate-100/50 p-1 rounded-xl border border-slate-200/40">
-                    {["all", "pending", "accepted", "picked_up", "delivered"].map((s) => (
+                    {["all", "pending", "accepted", "pickup_in_progress", "delivered", "completed"].map((s) => (
                         <button
                             key={s}
                             onClick={() => setFilterStatus(s)}
@@ -66,7 +70,7 @@ export const DonationTable = ({ donations }: { donations: Donation[] }) => {
                                 filterStatus === s ? "bg-white shadow-sm text-slate-900 border border-slate-200/30" : "text-slate-400 hover:text-slate-600"
                             )}
                         >
-                            {s === "picked_up" ? "Transit" : s}
+                            {s === "pickup_in_progress" ? "In Pickup" : statusLabel[s] || s}
                         </button>
                     ))}
                 </div>

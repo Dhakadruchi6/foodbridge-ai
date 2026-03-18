@@ -26,7 +26,7 @@ interface Delivery {
         pickupAddress: string;
         city: string;
     };
-    status: "assigned" | "picked_up" | "completed";
+    status: "accepted" | "pickup_in_progress" | "delivered" | "completed";
 }
 
 export const ActiveDeliveries = () => {
@@ -38,20 +38,30 @@ export const ActiveDeliveries = () => {
     // Get the donationId for the currently tracking delivery
     const { lastSynced, error } = useLocationSync(activeDonationId, !!activeTrackingId);
 
-    useEffect(() => {
-        const fetchDeliveries = async () => {
-            try {
-                const result = await getRequest("/api/donations/my-deliveries");
-                if (result.success) {
-                    setDeliveries(result.data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch active deliveries", err);
-            } finally {
-                setLoading(false);
+    const fetchDeliveries = async () => {
+        try {
+            const result = await getRequest("/api/donations/my-deliveries");
+            if (result.success) {
+                setDeliveries(result.data);
             }
-        };
+        } catch (err) {
+            console.error("Failed to fetch active deliveries", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchDeliveries();
+        const interval = setInterval(fetchDeliveries, 30000); // Auto-refresh every 30s
+
+        // Smart Sync: Refresh when returning to dashboard
+        window.addEventListener('focus', fetchDeliveries);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', fetchDeliveries);
+        };
     }, []);
 
     const toggleTracking = (deliveryId: string, donationId: string) => {

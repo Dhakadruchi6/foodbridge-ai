@@ -14,10 +14,15 @@ import {
   Inbox,
   Activity,
   Box,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { MLMatchResults } from "./MLMatchResults";
+import { DeliveryTracking } from "./DeliveryTracking";
+import { LiveLocationShare } from "./LiveLocationShare";
 
 interface Donation {
   _id: string;
@@ -26,7 +31,7 @@ interface Donation {
   expiryTime: string;
   address: string;
   city: string;
-  status: "pending" | "accepted" | "collected" | "delivered" | "picked_up";
+  status: "pending" | "pending_request" | "accepted" | "delivered" | "completed" | "pickup_in_progress" | "flagged";
 }
 
 export const MyDonations = () => {
@@ -104,9 +109,7 @@ export const MyDonations = () => {
   );
 };
 
-import { MLMatchResults } from "./MLMatchResults";
-import { DeliveryTracking } from "./DeliveryTracking";
-import { LiveLocationShare } from "./LiveLocationShare";
+
 
 const DonationCard = ({
   donation,
@@ -121,10 +124,12 @@ const DonationCard = ({
 }) => {
   const statusMap = {
     pending: { color: "bg-amber-50 text-amber-600 border-amber-100", icon: <Clock className="w-3 h-3" />, label: "Awaiting Match" },
+    pending_request: { color: "bg-orange-50 text-orange-600 border-orange-100", icon: <Clock className="w-3 h-3 animate-pulse" />, label: "Request Sent" },
     accepted: { color: "bg-indigo-50 text-indigo-600 border-indigo-100", icon: <CheckCircle2 className="w-3 h-3" />, label: "Entity Matched" },
-    picked_up: { color: "bg-blue-50 text-blue-600 border-blue-100", icon: <Activity className="w-3 h-3" />, label: "Live Transit" },
-    delivered: { color: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: <CheckCircle2 className="w-3 h-3" />, label: "Mission Success" },
-    collected: { color: "bg-indigo-50 text-indigo-600 border-indigo-100", icon: <Box className="w-3 h-3" />, label: "In Custody" }
+    pickup_in_progress: { color: "bg-blue-50 text-blue-600 border-blue-100", icon: <Activity className="w-3 h-3" />, label: "Live Transit" },
+    delivered: { color: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: <CheckCircle2 className="w-3 h-3" />, label: "Delivered" },
+    completed: { color: "bg-emerald-500 text-white border-emerald-600", icon: <ShieldCheck className="w-3 h-3" />, label: "Mission Complete" },
+    flagged: { color: "bg-rose-50 text-rose-600 border-rose-100", icon: <AlertCircle className="w-3 h-3" />, label: "Flagged" }
   };
 
   const statusObj = statusMap[donation.status] || statusMap.pending;
@@ -183,12 +188,14 @@ const DonationCard = ({
       {isExpanded && (
         <div className="px-5 pb-5 border-t border-slate-100 bg-slate-50/30 animate-in slide-in-from-top-2 duration-500">
           <div className="pt-5 space-y-4 overflow-hidden">
-            {donation.status === "pending" ? (
+            {donation.status === "pending" || donation.status === "pending_request" ? (
               <MLMatchResults donationId={donation._id} onSuccess={onAssignSuccess} />
             ) : (
               <>
-                {/* Go Live Button for accepted/picked_up donations */}
-                <LiveLocationShare donationId={donation._id} donationStatus={donation.status} />
+                {/* Go Live Button for active missions */}
+                {(donation.status === 'accepted' || donation.status === 'pickup_in_progress') && (
+                  <LiveLocationShare donationId={donation._id} donationStatus={donation.status} />
+                )}
                 <DeliveryTracking donationId={donation._id} />
               </>
             )}

@@ -19,8 +19,8 @@ const DeliverySchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['assigned', 'picked_up', 'completed'],
-    default: 'assigned',
+    enum: ['pending', 'accepted', 'pickup_in_progress', 'delivered', 'completed', 'rejected'],
+    default: 'pending',
   },
   liveLatitude: {
     type: Number,

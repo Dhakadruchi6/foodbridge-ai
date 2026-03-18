@@ -56,25 +56,115 @@ export const updateDonationStatus = async (id: string, status: string) => {
 export const acceptDonation = async (donationId: string, ngoId: string) => {
   await dbConnect();
 
-  // Use a transaction or atomicity to prevent multiple NGOs from accepting
+  // 1. Check current status for better error messages
+  const existingDonation = await Donation.findById(donationId);
+  if (!existingDonation) {
+    throw new AppError('Donation not found', 404);
+  }
+
+  if (existingDonation.status === 'accepted') {
+    // Check if it's already accepted by THIS NGO
+    const existingDelivery = await Delivery.findOne({ donationId, ngoId, status: { $in: ['accepted', 'pickup_in_progress', 'delivered', 'completed'] } });
+    if (existingDelivery) {
+      return { donation: existingDonation, delivery: existingDelivery };
+    }
+    throw new AppError('This donation has already been accepted by another NGO partner.', 400);
+  }
+
+  if (existingDonation.status !== 'pending_request' && existingDonation.status !== 'pending') {
+    throw new AppError(`Donation is currently in ${existingDonation.status} state and cannot be accepted.`, 400);
+  }
+
+  // 2. Atomic update to 'accepted'
   const donation = await Donation.findOneAndUpdate(
-    { _id: donationId, status: 'pending' },
+    { _id: donationId, status: { $in: ['pending_request', 'pending'] } },
     { status: 'accepted' },
     { new: true }
   );
 
   if (!donation) {
-    throw new AppError('Donation not available or already accepted', 400);
+    throw new AppError('Donation was just updated by another process. Please refresh.', 400);
   }
 
-  // Create delivery record
-  const delivery = await Delivery.create({
-    donationId: donation._id,
-    ngoId,
-    status: 'assigned',
-  });
+  // Find and update the existing 'pending' delivery record
+  const delivery = await Delivery.findOneAndUpdate(
+    { donationId: donation._id, ngoId, status: 'pending' },
+    { status: 'accepted' },
+    { new: true }
+  );
+
+  if (!delivery) {
+    // If for some reason the delivery record is missing, create it
+    const newDelivery = await Delivery.create({
+      donationId: donation._id,
+      ngoId,
+      status: 'accepted',
+    });
+
+    // Cancel all other NGOs' pending requests for this donation
+    await Delivery.updateMany(
+      { donationId: donation._id, ngoId: { $ne: ngoId }, status: 'pending' },
+      { status: 'rejected' }
+    );
+
+    return { donation, delivery: newDelivery };
+  }
+
+  // Cancel all other NGOs' pending requests for this donation (race condition cleanup)
+  await Delivery.updateMany(
+    { donationId: donation._id, ngoId: { $ne: ngoId }, status: 'pending' },
+    { status: 'rejected' }
+  );
 
   return { donation, delivery };
+};
+
+export const updateDeliveryLifecycle = async (deliveryId: string, nextStatus: string, ngoUserId: string) => {
+  await dbConnect();
+
+  const delivery = await Delivery.findById(deliveryId);
+  if (!delivery) throw new AppError('Delivery not found', 404);
+
+  // Authorization check: Only the assigned NGO can update
+  if (delivery.ngoId.toString() !== ngoUserId) {
+    throw new AppError('Unauthorized: You are not assigned to this mission.', 403);
+  }
+
+  // Strict transition validation
+  const validTransitions: Record<string, string[]> = {
+    'accepted': ['pickup_in_progress'],
+    'pickup_in_progress': ['delivered'],
+    'delivered': ['completed'],
+    'completed': [],
+  };
+
+  const allowed = validTransitions[delivery.status] || [];
+  if (!allowed.includes(nextStatus)) {
+    throw new AppError(`Invalid transition from ${delivery.status} to ${nextStatus}`, 400);
+  }
+
+  // Apply updates
+  const updateData: any = { status: nextStatus };
+  if (nextStatus === 'pickup_in_progress') {
+    updateData.pickupTime = new Date();
+  } else if (nextStatus === 'delivered' || nextStatus === 'completed') {
+    updateData.deliveryTime = new Date();
+  }
+
+  const updatedDelivery = await Delivery.findByIdAndUpdate(deliveryId, updateData, { new: true });
+
+  // Sync Donation status
+  const donationStatusMap: Record<string, string> = {
+    'pickup_in_progress': 'pickup_in_progress',
+    'delivered': 'delivered',
+    'completed': 'completed',
+  };
+
+  if (donationStatusMap[nextStatus]) {
+    await Donation.findByIdAndUpdate(delivery.donationId, { status: donationStatusMap[nextStatus] });
+  }
+
+  return updatedDelivery;
 };
 
 export default {
@@ -82,4 +172,5 @@ export default {
   getDonations,
   updateDonationStatus,
   acceptDonation,
+  updateDeliveryLifecycle,
 };

@@ -77,7 +77,7 @@ export const LiveLocationShare = ({ donationId, donationStatus }: Props) => {
     }, []);
 
     // Only show for accepted donations (NGO picked one up)
-    if (donationStatus !== "accepted" && donationStatus !== "picked_up") return null;
+    if (donationStatus !== "accepted" && donationStatus !== "pickup_in_progress") return null;
 
     return (
         <div className={`rounded-xl border p-4 space-y-3 transition-all ${isLive ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>

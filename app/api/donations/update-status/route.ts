@@ -9,6 +9,7 @@ import NGOProfile from '@/models/NGOProfile';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 import { sendNotification } from '@/services/notificationService';
+import { updateDeliveryLifecycle } from '@/services/donationService';
 
 export const POST = asyncHandler(async (req: Request) => {
     const authGate = await authMiddleware(req);
@@ -24,33 +25,12 @@ export const POST = asyncHandler(async (req: Request) => {
         return errorResponse('Delivery ID and status are required', 400);
     }
 
-    if (!['assigned', 'picked_up', 'completed'].includes(status)) {
-        return errorResponse('Invalid status', 400);
-    }
-
     await dbConnect();
 
-    // Build update object with timestamps
-    const updateData: any = { status };
-    if (status === 'picked_up') {
-        updateData.pickupTime = new Date();
-    } else if (status === 'completed') {
-        updateData.deliveryTime = new Date();
-    }
+    // Use the centralized service logic for strict lifecycle management
+    const delivery = await updateDeliveryLifecycle(deliveryId, status, ngoUserId!);
 
-    const delivery = await Delivery.findByIdAndUpdate(deliveryId, updateData, { new: true });
-    if (!delivery) return errorResponse('Delivery not found', 404);
-
-    // Sync the Donation status
-    const donationStatusMap: Record<string, string> = {
-        'picked_up': 'picked_up',
-        'completed': 'delivered',
-    };
-    if (donationStatusMap[status]) {
-        await Donation.findByIdAndUpdate(delivery.donationId, { status: donationStatusMap[status] });
-    }
-
-    // Create notification for the donor
+    // Side Effect: Notify Donor (already partly handled in service, but let's keep notification here for flexibility)
     try {
         const donation = await Donation.findById(delivery.donationId);
         if (donation) {
@@ -58,17 +38,21 @@ export const POST = asyncHandler(async (req: Request) => {
             const ngoName = ngoProfile?.ngoName || 'an NGO partner';
 
             const notificationMessages: Record<string, { message: string; type: string }> = {
-                assigned: {
+                accepted: {
                     message: `Your food donation has been accepted by ${ngoName}.`,
                     type: 'donation_accepted',
                 },
-                picked_up: {
+                pickup_in_progress: {
                     message: `Food pickup is in progress. ${ngoName} is on the way to collect your donation.`,
                     type: 'pickup_started',
                 },
-                completed: {
-                    message: `Your donation has been successfully delivered to beneficiaries by ${ngoName}. Thank you for your generosity! 🙏`,
+                delivered: {
+                    message: `Your donation has been successfully delivered by ${ngoName}.`,
                     type: 'delivered',
+                },
+                completed: {
+                    message: `Mission Complete! Your donation reaches beneficiaries. Thank you! 🙏`,
+                    type: 'mission_complete',
                 },
             };
 
@@ -85,7 +69,6 @@ export const POST = asyncHandler(async (req: Request) => {
         }
     } catch (notifErr) {
         console.error('[NOTIFICATION] Failed to create notification:', notifErr);
-        // Non-fatal — don't block the status update
     }
 
     return successResponse(delivery, 'Delivery status updated successfully');

@@ -20,8 +20,8 @@ export function useLocationSync(donationId: string | null, isLive: boolean) {
 
         const syncLocation = async (lat: number, lon: number) => {
             const now = Date.now();
-            // Throttle updates to once every 10 seconds
-            if (now - lastUpdateRef.current < 10000) return;
+            // Throttle updates to once every 5 seconds for real-time tracking
+            if (now - lastUpdateRef.current < 5000) return;
 
             try {
                 const res = await postRequest("/api/donations/live-location", {

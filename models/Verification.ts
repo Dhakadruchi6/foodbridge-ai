@@ -3,7 +3,12 @@ import mongoose, { Schema, model, models } from 'mongoose';
 const VerificationSchema = new Schema({
     phone: {
         type: String,
-        required: true,
+        required: false,
+        index: true,
+    },
+    email: {
+        type: String,
+        required: false,
         index: true,
     },
     otp: {

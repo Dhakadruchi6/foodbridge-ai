@@ -4,6 +4,7 @@ import { allowRoles } from '@/middleware/roleMiddleware';
 import dbConnect from '@/lib/db';
 import Donation from '@/models/Donation';
 import NGOProfile from '@/models/NGOProfile';
+import Delivery from '@/models/Delivery';
 import MLMatchResult from '@/models/MLMatchResult';
 import { calculateDistance } from '@/utils/geoUtils';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
@@ -33,8 +34,11 @@ export const POST = asyncHandler(async (req: Request) => {
   const donorLat = donation.latitude;
   const donorLon = donation.longitude;
 
-  if (donorLat === null || donorLon === null) {
-    return errorResponse('Donor location (coordinates) missing. Update donation info first.', 400);
+  // We now allow city-based fallback if coordinates are missing
+  const hasDonorCoords = donorLat !== null && donorLat !== undefined && donorLon !== null && donorLon !== undefined;
+
+  if (!hasDonorCoords && (!donation.city || donation.city.trim() === "")) {
+    return errorResponse('Donor location (coordinates or city) missing. Update donation info first.', 400);
   }
 
   // 2. Handle Expiry Rules
@@ -51,13 +55,20 @@ export const POST = asyncHandler(async (req: Request) => {
     }, "Food is expired.");
   }
 
-  // 3. Fetch approved NGOs
+  // Find NGOs that rejected this donation
+  const rejectedNgoIds = await Delivery.find({
+    donationId,
+    status: 'rejected'
+  }).distinct('ngoId');
+
+  // 3. Fetch approved NGOs (excluding rejected ones)
   const ngos = await NGOProfile.find({
-    verificationStatus: 'approved'
+    verificationStatus: 'approved',
+    userId: { $nin: rejectedNgoIds }
   });
 
   if (ngos.length === 0) {
-    return successResponse([], 'No approved NGOs available for matching');
+    return successResponse({ allMatches: [] }, 'No approved NGOs available for matching');
   }
 
   // 4. Filter and Score NGOs

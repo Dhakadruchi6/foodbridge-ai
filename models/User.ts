@@ -41,6 +41,10 @@ const UserSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
   otp: String,
   otpExpires: Date,
   otpAttemptCount: {

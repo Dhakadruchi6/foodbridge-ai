@@ -76,10 +76,13 @@ export const AvailableDonations = ({ radius = 100 }: { radius?: number }) => {
       const result = await getRequest(`/api/donations/available?radius=${radius}`);
       if (result.success) {
         setDonations(result.data.sort((a: any, b: any) => {
+          const rankA = a.prioritizationRank || 0;
+          const rankB = b.prioritizationRank || 0;
+          if (rankB !== rankA) return rankB - rankA;
+
           const timeA = new Date(a.expiryTime).getTime();
           const timeB = new Date(b.expiryTime).getTime();
-          if (timeA !== timeB) return timeA - timeB;
-          return (b.prioritizationRank || 0) - (a.prioritizationRank || 0);
+          return timeA - timeB;
         }));
       }
     } catch (err: any) {
@@ -105,20 +108,23 @@ export const AvailableDonations = ({ radius = 100 }: { radius?: number }) => {
 
 
   const handleAccept = async (donationId: string) => {
-    const donationToAccept = donations.find(d => d._id === donationId);
     setProcessingId(donationId);
     setError("");
     try {
-      const result = await postRequest(`/api/donations/accept`, { donationId });
+      // We can pass ngoId if we have it, but the backend is now smart enough to use our session
+      const profile = await getRequest("/api/user/profile").catch(() => null);
+      const ngoId = profile?.data?._id;
+
+      const result = await postRequest(`/api/donations/request`, { donationId, ngoId });
       if (result.success) {
-        // Show the mission active panel BEFORE refreshing the list
-        if (donationToAccept) {
-          setAcceptedMission(donationToAccept);
-        }
+        setDonations(prev => prev.filter(d => d._id !== donationId));
+        alert("Request sent to donor! Please wait for their confirmation.");
         fetchAvailable();
+      } else {
+        setError(result.message || "Failed to send request");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to accept donation");
+      setError(err.message || "Failed to send request");
     } finally {
       setProcessingId(null);
     }
@@ -526,8 +532,8 @@ const AvailableCard = ({
             <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-400 flex items-center justify-center mr-2">
               <User className="w-3 h-3" />
             </div>
-            <span className="truncate max-w-[120px]">
-              {(donation.donorId?.name || "Anonymous").split(' ')[0]} •••
+            <span className="truncate max-w-[150px]">
+              {donation.donorId?.name || "Anonymous Donor"}
             </span>
           </div>
           <div className="flex items-center text-[10px] font-black text-slate-700">

@@ -6,8 +6,9 @@ import { AvailableDonations } from "@/components/ngo/AvailableDonations";
 import { ActiveDeliveries } from "@/components/ngo/ActiveDeliveries";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { OnboardingTour } from "@/components/shared/OnboardingTour";
-import { NotificationBell } from "@/components/donor/NotificationBell";
+import { IncomingRequests } from '@/components/ngo/IncomingRequests';
 import { CertificationModal } from "@/components/ngo/CertificationModal";
+import { NotificationBell } from "@/components/donor/NotificationBell";
 import Link from "next/link";
 import {
   Search,
@@ -208,6 +209,10 @@ export default function NGODashboard() {
                 </Link>
               </div>
 
+              <div id="tour-incoming-requests" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <IncomingRequests />
+              </div>
+
               <div id="tour-available-list" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <AvailableDonations radius={scanRadius} />
               </div>
@@ -257,7 +262,7 @@ export default function NGODashboard() {
           />
         </div>
       </div>
-    </ProtectedRoute>
+    </ProtectedRoute >
   );
 }
 

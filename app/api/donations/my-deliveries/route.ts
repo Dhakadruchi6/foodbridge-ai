@@ -19,7 +19,11 @@ export const GET = asyncHandler(async (req: Request) => {
     const deliveries = await Delivery.find({ ngoId })
         .populate({
             path: 'donationId',
-            select: 'foodType quantity pickupAddress city status expiryTime',
+            select: 'foodType quantity pickupAddress city status expiryTime donorId latitude longitude',
+            populate: {
+                path: 'donorId',
+                select: 'name phone'
+            },
             match: { status: { $ne: 'flagged' } }
         })
         .sort({ createdAt: -1 });

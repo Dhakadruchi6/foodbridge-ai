@@ -11,7 +11,7 @@ export const asyncHandler = (handler: Function) => {
       return NextResponse.json(
         {
           success: false,
-          message,
+          message: message,
           error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
         },
         { status: statusCode }

@@ -52,7 +52,7 @@ const DonationSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'picked_up', 'delivered', 'flagged'],
+    enum: ['pending', 'pending_request', 'accepted', 'pickup_in_progress', 'delivered', 'completed', 'flagged'],
     default: 'pending',
     index: true,
   },
@@ -102,4 +102,6 @@ const DonationSchema = new Schema({
   timestamps: true,
 });
 
-export default models.Donation || model('Donation', DonationSchema);
+// Use different approach for model export to handle HMR better
+const Donation = models.Donation || model('Donation', DonationSchema);
+export default Donation;

@@ -15,7 +15,11 @@ import {
     History,
     ShieldCheck,
     Zap,
-    Activity
+    Activity,
+    MapPin,
+    User,
+    Phone,
+    Navigation
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -23,20 +27,24 @@ function LogisticsDashboardContent() {
     const [stats, setStats] = useState<any>(null);
     const searchParams = useSearchParams();
     const deliveryId = searchParams?.get("deliveryId");
+    const donationId = searchParams?.get("donationId");
 
     const [deliveryDetails, setDeliveryDetails] = useState<any>(null);
 
     useEffect(() => {
-        if (deliveryId) {
+        if (deliveryId || donationId) {
             getRequest("/api/donations/my-deliveries")
                 .then(res => {
                     if (res.success) {
-                        const target = res.data.find((d: any) => d._id === deliveryId);
+                        const target = res.data.find((d: any) =>
+                            (deliveryId && d._id === deliveryId) ||
+                            (donationId && (d.donationId?._id === donationId || d.donationId === donationId))
+                        );
                         if (target) setDeliveryDetails(target);
                     }
                 }).catch(() => { });
         }
-    }, [deliveryId]);
+    }, [deliveryId, donationId]);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -126,7 +134,7 @@ function LogisticsDashboardContent() {
 
                     {/* Active Fleet View / Single Delivery Detail */}
                     <div className="lg:col-span-2 space-y-8">
-                        {!deliveryId ? (
+                        {(!deliveryId && !donationId) ? (
                             <>
                                 <div className="flex items-center justify-between px-2">
                                     <div className="flex items-center space-x-3">
@@ -164,17 +172,64 @@ function LogisticsDashboardContent() {
                                         <div className="space-y-8 relative z-10">
                                             {/* Mission Details */}
                                             <div className="pb-8 border-b border-slate-100">
-                                                <h3 className="text-3xl font-black text-slate-900 leading-tight">
-                                                    {deliveryDetails.donationId?.foodType || "Surplus Batch"}
-                                                </h3>
-                                                <div className="grid grid-cols-2 gap-6 mt-6">
-                                                    <div className="bg-slate-50 p-4 rounded-2xl">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Payload</span>
-                                                        <span className="text-xl font-black text-slate-800">{deliveryDetails.donationId?.quantity}kg</span>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                                                    {/* Payload & Zone */}
+                                                    <div className="space-y-4">
+                                                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Operational Payload</span>
+                                                            <div className="flex items-center space-x-3">
+                                                                <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
+                                                                    <Package className="w-5 h-5" />
+                                                                </div>
+                                                                <span className="text-2xl font-black text-slate-900">{deliveryDetails.donationId?.quantity}kg</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Target Extraction Zone</span>
+                                                            <div className="flex items-center space-x-3">
+                                                                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                                                                    <MapPin className="w-5 h-5" />
+                                                                </div>
+                                                                <span className="text-lg font-bold text-slate-700">{deliveryDetails.donationId?.city}</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="bg-slate-50 p-4 rounded-2xl">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Extraction Zone</span>
-                                                        <span className="text-base font-bold text-slate-600">{deliveryDetails.donationId?.city}</span>
+
+                                                    {/* Donor & Navigation */}
+                                                    <div className="space-y-4">
+                                                        <div className="bg-indigo-600 p-6 rounded-3xl text-white shadow-lg shadow-indigo-600/20 relative overflow-hidden">
+                                                            <div className="absolute top-0 right-0 p-4 opacity-10"><User className="w-16 h-16" /></div>
+                                                            <div className="relative z-10">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200 block mb-3">Donor Information</span>
+                                                                <p className="text-xl font-black">{deliveryDetails.donationId?.donorId?.name || "Private Donor"}</p>
+                                                                {deliveryDetails.donationId?.donorId?.phone && (
+                                                                    <a
+                                                                        href={`tel:${deliveryDetails.donationId.donorId.phone}`}
+                                                                        className="inline-flex items-center mt-2 text-indigo-100 hover:text-white transition-colors space-x-2"
+                                                                    >
+                                                                        <Phone className="w-3.5 h-3.5" />
+                                                                        <span className="text-xs font-bold underline decoration-indigo-300 decoration-2 underline-offset-4">{deliveryDetails.donationId.donorId.phone}</span>
+                                                                    </a>
+                                                                )}
+                                                                <p className="text-[10px] text-indigo-200 mt-4 font-bold flex items-center">
+                                                                    <MapPin className="w-3 h-3 mr-1.5 shrink-0" />
+                                                                    {deliveryDetails.donationId?.pickupAddress}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        {deliveryDetails.donationId?.latitude && deliveryDetails.donationId?.longitude && (
+                                                            <a
+                                                                href={`https://www.google.com/maps/dir/?api=1&destination=${deliveryDetails.donationId.latitude},${deliveryDetails.donationId.longitude}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl flex items-center justify-center space-x-3 transition-all active:scale-[0.98] shadow-xl shadow-slate-900/10 group"
+                                                            >
+                                                                <Navigation className="w-5 h-5 text-indigo-400 group-hover:rotate-12 transition-transform" />
+                                                                <span className="text-xs font-black uppercase tracking-[0.2em]">Launch Precision Nav</span>
+                                                            </a>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -184,6 +239,7 @@ function LogisticsDashboardContent() {
                                                 <h4 className="text-lg font-black text-slate-900 mb-4">Update Mission Status</h4>
                                                 <DeliveryStatusUpdater
                                                     deliveryId={deliveryDetails._id}
+                                                    donationId={deliveryDetails.donationId?._id || deliveryDetails.donationId}
                                                     currentStatus={deliveryDetails.status}
                                                     onStatusUpdate={(newS) => setDeliveryDetails({ ...deliveryDetails, status: newS })}
                                                 />
