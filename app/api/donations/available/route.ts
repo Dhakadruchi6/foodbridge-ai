@@ -79,15 +79,15 @@ export const GET = asyncHandler(async (req: Request) => {
   });
 
   console.log(`[API-AVAILABLE] NGO: ${userId}, Radius: ${requestedRadius}km, City: ${ngoCity}, Valid: ${validDonations.length}, Filtered: ${filteredDonations.length}`);
-  // Sort by priority: Rank DESC, Expiry ASC
+  // Sort by priority: Expiry ASC, then Rank DESC
   const sortedDonations = filteredDonations.sort((a: any, b: any) => {
-    const rankA = a.prioritizationRank || 0;
-    const rankB = b.prioritizationRank || 0;
-    if (rankB !== rankA) return rankB - rankA;
-
     const expiryA = new Date(a.expiryTime).getTime();
     const expiryB = new Date(b.expiryTime).getTime();
-    return expiryA - expiryB;
+    if (expiryA !== expiryB) return expiryA - expiryB;
+
+    const rankA = a.prioritizationRank || 0;
+    const rankB = b.prioritizationRank || 0;
+    return rankB - rankA;
   });
 
   return successResponse(sortedDonations, `Donations within ${requestedRadius}km or same city retrieved`);

@@ -76,13 +76,15 @@ export const AvailableDonations = ({ radius = 100 }: { radius?: number }) => {
       const result = await getRequest(`/api/donations/available?radius=${radius}`);
       if (result.success) {
         setDonations(result.data.sort((a: any, b: any) => {
-          const rankA = a.prioritizationRank || 0;
-          const rankB = b.prioritizationRank || 0;
-          if (rankB !== rankA) return rankB - rankA;
-
+          // Primary: Expiry Time (Soonest first)
           const timeA = new Date(a.expiryTime).getTime();
           const timeB = new Date(b.expiryTime).getTime();
-          return timeA - timeB;
+          if (timeA !== timeB) return timeA - timeB;
+
+          // Secondary: Prioritization Rank (Highest first)
+          const rankA = a.prioritizationRank || 0;
+          const rankB = b.prioritizationRank || 0;
+          return rankB - rankA;
         }));
       }
     } catch (err: any) {
@@ -528,12 +530,12 @@ const AvailableCard = ({
 
         {/* Donor Footer info */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-          <div className="flex items-center text-[10px] font-bold text-slate-500">
-            <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-400 flex items-center justify-center mr-2">
+          <div className="flex items-center text-[10px] font-bold text-slate-600">
+            <div className="w-6 h-6 rounded-md bg-primary/10 text-primary flex items-center justify-center mr-2 ring-1 ring-primary/20">
               <User className="w-3 h-3" />
             </div>
-            <span className="truncate max-w-[150px]">
-              {donation.donorId?.name || "Anonymous Donor"}
+            <span className="truncate max-w-[150px] font-black uppercase tracking-tight">
+              {donation.donorId?.name || "Verified Donor"}
             </span>
           </div>
           <div className="flex items-center text-[10px] font-black text-slate-700">
