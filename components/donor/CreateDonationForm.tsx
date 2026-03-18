@@ -191,15 +191,15 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
         setExifStatus('suspicious');
       }
 
-      // 2. AI Food Detection
+      // 2. AI Food Detection (Hugging Face)
       setAiStatus('scanning');
-      const aiRes = await postRequest("/api/ml/detect-food", {
+      const aiRes = await postRequest("/api/analyze-image", {
         imageUrl: finalImageUrl,
-        claimedCategory: formData.foodItem
       });
-      if (!aiRes.success) {
+
+      if (!aiRes.success || !aiRes.data?.isFood) {
         setAiStatus('rejected');
-        throw new Error(aiRes.error || "AI rejected this image. Please upload a valid food image.");
+        throw new Error(aiRes.error || "AI Guard: This image does not appear to be food. Please upload a clear food photo.");
       }
 
       setAiStatus('verified');
@@ -207,8 +207,8 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
       setAiCategory(aiRes.data?.category || '');
 
       // 3. Final Form Submission with verification data
-      const finalConfidence = aiRes.data?.confidence || aiConfidence || 0;
-      const finalCategoryName = aiRes.data?.category || aiCategory || '';
+      const finalConfidence = aiRes.data?.confidence || 0;
+      const finalCategoryName = aiRes.data?.category || '';
 
       const payload = {
         foodType: formData.foodItem,
