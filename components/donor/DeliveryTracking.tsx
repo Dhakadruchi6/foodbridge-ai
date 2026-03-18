@@ -15,7 +15,8 @@ import {
     MapPin,
     Package,
     Calendar,
-    Navigation
+    Navigation,
+    ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
@@ -26,7 +27,7 @@ const LiveTrackingMap = dynamic(() => import("./LiveTrackingMap"), {
 });
 
 interface TrackingInfo {
-    status: 'accepted' | 'pickup_in_progress' | 'delivered' | 'completed';
+    status: 'accepted' | 'on_the_way' | 'arrived' | 'collected' | 'delivered' | 'completed';
     ngoId: {
         _id: string;
         name: string;
@@ -98,22 +99,43 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
         {
             key: 'accepted',
             label: 'Mission Accepted',
-            desc: 'NGO has secured the batch',
+            desc: 'NGO has confirmed the donation',
             icon: <CheckCircle2 className="w-5 h-5" />,
             time: info.createdAt
         },
         {
-            key: 'pickup_in_progress',
-            label: 'Pickup In Progress',
-            desc: 'Fleet has collected the batch',
+            key: 'on_the_way',
+            label: 'On The Way',
+            desc: 'Team is heading to your location',
             icon: <Truck className="w-5 h-5" />,
+            time: null // We don't track intermediate timestamps currently, but keeping the field
+        },
+        {
+            key: 'arrived',
+            label: 'Arrived at Pickup',
+            desc: "Team is at the donor's location",
+            icon: <MapPin className="w-5 h-5" />,
+            time: null
+        },
+        {
+            key: 'collected',
+            label: 'Food Collected',
+            desc: 'Items received and secured',
+            icon: <Package className="w-5 h-5" />,
             time: info.pickupTime
         },
         {
+            key: 'delivered',
+            label: 'Arrived at Destination',
+            desc: 'Food has reached the destination',
+            icon: <Package className="w-5 h-5" />,
+            time: null
+        },
+        {
             key: 'completed',
-            label: 'Mission Success',
-            desc: 'Securely delivered to hub',
-            icon: <Box className="w-5 h-5" />,
+            label: 'Mission Completed',
+            desc: 'Verification and distribution complete',
+            icon: <ShieldCheck className="w-5 h-5" />,
             time: info.deliveryTime
         }
     ];
@@ -159,7 +181,7 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
             {info.status !== 'completed' && info.donation?.latitude && info.donation?.longitude && (
                 <div className="space-y-4 animate-in fade-in duration-700">
                     {/* Zomato-style Status Banner */}
-                    {info.status === 'pickup_in_progress' && (
+                    {(info.status === 'on_the_way' || info.status === 'arrived') && (
                         <div className="p-4 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-600/20 text-white flex items-center justify-between overflow-hidden relative group">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
                                 <Navigation className="w-12 h-12" />
