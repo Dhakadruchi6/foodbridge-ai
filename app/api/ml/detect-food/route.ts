@@ -4,10 +4,14 @@ import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 
 // --- Feature 5: Valid Food Keywords ---
+// Expanded to include broader categories found in real-world food images
 const FOOD_KEYWORDS = [
     'food', 'meal', 'dish', 'rice', 'bread', 'fruit', 'vegetable',
     'produce', 'cuisine', 'ingredient', 'snack', 'dessert', 'recipe',
-    'meat', 'dairy', 'packaged food', 'drink', 'beverage'
+    'meat', 'dairy', 'packaged food', 'drink', 'beverage', 'produce',
+    'supermarket', 'market', 'nutrition', 'natural foods', 'plant',
+    'fast food', 'junk food', 'cooking', 'bakery', 'confectionery',
+    'plate', 'tableware', 'cup', 'bottle', 'can', 'container'
 ];
 
 export const POST = asyncHandler(async (req: Request) => {
@@ -69,8 +73,9 @@ export const POST = asyncHandler(async (req: Request) => {
 
         // If no food labels found, reject
         if (!isFood) {
+            const detectedStr = labels.slice(0, 3).map((l: any) => l.description).join(', ') || 'unknown';
             return errorResponse(
-                `AI Guard: This image does not appear to be food. Detected: ${topLabel}. Please upload a valid food image.`,
+                `AI Guard: This image does not appear to be food. Detected: ${detectedStr}. Please upload a clearer food image.`,
                 400
             );
         }
