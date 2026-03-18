@@ -360,16 +360,6 @@ export default function LiveTrackingMap({
                     )}
                 </MapContainer>
 
-                {/* Overlay: no location yet */}
-                {!ngoPos && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm z-[1000]">
-                        <div className="text-center text-white space-y-3">
-                            <Loader2 className="w-8 h-8 animate-spin mx-auto" />
-                            <p className="text-xs font-black uppercase tracking-widest">Awaiting NGO location signal...</p>
-                            <p className="text-[10px] text-white/60">Will appear when NGO starts pickup</p>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* ── Info footer ───────────────────────────────────────── */}
