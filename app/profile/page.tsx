@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { getRequest, patchRequest } from "@/lib/apiClient";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
-import { User, Mail, Phone, MapPin, Building, Calendar, Edit3, Save, X, CheckCircle, Shield, Package, Loader2, Hash, Zap } from "lucide-react";
+import { User, Mail, Phone, MapPin, Building, Calendar, Edit3, Save, X, CheckCircle, Shield, Package, Loader2, Hash, Zap, Bell, BellOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ interface Profile {
     verificationStatus?: string;
     description?: string;
     donationPreferences?: string;
+    smsEnabled?: boolean;
 }
 
 export default function ProfilePage() {
@@ -187,7 +189,37 @@ export default function ProfilePage() {
                         </div>
 
                         {/* UX Controls: Tour & Notifications */}
-                        <div className="px-8 py-4 bg-slate-50 border-b border-slate-200/60 flex flex-wrap items-center gap-4">
+                        <div className="px-8 py-4 bg-slate-50 border-b border-slate-200/60 flex flex-wrap items-center gap-6">
+                            <div className="flex items-center space-x-3">
+                                <div className={cn(
+                                    "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                                    profile?.smsEnabled ? "bg-primary/10 text-primary" : "bg-slate-200 text-slate-400"
+                                )}>
+                                    {profile?.smsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                                </div>
+                                <div className="space-y-0.5">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">SMS Alerts</p>
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Real-time mobile notifications</p>
+                                </div>
+                                <Switch
+                                    checked={profile?.smsEnabled || false}
+                                    onCheckedChange={async (val: boolean) => {
+                                        try {
+                                            const res = await patchRequest("/api/user/profile", { smsEnabled: val });
+                                            if (res.success) {
+                                                setProfile(prev => ({ ...prev!, smsEnabled: val }));
+                                                setSuccess(`SMS alerts ${val ? 'enabled' : 'disabled'}`);
+                                                setTimeout(() => setSuccess(""), 2000);
+                                            }
+                                        } catch (err) {
+                                            setError("Failed to update SMS preference");
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
                             <Button
                                 onClick={async () => {
                                     try {

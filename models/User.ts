@@ -73,6 +73,10 @@ const UserSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  smsEnabled: {
+    type: Boolean,
+    default: true,
+  },
 }, {
   timestamps: true,
 });

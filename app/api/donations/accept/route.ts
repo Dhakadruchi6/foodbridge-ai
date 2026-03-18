@@ -8,6 +8,8 @@ import { sendNotification } from '@/services/notificationService';
 import Donation from '@/models/Donation';
 import NGOProfile from '@/models/NGOProfile';
 import dbConnect from '@/lib/db';
+import User from '@/models/User';
+import { sendSMS } from '@/lib/sms';
 
 export const POST = asyncHandler(async (req: Request) => {
   const authGate = await authMiddleware(req);
@@ -40,6 +42,17 @@ export const POST = asyncHandler(async (req: Request) => {
         donationId: donation._id.toString(),
         data: { url: `/dashboard/donor` }
       });
+
+      // SMS Notification
+      const donor = await User.findById(donation.donorId);
+      if (donor && donor.smsEnabled && donor.phone) {
+        await sendSMS(
+          donor.phone,
+          `Your donation has been accepted by ${ngoName}. Pickup is in progress.`,
+          'mission_accepted',
+          donor._id.toString()
+        );
+      }
     }
   } catch (err) {
     console.error("[NOTIFICATION] Failed to notify donor of acceptance:", err);

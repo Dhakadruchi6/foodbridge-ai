@@ -10,6 +10,8 @@ import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 import { sendNotification } from '@/services/notificationService';
 import { updateDeliveryLifecycle } from '@/services/donationService';
+import User from '@/models/User';
+import { sendSMS } from '@/lib/sms';
 
 export const POST = asyncHandler(async (req: Request) => {
     const authGate = await authMiddleware(req);
@@ -50,6 +52,10 @@ export const POST = asyncHandler(async (req: Request) => {
                     message: `Your donation has been successfully delivered by ${ngoName}.`,
                     type: 'delivered',
                 },
+                collected: {
+                    message: `Food collected! Your donation is now being transported by ${ngoName}.`,
+                    type: 'collected',
+                },
                 completed: {
                     message: `Mission Complete! Your donation reaches beneficiaries. Thank you! 🙏`,
                     type: 'mission_complete',
@@ -65,6 +71,17 @@ export const POST = asyncHandler(async (req: Request) => {
                     type: notif.type,
                     data: { url: `/dashboard/donor` }
                 });
+
+                // SMS Notification
+                const donor = await User.findById(donation.donorId);
+                if (donor && donor.smsEnabled && donor.phone) {
+                    await sendSMS(
+                        donor.phone,
+                        notif.message,
+                        'status_update',
+                        donor._id.toString()
+                    );
+                }
             }
         }
     } catch (notifErr) {

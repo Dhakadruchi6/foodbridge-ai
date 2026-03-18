@@ -46,6 +46,7 @@ export const GET = asyncHandler(async (req: Request) => {
         verificationStatus: ngoProfile?.verificationStatus || null,
         description: ngoProfile?.description || '',
         donationPreferences: user.donationPreferences || '',
+        smsEnabled: user.smsEnabled ?? true,
     }, 'Profile fetched successfully');
 });
 
@@ -57,7 +58,7 @@ export const PATCH = asyncHandler(async (req: Request) => {
     const userRole = authGate.headers.get('x-user-role');
     const body = await req.json();
 
-    const { name, phone, city, state, address, pincode, description, ngoName, latitude, longitude } = body;
+    const { name, phone, city, state, address, pincode, description, ngoName, latitude, longitude, smsEnabled } = body;
 
     await dbConnect();
 
@@ -69,6 +70,7 @@ export const PATCH = asyncHandler(async (req: Request) => {
     if (state) userUpdate.state = state;
     if (address) userUpdate.address = address;
     if (pincode) userUpdate.pincode = pincode;
+    if (typeof smsEnabled === 'boolean') userUpdate.smsEnabled = smsEnabled;
 
     const updatedUser = await User.findByIdAndUpdate(userId, userUpdate, { new: true, select: '-password -otp -otpExpires' });
     if (!updatedUser) return errorResponse('User not found', 404);
