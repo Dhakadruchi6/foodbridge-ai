@@ -6,6 +6,7 @@ import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 import User from '@/models/User';
 import { sendSMS } from '@/lib/sms';
+import { sendNotification } from '@/services/notificationService';
 
 export const POST = asyncHandler(async (req: Request) => {
   // Authentication
