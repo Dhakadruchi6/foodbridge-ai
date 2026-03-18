@@ -8,6 +8,7 @@ export async function GET() {
             success: true,
             message: "MongoDB connected successfully",
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         return NextResponse.json(
             {

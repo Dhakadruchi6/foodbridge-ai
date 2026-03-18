@@ -13,9 +13,10 @@ export class AppError extends Error {
   }
 }
 
-export const handleError = (err: any) => {
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+export const handleError = (err: unknown) => {
+  const error = err as { statusCode?: number; message?: string };
+  const statusCode = error.statusCode || 500;
+  const message = error.message || 'Internal Server Error';
 
   return NextResponse.json(
     {

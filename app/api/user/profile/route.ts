@@ -63,7 +63,7 @@ export const PATCH = asyncHandler(async (req: Request) => {
     await dbConnect();
 
     // Update User model
-    const userUpdate: any = {};
+    const userUpdate: Record<string, unknown> = {};
     if (name) userUpdate.name = name;
     if (phone) userUpdate.phone = phone;
     if (city) userUpdate.city = city;
@@ -77,7 +77,7 @@ export const PATCH = asyncHandler(async (req: Request) => {
 
     // For NGOs — also update NGOProfile
     if (userRole === 'ngo') {
-        const ngoUpdate: any = {};
+        const ngoUpdate: Record<string, unknown> = {};
         if (city) ngoUpdate.city = city;
         if (state) ngoUpdate.state = state;
         if (address) ngoUpdate.address = address;

@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Donation from '@/models/Donation';
 import User from '@/models/User';
@@ -6,7 +5,7 @@ import NGOProfile from '@/models/NGOProfile';
 import { successResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 
-export const GET = asyncHandler(async (req: Request) => {
+export const GET = asyncHandler(async () => {
     await dbConnect();
 
     // Sum all delivered donations

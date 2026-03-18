@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Verification from '@/models/Verification';
 import User from '@/models/User';
@@ -6,7 +5,8 @@ import { errorResponse, successResponse } from '@/lib/apiResponse';
 
 export async function POST(req: Request) {
     try {
-        let { email, otp } = await req.json();
+        let { email } = await req.json();
+        const { otp } = await req.json();
 
         if (!email || !otp) {
             return errorResponse('Email and OTP are required', 400);
@@ -64,6 +64,7 @@ export async function POST(req: Request) {
         }
 
         return successResponse({}, 'Email verified successfully');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('[VERIFY-OTP ERROR]', error);
         return errorResponse(error.message, 500);

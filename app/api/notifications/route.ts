@@ -1,7 +1,7 @@
 import { authMiddleware } from '@/middleware/authMiddleware';
 import dbConnect from '@/lib/db';
 import Notification from '@/models/Notification';
-import { successResponse, errorResponse } from '@/lib/apiResponse';
+import { successResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 
 // GET — fetch notifications for logged-in user

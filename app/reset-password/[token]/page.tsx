@@ -36,6 +36,7 @@ export default function ResetPasswordPage() {
                 setMessage("Security credentials updated. Redirecting to login...");
                 setTimeout(() => router.push("/login"), 3000);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.message || "Failed to reset password");
         } finally {

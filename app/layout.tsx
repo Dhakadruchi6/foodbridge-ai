@@ -59,7 +59,7 @@ export default function RootLayout({
                 <span className="font-black text-xl tracking-tight">FoodBridge AI</span>
               </div>
               <p className="text-gray-600 max-w-sm leading-relaxed font-medium">
-                The world's most advanced platform for food recovery. Using AI to ensure every surplus meal finds a home.
+                The world&apos;s most advanced platform for food recovery. Using AI to ensure every surplus meal finds a home.
               </p>
             </div>
 

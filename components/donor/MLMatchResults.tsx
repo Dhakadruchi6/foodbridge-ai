@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { postRequest } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
-import { Target, Loader2, Sparkles, MapPin, ChevronRight, Activity, ShieldCheck, AlertCircle, Zap, Box, Clock, Navigation } from "lucide-react";
+import { Target, Loader2, MapPin, ChevronRight, Activity, ShieldCheck, AlertCircle, Zap, Box, Clock, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SelectedNgo {
@@ -14,9 +14,16 @@ interface SelectedNgo {
     reason: string;
 }
 
+interface MatchItem {
+    ngoId: string;
+    ngoName: string;
+    distance: number;
+    urgency: string;
+}
+
 interface MatchResponse {
     selectedNgo?: SelectedNgo;
-    allMatches?: any[];
+    allMatches?: MatchItem[];
     expired?: boolean;
     message?: string;
 }
@@ -31,7 +38,7 @@ export const MLMatchResults = ({
     const [result, setResult] = useState<MatchResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [requestingId, setRequestingId] = useState<string | null>(null);
-    const [status, setStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected'>('idle');
+    const [status] = useState<'idle' | 'pending' | 'approved' | 'rejected'>('idle');
     const [error, setError] = useState("");
 
     const runSmartMatching = async () => {
@@ -44,14 +51,15 @@ export const MLMatchResults = ({
             } else {
                 setError(response.message || "Failed to find optimal NGO.");
             }
-        } catch (err: any) {
-            setError(err.message || "Network error occurred.");
+        } catch (err: unknown) {
+            const errorMsg = err instanceof Error ? err.message : "Network error occurred.";
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
     };
 
-    const [currentStep, setCurrentStep] = useState<string>('accepted');
+    const currentStep: string = 'accepted';
 
     const handleSendRequest = async (ngoId: string) => {
         setRequestingId(ngoId);
@@ -63,8 +71,9 @@ export const MLMatchResults = ({
             } else {
                 setError(response.message || "Failed to send request.");
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to connect to server.");
+        } catch (err: unknown) {
+            const errorMsg = err instanceof Error ? err.message : "Failed to connect to server.";
+            setError(errorMsg);
         } finally {
             setRequestingId(null);
         }

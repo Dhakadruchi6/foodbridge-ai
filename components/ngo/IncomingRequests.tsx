@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getRequest, postRequest } from "@/lib/apiClient";
 import {
     Clock,
@@ -8,17 +8,11 @@ import {
     X,
     AlertCircle,
     Loader2,
-    Package,
     MapPin,
-    ChevronRight,
-    ThumbsUp,
-    ThumbsDown,
-    Activity,
     ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 
 interface Request {
     _id: string;
@@ -41,13 +35,12 @@ interface Request {
 }
 
 export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
-    const router = useRouter();
     const [requests, setRequests] = useState<Request[]>([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [error, setError] = useState("");
 
-    const fetchRequests = async () => {
+    const fetchRequests = useCallback(async () => {
         try {
             const result = await getRequest("/api/donations/requests");
             if (result.success) {
@@ -58,7 +51,7 @@ export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchRequests();
@@ -71,7 +64,7 @@ export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
             clearInterval(interval);
             window.removeEventListener('focus', fetchRequests);
         };
-    }, []);
+    }, [fetchRequests]);
 
     const [acceptedId, setAcceptedId] = useState<string | null>(null);
 
@@ -94,8 +87,9 @@ export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
                     setTimeout(fetchRequests, 2000);
                 }
             }
-        } catch (err: any) {
-            setError(err.message || "Network error occurred.");
+        } catch (err: unknown) {
+            const errorMsg = err instanceof Error ? err.message : "Network error occurred.";
+            setError(errorMsg);
             fetchRequests();
         } finally {
             setProcessingId(null);
@@ -117,8 +111,9 @@ export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
                     setTimeout(fetchRequests, 1500);
                 }
             }
-        } catch (err: any) {
-            setError(err.message || "Network error occurred.");
+        } catch (err: unknown) {
+            const errorMsg = err instanceof Error ? err.message : "Network error occurred.";
+            setError(errorMsg);
             fetchRequests();
         } finally {
             setProcessingId(null);

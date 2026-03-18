@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { errorResponse, successResponse } from '@/lib/apiResponse';
@@ -31,6 +30,7 @@ export async function POST(req: Request) {
         await user.save();
 
         return successResponse({}, 'Password has been reset successfully');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         return errorResponse(error.message, 500);
     }

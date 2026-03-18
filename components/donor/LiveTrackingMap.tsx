@@ -6,12 +6,12 @@
  * Feels like Uber / Swiggy.
  */
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { io, Socket } from "socket.io-client";
-import { Navigation, Loader2, Truck, WifiOff, Wifi, Clock, MapPin } from "lucide-react";
+import { Loader2, Truck, WifiOff, Wifi, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 
@@ -95,6 +95,7 @@ function AnimatedNgoMarker({ position, isOnline }: { position: [number, number];
 
     return (
         <Marker
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ref={markerRef as any}
             position={currentPos.current}
             icon={ngoIcon}
@@ -183,7 +184,7 @@ export default function LiveTrackingMap({
             socket.emit("join-room", {
                 donationId,
                 role: "donor",
-                userId: (session?.user as any)?.id || "anonymous",
+                userId: (session?.user as { id: string })?.id || "anonymous",
             });
         });
 

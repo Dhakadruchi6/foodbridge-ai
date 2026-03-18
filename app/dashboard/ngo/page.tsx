@@ -13,37 +13,28 @@ import Link from "next/link";
 import {
   Activity,
   ArrowRight,
-  ArrowUpRight,
-  CheckCircle2,
   ChevronRight,
   CircleDot,
-  Clock,
-  Loader2,
   MapPin,
   Package,
   Radar,
-  Search,
   Settings,
   ShieldCheck,
   TrendingUp,
-  Truck,
-  Wifi,
-  WifiOff,
   Zap
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function NGODashboard() {
-  const [stats, setStats] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [scanRadius, setScanRadius] = useState(100);
   const [syncing, setSyncing] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [locError, setLocError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [, setLocError] = useState("");
 
   const handleAction = () => {
     setRefreshKey(prev => prev + 1);
@@ -73,6 +64,7 @@ export default function NGODashboard() {
           const result = await postRequest("/api/user/profile", { latitude, longitude });
           if (result.success) {
             // Update local user state with new location
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setUser((prevUser: any) => ({ ...prevUser, latitude, longitude }));
           } else {
             setLocError(result.message || "Failed to save location");
@@ -128,6 +120,7 @@ export default function NGODashboard() {
   const handleTourComplete = async () => {
     try {
       await getRequest("/api/user/tour-complete");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setUser((prev: any) => ({ ...prev, isFirstLogin: false }));
     } catch (err) {
       console.error("Failed to mark tour as complete", err);
@@ -140,7 +133,7 @@ export default function NGODashboard() {
         {user && (
           <OnboardingTour
             userRole="ngo"
-            isFirstLogin={user.isFirstLogin}
+            isFirstLogin={Boolean(user.isFirstLogin)}
             onComplete={handleTourComplete}
           />
         )}
@@ -246,7 +239,7 @@ export default function NGODashboard() {
             />
             <StatBlock
               label="Active Missions"
-              value={stats?.activeMissions || "0"}
+              value={stats?.activeMissions ? String(stats.activeMissions) : "0"}
               icon={<Activity className="w-5 h-5" />}
               status="Processing"
             />

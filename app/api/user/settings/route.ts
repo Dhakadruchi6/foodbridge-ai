@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import User from '@/models/User';
 import dbConnect from '@/lib/db';

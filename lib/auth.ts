@@ -49,7 +49,7 @@ export const getUserRole = (tokenParam?: string) => {
   if (!token) return null;
 
   try {
-    let base64Url = token.split('.')[1];
+    const base64Url = token.split('.')[1];
     let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) {
       base64 += '=';

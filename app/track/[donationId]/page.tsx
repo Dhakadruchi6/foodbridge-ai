@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { MapPin, Navigation, Wifi, WifiOff, RefreshCw, ChevronRight, Package } from "lucide-react";
+import { MapPin, Navigation, WifiOff, RefreshCw, ChevronRight } from "lucide-react";
 import { getRequest } from "@/lib/apiClient";
 
 interface LiveData {
@@ -18,21 +18,18 @@ export default function LiveTrackPage() {
     const params = useParams();
     const donationId = params?.donationId as string;
     const [liveData, setLiveData] = useState<LiveData | null>(null);
-    const [error, setError] = useState("");
-    const [pulseCount, setPulseCount] = useState(0);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    const fetchLiveLocation = async () => {
+    const fetchLiveLocation = useCallback(async () => {
         try {
             const result = await getRequest(`/api/donations/live-location?donationId=${donationId}`);
             if (result.success) {
                 setLiveData(result.data);
-                setPulseCount(c => c + 1);
             }
-        } catch (err: any) {
-            setError("Could not fetch live location data.");
+        } catch {
+            // Silently retry on next poll interval
         }
-    };
+    }, [donationId]);
 
     useEffect(() => {
         if (!donationId) return;
@@ -42,7 +39,7 @@ export default function LiveTrackPage() {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [donationId]);
+    }, [donationId, fetchLiveLocation]);
 
     const openGoogleMaps = () => {
         if (liveData?.liveLatitude && liveData?.liveLongitude) {
@@ -150,7 +147,7 @@ export default function LiveTrackPage() {
                             <div>
                                 <h3 className="font-black text-lg text-slate-300">No Live Signal Yet</h3>
                                 <p className="text-slate-500 text-sm font-medium mt-1">
-                                    Ask the donor to click <strong>"Go Live"</strong> on their dashboard to start sharing their location.
+                                    Ask the donor to click <strong>&quot;Go Live&quot;</strong> on their dashboard to start sharing their location.
                                 </p>
                             </div>
                             <button

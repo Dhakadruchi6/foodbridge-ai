@@ -5,16 +5,13 @@ import { getRequest } from "@/lib/apiClient";
 import {
     CheckCircle2,
     Circle,
-    Clock,
     Truck,
-    Box,
     Loader2,
     Phone,
     Mail,
     User,
     MapPin,
     Package,
-    Calendar,
     Navigation,
     ShieldCheck
 } from "lucide-react";
@@ -68,8 +65,9 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
                 } else {
                     setError(result.message);
                 }
-            } catch (err: any) {
-                setError(err.message || "Failed to load tracking info");
+            } catch (err: unknown) {
+                const errorMsg = err instanceof Error ? err.message : "Failed to load tracking info";
+                setError(errorMsg);
             } finally {
                 setLoading(false);
             }

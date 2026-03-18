@@ -6,8 +6,15 @@ import { Users, Heart, ClipboardCheck, LayoutGrid } from "lucide-react";
 import { getRequest } from "@/lib/apiClient";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
+interface MetricsData {
+  totalUsers: number;
+  totalNGOs: number;
+  totalDonations: number;
+  successfulDeliveries: number;
+}
+
 export const MetricsCard = () => {
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

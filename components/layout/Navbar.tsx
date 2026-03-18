@@ -6,16 +6,12 @@ import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getToken } from "@/lib/auth";
 import {
     Menu,
     X,
     LayoutDashboard,
     Zap,
-    LogOut,
-    Activity,
-    Compass,
-    User as UserIcon
+    LogOut
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -78,7 +74,7 @@ export const Navbar = () => {
                 // For Google Auth users, rely on NextAuth session or localStorage role
                 if (session?.user) {
                     setUser({
-                        role: (session.user as any).role || localStorage.getItem('role') || "donor",
+                        role: (session.user as { role: string }).role || localStorage.getItem('role') || "donor",
                         name: session.user.name || ""
                     });
                 } else if (localStorage.getItem('role')) {
@@ -98,7 +94,7 @@ export const Navbar = () => {
             }
         } else if (session?.user) {
             setUser({
-                role: (session.user as any).role || "donor",
+                role: (session.user as { role: string }).role || "donor",
                 name: session.user.name || ""
             });
         } else {

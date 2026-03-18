@@ -23,6 +23,7 @@ export default function ForgotPasswordPage() {
             if (res.success) {
                 setMessage("A secure reset link has been dispatched to your inbox.");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.message || "Failed to process request");
         } finally {

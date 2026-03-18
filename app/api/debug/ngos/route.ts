@@ -10,6 +10,7 @@ export async function GET() {
         const ngos = await NGOProfile.find({});
         const users = await User.find({ role: 'ngo' });
         return successResponse({ ngos, users }, 'Debug: NGO Audit Info');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }

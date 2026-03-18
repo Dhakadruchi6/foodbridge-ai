@@ -47,6 +47,7 @@ export default function ProfilePage() {
                     setProfile(result.data);
                     setForm(result.data);
                 }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (err: any) {
                 setError(err.message || "Failed to load profile");
             } finally {
@@ -90,6 +91,7 @@ export default function ProfilePage() {
             } else {
                 setError(result.message || "Update failed");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.message || "Failed to save changes");
         } finally {

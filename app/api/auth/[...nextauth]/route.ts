@@ -27,6 +27,7 @@ const authOptions: NextAuthOptions = {
         }),
     ],
     callbacks: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async signIn({ user, account }: any) {
             console.log("[AUTH] SignIn Attempt:", { email: user.email, provider: account?.provider });
             if (account?.provider === "google") {
@@ -63,6 +64,7 @@ const authOptions: NextAuthOptions = {
             }
             return true;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async jwt({ token, user }: any) {
             if (user) {
                 token.id = user.id;
@@ -70,6 +72,7 @@ const authOptions: NextAuthOptions = {
             }
             return token;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async session({ session, token }: any) {
             if (session.user) {
                 try {

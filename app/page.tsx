@@ -4,12 +4,11 @@ import React, { useEffect, useRef, useState, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
-  Zap,
   Shield,
   Target,
-  ChevronRight,
   TrendingUp,
   Package,
   Heart,
@@ -25,6 +24,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [globalStats, setGlobalStats] = useState<any>(null);
 
   useEffect(() => {
@@ -50,6 +50,7 @@ export default function Home() {
         .fromTo(".hero-actions", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8 }, "-=0.6");
 
       // Scroll animations
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       gsap.utils.toArray('.stagger-fade-up').forEach((el: any) => {
         gsap.fromTo(el,
           { y: 60, opacity: 0 },
@@ -138,8 +139,8 @@ export default function Home() {
             <div className="hero-actions flex items-center space-x-8 pt-12 border-t border-slate-200/50 w-full justify-center">
               <div className="flex -space-x-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-14 h-14 rounded-full border-4 border-white bg-slate-200 shadow-lg overflow-hidden">
-                    <img src={`https://i.pravatar.cc/150?u=${i}`} alt="Partner" />
+                  <div key={i} className="relative w-14 h-14 rounded-full border-4 border-white bg-slate-200 shadow-lg overflow-hidden">
+                    <Image src={`https://i.pravatar.cc/150?u=${i}`} alt="Partner" fill className="object-cover" />
                   </div>
                 ))}
               </div>
@@ -178,7 +179,7 @@ export default function Home() {
               <span className="text-primary">actually works.</span>
             </h2>
             <p className="text-xl text-slate-600 font-medium leading-relaxed">
-              We've combined geospatial mapping, machine learning matching, and predictive analytics to create the definitive food recovery network.
+              We&apos;ve combined geospatial mapping, machine learning matching, and predictive analytics to create the definitive food recovery network.
             </p>
           </div>
 
@@ -324,7 +325,7 @@ export default function Home() {
                 <span className="text-primary italic">your potential.</span>
               </h2>
               <p className="text-xl text-slate-300 font-medium max-w-2xl">
-                Whether you're a grocery chain with daily surplus or an NGO feeding communities, FoodBridge is your operational backbone.
+                Whether you&apos;re a grocery chain with daily surplus or an NGO feeding communities, FoodBridge is your operational backbone.
               </p>
               <div className="flex flex-col sm:flex-row gap-5 pt-6 w-full sm:w-auto">
                 <Link href="/register" className="w-full sm:w-auto">
@@ -358,7 +359,7 @@ export default function Home() {
   );
 }
 
-const FeatureCard = ({ icon, title, description, colorClass, glowClass }: { icon: React.ReactNode; title: string; description: string; colorClass: string; glowClass: string }) => (
+const FeatureCard = ({ icon, title, description, glowClass }: { icon: React.ReactNode; title: string; description: string; colorClass: string; glowClass: string }) => (
   <Card className="feature-card glass-card rounded-[2.5rem] p-10 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden">
     <CardContent className="p-0 space-y-8 relative z-10">
       <div className={`w-16 h-16 rounded-2xl bg-white shadow-xl ${glowClass} flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500`}>

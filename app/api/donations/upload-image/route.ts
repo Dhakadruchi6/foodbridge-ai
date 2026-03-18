@@ -3,6 +3,7 @@ import { allowRoles } from '@/middleware/roleMiddleware';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 import { v2 as cloudinary } from 'cloudinary';
+import * as ExifParser from 'exif-parser';
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -14,11 +15,12 @@ cloudinary.config({
 // --- Feature 6: EXIF Metadata Extraction ---
 function extractExifData(buffer: Buffer) {
     try {
-        const ExifParser = require('exif-parser');
-        const parser = ExifParser.create(buffer);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parser = (ExifParser as any).create(buffer);
         const result = parser.parse();
 
         const tags = result.tags || {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const exifData: any = {};
         let exifPresent = false;
 

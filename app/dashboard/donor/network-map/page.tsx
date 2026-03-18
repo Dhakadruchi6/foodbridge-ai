@@ -4,16 +4,12 @@ import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import Link from "next/link";
 import {
     ArrowLeft,
-    Map as MapIcon,
     Globe2,
     Activity,
-    ChevronRight,
     Radar,
     Zap,
-    ShieldCheck,
-    Package
+    ShieldCheck
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function NetworkMapPage() {
@@ -116,8 +112,8 @@ export default function NetworkMapPage() {
     );
 }
 
-const ActivityNode = ({ x, y, name, label, color = "primary" }: any) => {
-    const colors: any = {
+const ActivityNode = ({ x, y, name, label, color = "primary" }: { x: string; y: string; name: string; label: string; color?: string }) => {
+    const colors: Record<string, string> = {
         primary: "bg-primary shadow-primary/50",
         indigo: "bg-indigo-500 shadow-indigo-500/50",
         emerald: "bg-emerald-500 shadow-emerald-500/50",
@@ -138,7 +134,7 @@ const ActivityNode = ({ x, y, name, label, color = "primary" }: any) => {
     );
 };
 
-const InsightCard = ({ title, desc, icon }: any) => (
+const InsightCard = ({ title, desc, icon }: { title: string; desc: string; icon: React.ReactNode }) => (
     <div className="p-8 glass-card rounded-[2.5rem] border-slate-100 hover:shadow-xl transition-all duration-300 group">
         <div className="flex items-center space-x-4 mb-4">
             <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-primary/5 transition-colors">{icon}</div>

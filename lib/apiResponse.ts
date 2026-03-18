@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
-  error?: any;
+  error?: unknown;
 }
 
-export const successResponse = (data: any, message: string = 'Success', status: number = 200) => {
+export const successResponse = (data: unknown, message: string = 'Success', status: number = 200) => {
   return NextResponse.json(
     {
       success: true,
@@ -18,7 +18,7 @@ export const successResponse = (data: any, message: string = 'Success', status: 
   );
 };
 
-export const errorResponse = (message: string = 'Error', status: number = 500, error: any = null) => {
+export const errorResponse = (message: string = 'Error', status: number = 500, error: unknown = null) => {
   return NextResponse.json(
     {
       success: false,

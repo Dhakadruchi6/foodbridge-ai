@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getRequest } from "@/lib/apiClient";
 import {
   Package,
@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
-  ChevronDown,
   Inbox,
   Activity,
   Box,
@@ -23,7 +22,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MLMatchResults } from "./MLMatchResults";
 import { DeliveryTracking } from "./DeliveryTracking";
-import { LiveLocationShare } from "./LiveLocationShare";
 
 interface Donation {
   _id: string;
@@ -44,7 +42,7 @@ export const MyDonations = () => {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const fetchDonations = async () => {
+  const fetchDonations = useCallback(async () => {
     try {
       const result = await getRequest("/api/donations/my-donations");
       if (result.success) {
@@ -55,7 +53,7 @@ export const MyDonations = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDonations();
@@ -73,7 +71,7 @@ export const MyDonations = () => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [donations.length]); // Simple dependency for now
+  }, [donations, fetchDonations]);
 
   if (loading) {
     return (

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Package, Clock, CheckCircle2, Search, MapPin, Activity, ArrowUpDown, ExternalLink } from "lucide-react";
+import { Package, Search, MapPin, Activity, ArrowUpDown, ExternalLink } from "lucide-react";
 
 interface Donation {
     _id: string;

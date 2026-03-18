@@ -66,6 +66,7 @@ export async function POST(req: Request) {
             message: 'OTP sent successfully to your email',
             isSandbox: emailResult.isSandbox
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('[SEND-OTP ERROR]', error);
         return errorResponse(error.message || 'Failed to send OTP', 500);

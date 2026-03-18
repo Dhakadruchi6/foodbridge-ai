@@ -29,7 +29,7 @@ export const POST = asyncHandler(async (req: Request) => {
 
     // Prevent duplicate votes
     const existingVote = donation.ngoVerification?.find(
-        (v: any) => v.ngoId?.toString() === ngoId
+        (v: { ngoId: { toString: () => string } }) => v.ngoId?.toString() === ngoId
     );
     if (existingVote) {
         return errorResponse('You have already verified this donation.', 400);
@@ -38,7 +38,9 @@ export const POST = asyncHandler(async (req: Request) => {
     donation.ngoVerification.push({ ngoId, vote });
     await donation.save();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const validCount = donation.ngoVerification.filter((v: any) => v.vote === 'valid').length;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fakeCount = donation.ngoVerification.filter((v: any) => v.vote === 'fake').length;
 
     return successResponse({

@@ -24,11 +24,12 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 
 function LogisticsDashboardContent() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [stats, setStats] = useState<any>(null);
     const searchParams = useSearchParams();
     const deliveryId = searchParams?.get("deliveryId");
     const donationId = searchParams?.get("donationId");
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [deliveryDetails, setDeliveryDetails] = useState<any>(null);
 
     useEffect(() => {
@@ -36,6 +37,7 @@ function LogisticsDashboardContent() {
             getRequest("/api/donations/my-deliveries")
                 .then(res => {
                     if (res.success) {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const target = res.data.find((d: any) =>
                             (deliveryId && d._id === deliveryId) ||
                             (donationId && (d.donationId?._id === donationId || d.donationId === donationId))
@@ -122,7 +124,7 @@ function LogisticsDashboardContent() {
                                 <Truck className="w-6 h-6" />
                             </div>
                             <div>
-                                <span className="text-4xl font-black text-slate-900 block tracking-tighter">{stats ? stats.activeMissions : "---"}</span>
+                                <span className="text-4xl font-black text-slate-900 block tracking-tighter">{stats ? String(stats.activeMissions) : "---"}</span>
                                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Active Missions</span>
                             </div>
                         </CardContent>
@@ -167,6 +169,7 @@ function LogisticsDashboardContent() {
                                     </Link>
                                 </div>
 
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {deliveryDetails ? (
                                     <div className="p-10 rounded-[3rem] bg-white border border-slate-200 shadow-xl overflow-hidden relative group">
                                         <div className="space-y-8 relative z-10">

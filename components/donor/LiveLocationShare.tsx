@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Navigation, Wifi, WifiOff, MapPin, Radio, X } from "lucide-react";
+import { Radio, X } from "lucide-react";
 import { postRequest } from "@/lib/apiClient";
 
 interface Props {
@@ -46,7 +46,7 @@ export const LiveLocationShare = ({ donationId, donationStatus }: Props) => {
                     lng: position.coords.longitude,
                 };
             },
-            (err) => {
+            () => {
                 setError("Location access denied. Please enable it in browser settings.");
                 stopLive();
             },

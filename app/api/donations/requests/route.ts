@@ -1,9 +1,8 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import { allowRoles } from '@/middleware/roleMiddleware';
 import dbConnect from '@/lib/db';
 import Delivery from '@/models/Delivery';
-import { successResponse, errorResponse } from '@/lib/apiResponse';
+import { successResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 
 export const GET = asyncHandler(async (req: Request) => {
@@ -44,6 +43,7 @@ export const GET = asyncHandler(async (req: Request) => {
     const uniqueRequests = Array.from(uniqueMap.values());
 
     // Sort by priority logic: Expiry Time first (sooner first)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sortedRequests = uniqueRequests.sort((a: any, b: any) => {
         const donA = a.donationId;
         const donB = b.donationId;

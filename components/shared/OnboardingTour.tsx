@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Joyride, { Step, CallBackProps, STATUS } from 'react-joyride';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 
 interface OnboardingTourProps {
     userRole: string;
@@ -21,7 +19,7 @@ export const OnboardingTour = ({ userRole, isFirstLogin, onComplete }: Onboardin
             content: (
                 <div className="text-left p-2">
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Welcome to FoodBridge AI! 🍛</h3>
-                    <p className="text-slate-600 dark:text-slate-300">Let's take a quick 1-minute tour to help you get started with saving food and lives.</p>
+                    <p className="text-slate-600 dark:text-slate-300">Let&apos;s take a quick 1-minute tour to help you get started with saving food and lives.</p>
                 </div>
             ),
             disableBeacon: true,
@@ -69,7 +67,7 @@ export const OnboardingTour = ({ userRole, isFirstLogin, onComplete }: Onboardin
 
     const handleJoyrideCallback = (data: CallBackProps) => {
         const { status } = data;
-        if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
+        if (([STATUS.FINISHED, STATUS.SKIPPED] as string[]).includes(status)) {
             setRun(false);
             onComplete();
         }

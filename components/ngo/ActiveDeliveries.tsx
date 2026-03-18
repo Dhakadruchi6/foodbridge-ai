@@ -2,17 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { getRequest } from "@/lib/apiClient";
-import {
-    Loader2,
-    ArrowUpRight,
-    CircleDashed,
-    Circle,
-    Wifi
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { useLocationSync } from "@/hooks/useLocationSync";
 import { Button } from "@/components/ui/button";
+import { DeliveryStatus } from "./DeliveryStatusUpdater";
 
 interface Delivery {
     _id: string;
@@ -31,10 +23,10 @@ interface Delivery {
             phone: string;
         };
     };
-    status: string;
+    status: DeliveryStatus;
 }
 
-import { Activity, Phone, ExternalLink, ChevronDown, CheckCircle2, ShieldCheck, Clock, MapPin, Package, Truck } from "lucide-react";
+import { Activity, Phone, ExternalLink, ChevronDown, ShieldCheck, MapPin, Truck } from "lucide-react";
 import { DeliveryStatusUpdater } from "./DeliveryStatusUpdater";
 
 export const ActiveDeliveries = ({ refreshKey = 0, variant = "light" }: { refreshKey?: number, variant?: "light" | "dark" }) => {
@@ -47,8 +39,7 @@ export const ActiveDeliveries = ({ refreshKey = 0, variant = "light" }: { refres
         try {
             const result = await getRequest("/api/donations/my-deliveries");
             if (result.success) {
-                // Feature 7: Show missions where status >= ACCEPTED, and remove completed/pending
-                setDeliveries(result.data.filter((d: any) =>
+                setDeliveries(result.data.filter((d: Delivery) =>
                     d.status !== 'completed' && d.status !== 'pending' && d.status !== 'rejected'
                 ));
             }
@@ -142,13 +133,13 @@ export const ActiveDeliveries = ({ refreshKey = 0, variant = "light" }: { refres
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">In-Field Donor Context</p>
                                     <div className="flex items-center space-x-3">
                                         <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-black text-primary uppercase">
-                                            {(delivery.donationId as any).donorId?.name?.substring(0, 2) || "D"}
+                                            {delivery.donationId.donorId?.name?.substring(0, 2) || "D"}
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black text-slate-900">{(delivery.donationId as any).donorId?.name || "Donor"}</p>
+                                            <p className="text-xs font-black text-slate-900">{delivery.donationId.donorId?.name || "Donor"}</p>
                                             <div className="flex items-center space-x-2 mt-1">
                                                 <Phone className="w-3 h-3 text-primary" />
-                                                <p className="text-[10px] font-bold text-slate-500">{(delivery.donationId as any).donorId?.phone || "Private Line"}</p>
+                                                <p className="text-[10px] font-bold text-slate-500">{delivery.donationId.donorId?.phone || "Private Line"}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -164,11 +155,11 @@ export const ActiveDeliveries = ({ refreshKey = 0, variant = "light" }: { refres
 
                                 {/* Mission Actions & Location */}
                                 <div className="space-y-3">
-                                    {(delivery.donationId as any).latitude && (delivery.donationId as any).longitude ? (
+                                    {delivery.donationId?.latitude && delivery.donationId?.longitude ? (
                                         <Button
                                             onClick={(e: React.MouseEvent) => {
                                                 e.stopPropagation();
-                                                window.open(`https://www.google.com/maps?q=${(delivery.donationId as any).latitude},${(delivery.donationId as any).longitude}`, '_blank');
+                                                window.open(`https://www.google.com/maps?q=${delivery.donationId?.latitude},${delivery.donationId?.longitude}`, '_blank');
                                             }}
                                             variant="outline"
                                             className="w-full h-11 border-primary/20 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/10 transition-all rounded-xl mt-2"
@@ -186,7 +177,7 @@ export const ActiveDeliveries = ({ refreshKey = 0, variant = "light" }: { refres
                                         <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/50">
                                             <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Batch Intelligence</p>
                                             <p className="text-[10px] font-medium text-slate-600 italic leading-relaxed line-clamp-2">
-                                                "{delivery.donationId.description}"
+                                                &quot;{delivery.donationId.description}&quot;
                                             </p>
                                         </div>
                                     )}
@@ -208,8 +199,8 @@ export const ActiveDeliveries = ({ refreshKey = 0, variant = "light" }: { refres
                             <div className="pt-4 border-t border-slate-100">
                                 <DeliveryStatusUpdater
                                     deliveryId={delivery._id}
-                                    donationId={(delivery.donationId as any)._id}
-                                    currentStatus={delivery.status as any}
+                                    donationId={delivery.donationId._id}
+                                    currentStatus={delivery.status}
                                     onStatusUpdate={() => fetchDeliveries()}
                                 />
                             </div>

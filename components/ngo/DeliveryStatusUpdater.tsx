@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { postRequest } from "@/lib/apiClient";
-import { CheckCircle2, Truck, Package, Loader2, ChevronRight, ShieldCheck, Wifi, WifiOff, MapPin, ArrowUpRight } from "lucide-react";
+import { CheckCircle2, Truck, Package, Loader2, ShieldCheck, Wifi, WifiOff, MapPin, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useWebSocketLocation } from "@/hooks/useWebSocketLocation";
 import { useSession } from "next-auth/react";
 
-type DeliveryStatus = "accepted" | "on_the_way" | "arrived" | "collected" | "delivered" | "completed";
+export type DeliveryStatus = "pending" | "accepted" | "on_the_way" | "arrived" | "collected" | "delivered" | "completed" | "rejected";
 
 interface StatusStep {
     key: DeliveryStatus;
@@ -71,21 +71,25 @@ const steps: StatusStep[] = [
 ];
 
 const nextStatus: Record<DeliveryStatus, DeliveryStatus | null> = {
+    pending: "accepted",
     accepted: "on_the_way",
     on_the_way: "arrived",
     arrived: "collected",
     collected: "delivered",
     delivered: "completed",
     completed: null,
+    rejected: null,
 };
 
 const nextLabel: Record<DeliveryStatus, string> = {
+    pending: "Confirm Acceptance",
     accepted: "Start Pickup Mission",
     on_the_way: "Confirm Arrival at Donor",
     arrived: "Confirm Food Collection",
     collected: "Confirm Final Delivery",
     delivered: "Finalize & Complete Mission",
     completed: "Mission Complete",
+    rejected: "Mission Terminated",
 };
 
 export const DeliveryStatusUpdater = ({
@@ -109,7 +113,9 @@ export const DeliveryStatusUpdater = ({
     const isTrackingActive = status === "on_the_way" || status === "arrived";
     const { emitStatus, isConnected } = useWebSocketLocation({
         donationId: donationId || null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         userId: (session?.user as any)?.id || null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ngoName: (session?.user as any)?.name || "NGO Partner",
         enabled: isTrackingActive,
     });
@@ -138,8 +144,8 @@ export const DeliveryStatusUpdater = ({
             } else {
                 setError(result.message || "Update failed");
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to update status");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to update status");
         } finally {
             setLoading(false);
         }

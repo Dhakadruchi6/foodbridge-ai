@@ -1,5 +1,5 @@
 import { authMiddleware } from '@/middleware/authMiddleware';
-import { successResponse, errorResponse } from '@/lib/apiResponse';
+import { successResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 import User from '@/models/User';
 import dbConnect from '@/lib/db';

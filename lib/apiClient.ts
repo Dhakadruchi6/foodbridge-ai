@@ -35,7 +35,7 @@ export const getRequest = async (url: string) => {
   return handleResponse(response);
 };
 
-export const postRequest = async (url: string, data: any) => {
+export const postRequest = async (url: string, data: unknown) => {
   const token = getToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ export const postRequest = async (url: string, data: any) => {
   return handleResponse(response);
 };
 
-export const patchRequest = async (url: string, data: any) => {
+export const patchRequest = async (url: string, data: unknown) => {
   const token = getToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',

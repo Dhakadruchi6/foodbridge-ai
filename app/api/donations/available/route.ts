@@ -1,12 +1,9 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import { allowRoles } from '@/middleware/roleMiddleware';
 import { getDonations } from '@/services/donationService';
-import { successResponse, errorResponse } from '@/lib/apiResponse';
+import { successResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 import NGOProfile from '@/models/NGOProfile';
-import Donation from '@/models/Donation';
-import User from '@/models/User';
 import { calculateHaversineDistance } from '@/lib/utils';
 import dbConnect from '@/lib/db';
 
@@ -31,6 +28,7 @@ export const GET = asyncHandler(async (req: Request) => {
   const now = new Date();
 
   // Filter out expired donations at the database/API level
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const validDonations = allDonations.filter((d: any) => new Date(d.expiryTime) > now);
 
   // Admins see everything
@@ -47,6 +45,7 @@ export const GET = asyncHandler(async (req: Request) => {
   const ngoCity = (ngoProfile.city || "").trim().toLowerCase();
 
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredDonations = validDonations.map((donation: any) => {
     let distance = null;
     const hasNgoCoords = typeof ngoProfile.latitude === 'number' && typeof ngoProfile.longitude === 'number';
@@ -68,6 +67,7 @@ export const GET = asyncHandler(async (req: Request) => {
       ...donation.toObject(),
       distance: finalDistance
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }).filter((donation: any) => {
     // 1. Strict Geospatial Match (requested radius)
     if (donation.distance !== null) {
@@ -84,6 +84,7 @@ export const GET = asyncHandler(async (req: Request) => {
 
   console.log(`[API-AVAILABLE] NGO: ${userId}, Radius: ${requestedRadius}km, City: ${ngoCity}, Valid: ${validDonations.length}, Filtered: ${filteredDonations.length}`);
   // Sort by priority: Expiry ASC, then Rank DESC
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sortedDonations = filteredDonations.sort((a: any, b: any) => {
     const expiryA = new Date(a.expiryTime).getTime();
     const expiryB = new Date(b.expiryTime).getTime();

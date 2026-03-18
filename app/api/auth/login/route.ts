@@ -3,8 +3,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
-import { successResponse, errorResponse } from '@/lib/apiResponse';
-
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
@@ -39,7 +37,7 @@ export async function POST(req: Request) {
       token,
       role: user.role
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ success: false, message: 'Invalid email or password' }, { status: 500 });
   }
 }

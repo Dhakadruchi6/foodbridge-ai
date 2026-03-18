@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import { allowRoles } from '@/middleware/roleMiddleware';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
@@ -51,6 +50,7 @@ export const POST = asyncHandler(async (req: Request) => {
         // 4. Process Results
         // HF returns array of { label: string, score: number }
         const hfResults = Array.isArray(data) ? data : [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const labels = hfResults.map((item: any) => item.label.toLowerCase());
 
         // Logic: Check if labels include food-related keywords
@@ -62,11 +62,12 @@ export const POST = asyncHandler(async (req: Request) => {
 
         return successResponse({
             isFood,
-            labels: hfResults.map((item: any) => item.label),
+            labels: hfResults.map((item: { label: string }) => item.label),
             confidence: hfResults[0]?.score || 0,
             category: hfResults[0]?.label || 'unknown'
         }, isFood ? `AI verified: food detected.` : `AI rejected: this does not appear to be food.`);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("[AI-ANALYZE] Error:", error);
         return errorResponse(`AI verification failed: ${error.message}`, 500);

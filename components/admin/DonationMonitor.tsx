@@ -4,16 +4,14 @@ import { useEffect, useState } from "react";
 import { getRequest } from "@/lib/apiClient";
 import {
     Package,
-    MapPin,
     CheckCircle2,
     Clock,
-    ArrowRight,
     MoreHorizontal,
     ShieldCheck,
     AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
     Table,
     TableBody,
@@ -111,7 +109,7 @@ export const DonationMonitor = () => {
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
-    const map: any = {
+    const map: Record<string, { label: string; icon: JSX.Element; color: string }> = {
         pending: { label: "Discovery", icon: <Clock className="w-3 h-3" />, color: "bg-amber-100 text-amber-700" },
         accepted: { label: "Bridged", icon: <ShieldCheck className="w-3 h-3" />, color: "bg-blue-100 text-blue-700" },
         delivered: { label: "Resolved", icon: <CheckCircle2 className="w-3 h-3" />, color: "bg-emerald-100 text-emerald-700" }

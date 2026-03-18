@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Package, TrendingUp, CheckCircle2, Building2, ShieldCheck, Activity } from "lucide-react";
+import { Users, Package, TrendingUp, CheckCircle2, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MetricsCardsProps {
@@ -26,6 +26,7 @@ export const MetricsCards = ({ metrics }: MetricsCardsProps) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             {cards.map((card) => {
                 const Icon = card.icon;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const value = metrics ? (metrics as any)[card.key] : null;
                 return (
                     <div

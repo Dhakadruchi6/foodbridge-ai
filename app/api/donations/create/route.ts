@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import { allowRoles } from '@/middleware/roleMiddleware';
 import { createDonation } from '@/services/donationService';

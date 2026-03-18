@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import dbConnect from '@/lib/db';
 import NGOProfile from '@/models/NGOProfile';
@@ -74,10 +73,13 @@ export const GET = asyncHandler(async (req: Request) => {
   const ngoUsers = await User.find({ role: 'ngo' }, 'name email createdAt').sort({ createdAt: -1 });
 
   // Find NGO users who don't have a profile yet
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const profileUserIds = new Set(profiles.map((p: any) => p.userId?._id?.toString() || p.userId?.toString()));
 
   const unregisteredNGOs = ngoUsers
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .filter((u: any) => !profileUserIds.has(u._id.toString()))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((u: any) => ({
       _id: u._id.toString(),  // Use user ID as the identifier
       ngoName: u.name,
@@ -88,6 +90,7 @@ export const GET = asyncHandler(async (req: Request) => {
       _isUserOnly: true, // Flag to indicate this is a user without a profile
     }));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const merged = [...profiles.map((p: any) => p.toObject()), ...unregisteredNGOs];
 
   return successResponse(merged, 'NGO profiles retrieved');

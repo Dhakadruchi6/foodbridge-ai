@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { postRequest } from "@/lib/apiClient";
@@ -12,7 +13,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Utensils,
   Navigation,
   Target,
   Box,
@@ -60,7 +60,6 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
 
   // --- Feature 6: EXIF Status ---
   const [exifStatus, setExifStatus] = useState<'none' | 'present' | 'suspicious'>('none');
-  const [exifData, setExifData] = useState<any>(null);
 
   // --- Feature 4: AI Status ---
   const [aiStatus, setAiStatus] = useState<string>('');
@@ -186,7 +185,6 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
       // Feature 6: Process EXIF result
       if (uploadData.data.exifPresent) {
         setExifStatus('present');
-        setExifData(uploadData.data.exifData);
       } else {
         setExifStatus('suspicious');
       }
@@ -244,8 +242,9 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
       } else {
         throw new Error(result.error || "Failed to list donation");
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to list donation");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to list donation";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -334,8 +333,8 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
                   <span className="text-[10px] font-bold opacity-60 mt-1">Make sure <span className="text-primary font-black">{verificationCode}</span> is visible in the photo</span>
                 </div>
               ) : (
-                <div className="relative w-full rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 group">
-                  <img src={imagePreview} alt="Food Preview" className="w-full h-48 object-cover" />
+                <div className="relative w-full h-48 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 group">
+                  <Image src={imagePreview} alt="Food Preview" fill className="object-cover" />
                   <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                     <Button
                       type="button"

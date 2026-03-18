@@ -9,16 +9,10 @@ import { NotificationBell } from "@/components/donor/NotificationBell";
 import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import Link from "next/link";
 import {
-  Package,
-  Clock,
-  MapPin,
   TrendingUp,
   Plus,
   History,
-  TrendingDown,
-  ArrowUpRight,
   ChevronRight,
-  ArrowRight,
   Leaf,
   Globe2,
   Zap,
@@ -27,15 +21,14 @@ import {
   LayoutDashboard,
   UserCircle
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 
 export default function DonorDashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [stats, setStats] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -61,6 +54,7 @@ export default function DonorDashboard() {
   const handleTourComplete = async () => {
     try {
       await getRequest("/api/user/tour-complete"); // Using GET as a simple trigger or PATCH if I create it
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setUser((prev: any) => ({ ...prev, isFirstLogin: false }));
     } catch (err) {
       console.error("Failed to mark tour as complete", err);
@@ -73,7 +67,7 @@ export default function DonorDashboard() {
         {user && (
           <OnboardingTour
             userRole="donor"
-            isFirstLogin={user.isFirstLogin}
+            isFirstLogin={Boolean(user.isFirstLogin)}
             onComplete={handleTourComplete}
           />
         )}
@@ -173,7 +167,7 @@ export default function DonorDashboard() {
                 />
                 <StatCard
                   label="Network Tier"
-                  value={stats?.networkRank || "Pro"}
+                  value={(stats?.networkRank as string) || "Pro"}
                   icon={<TrendingUp className="w-5 h-5 text-amber-500" />}
                   trend="Efficiency Rank"
                 />

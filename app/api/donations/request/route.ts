@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import dbConnect from '@/lib/db';
 import Donation from '@/models/Donation';
@@ -27,7 +26,8 @@ export const POST = asyncHandler(async (req: Request) => {
     const userId = authGate.headers.get('x-user-id');
     const userRole = authGate.headers.get('x-user-role');
 
-    let { donationId, ngoId } = requestData;
+    const donationId = requestData.donationId;
+    let ngoId = requestData.ngoId;
 
     // Robustness: If an NGO is logged in and ngoId is missing, use their own ID
     if (!ngoId && userRole === 'ngo') {

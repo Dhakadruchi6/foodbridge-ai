@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { setToken } from "@/lib/auth";
 import { postRequest } from "@/lib/apiClient";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -25,6 +24,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export const RegisterForm = () => {
   const searchParams = useSearchParams();
@@ -135,8 +135,9 @@ export const RegisterForm = () => {
           setDebugOtp("");
         }
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to send OTP");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to send OTP";
+      setError(errorMsg);
     } finally {
       setOtpLoading(false);
     }
@@ -152,8 +153,9 @@ export const RegisterForm = () => {
         setIsOtpSent(false);
         setError("");
       }
-    } catch (err: any) {
-      setError(err.message || "Invalid OTP");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Invalid OTP";
+      setError(errorMsg);
     } finally {
       setOtpLoading(false);
     }
@@ -201,8 +203,9 @@ export const RegisterForm = () => {
       if (result.success) {
         router.push("/login?registered=true");
       }
-    } catch (err: any) {
-      setError(err.message || "Registration failed");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Registration failed";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -460,7 +463,7 @@ export const RegisterForm = () => {
             onClick={() => signIn("google", { callbackUrl: `/complete-profile?role=${formData.role}` })}
             className="w-full h-16 rounded-[1.5rem] bg-white border-2 border-slate-900 text-slate-900 text-lg font-black hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-lg"
           >
-            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+            <Image src="https://www.google.com/favicon.ico" width={20} height={20} alt="Google" className="w-5 h-5" />
             <span>Continue with Google</span>
           </Button>
         </div>

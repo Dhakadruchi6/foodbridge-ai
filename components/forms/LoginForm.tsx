@@ -13,10 +13,9 @@ import {
   Loader2,
   AlertCircle,
   Eye,
-  EyeOff,
-  CheckCircle2
+  EyeOff
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export const LoginForm = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -61,7 +60,7 @@ export const LoginForm = () => {
           window.location.href = "/dashboard/admin";
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // STEP 7: Error handling string match
       setError("Invalid email or password");
     } finally {
@@ -154,7 +153,7 @@ export const LoginForm = () => {
             onClick={() => signIn("google", { callbackUrl: "/complete-profile" })}
             className="w-full h-16 rounded-[1.25rem] bg-white border-2 border-slate-900 text-slate-900 text-lg font-black hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 shadow-lg"
           >
-            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+            <Image src="https://www.google.com/favicon.ico" width={20} height={20} alt="Google" className="w-5 h-5" />
             <span>Continue with Google</span>
           </Button>
         </div>

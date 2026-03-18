@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import { allowRoles } from '@/middleware/roleMiddleware';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
@@ -98,6 +97,7 @@ export const PATCH = asyncHandler(async (req: Request) => {
     }
 
     // --- Feature 8: Admin Moderation Actions ---
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const donorId = (report.donationId as any)?.donorId;
 
     if (status === 'resolved' && donorId) {

@@ -100,6 +100,7 @@ function CompleteProfileContent() {
                 setIsOtpSent(true);
                 setError("");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.message || "Failed to send OTP");
         } finally {
@@ -115,6 +116,7 @@ function CompleteProfileContent() {
                 setIsPhoneVerified(true);
                 setIsOtpSent(false);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.message || "Invalid OTP");
         } finally {
@@ -155,7 +157,7 @@ function CompleteProfileContent() {
                     setLocationLoading(false);
                 }
             },
-            (err) => {
+            () => {
                 setError("Failed to get location. Please allow location permissions.");
                 setLocationLoading(false);
             },
@@ -189,6 +191,7 @@ function CompleteProfileContent() {
                     window.location.href = `/dashboard/${formData.role}`;
                 }, 1000);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError(err.message || "Failed to update profile");
         } finally {
@@ -362,6 +365,7 @@ function CompleteProfileContent() {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const RoleChoice = ({ active, onClick, icon, title }: any) => (
     <button type="button" onClick={onClick} className={cn("p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center space-y-2", active ? "bg-blue-50 border-blue-600 shadow-xl" : "bg-slate-50 border-slate-100 hover:border-slate-200")}>
         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", active ? "bg-blue-600 text-white" : "bg-white text-slate-400")}>{icon}</div>
@@ -369,6 +373,7 @@ const RoleChoice = ({ active, onClick, icon, title }: any) => (
     </button>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const InputField = ({ label, icon, value, onChange, placeholder, action, type = "text" }: any) => (
     <div className="space-y-3">
         <div className="flex items-center justify-between">

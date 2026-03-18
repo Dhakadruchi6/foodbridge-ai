@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { getRequest, patchRequest } from "@/lib/apiClient";
+import Image from "next/image";
 import {
     AlertTriangle,
     Loader2,
     CheckCircle2,
     XCircle,
-    HelpCircle,
     User,
     ShieldCheck,
     ShieldAlert,
@@ -15,7 +15,6 @@ import {
     Calendar,
     Image as ImageIcon,
     Camera,
-    Hash,
     ThumbsUp,
     ThumbsDown,
     BadgeCheck,
@@ -25,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function AdminReportsPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [reports, setReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -39,6 +39,7 @@ export default function AdminReportsPage() {
             } else {
                 setError(res.error || "Failed to load reports");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             setError("An error occurred while fetching reports.");
         } finally {
@@ -125,6 +126,7 @@ export default function AdminReportsPage() {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ReportCard = ({ report, onModeration, actionLoading }: { report: any; onModeration: (id: string, s: string, a?: string) => void; actionLoading: boolean }) => {
     const isPending = report.status === 'pending';
     const isResolved = report.status === 'resolved';
@@ -163,7 +165,7 @@ const ReportCard = ({ report, onModeration, actionLoading }: { report: any; onMo
                 <div className="md:col-span-3">
                     <div className="w-full h-40 bg-slate-100 rounded-xl border-2 border-slate-200 overflow-hidden relative group">
                         {donation.foodImage ? (
-                            <img src={donation.foodImage} alt="Reported Asset" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                            <Image src={donation.foodImage} alt="Reported Asset" fill className="object-cover group-hover:scale-105 transition-transform" />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 opacity-50">
                                 <ImageIcon className="w-8 h-8 mb-2" />
@@ -205,7 +207,7 @@ const ReportCard = ({ report, onModeration, actionLoading }: { report: any; onMo
                         <div>
                             <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">{donation.foodType || "Unknown Batch"} - {donation.quantity}kg</h4>
                             <p className="text-base font-medium text-slate-700 italic border-l-2 border-amber-300 pl-3">
-                                "{donation.description || "No description provided by donor."}"
+                                &quot;{donation.description || "No description provided by donor."}&quot;
                             </p>
                         </div>
                         {donation.verificationCode && (
@@ -245,11 +247,11 @@ const ReportCard = ({ report, onModeration, actionLoading }: { report: any; onMo
                                 <div className="flex items-center space-x-2 mt-1">
                                     <div className="flex items-center text-emerald-600">
                                         <ThumbsUp className="w-3 h-3 mr-1" />
-                                        <span className="text-xs font-black">{donation.ngoVerification?.filter((v: any) => v.vote === 'valid').length || 0}</span>
+                                        <span className="text-xs font-black">{donation.ngoVerification?.filter((v: { vote: string }) => v.vote === 'valid').length || 0}</span>
                                     </div>
                                     <div className="flex items-center text-rose-600">
                                         <ThumbsDown className="w-3 h-3 mr-1" />
-                                        <span className="text-xs font-black">{donation.ngoVerification?.filter((v: any) => v.vote === 'fake').length || 0}</span>
+                                        <span className="text-xs font-black">{donation.ngoVerification?.filter((v: { vote: string }) => v.vote === 'fake').length || 0}</span>
                                     </div>
                                 </div>
                                 <p className="text-[9px] text-slate-400 font-bold mt-1">By: {reportedBy.name || "Unknown NGO"}</p>

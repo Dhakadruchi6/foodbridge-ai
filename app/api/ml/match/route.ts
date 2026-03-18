@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import { allowRoles } from '@/middleware/roleMiddleware';
 import dbConnect from '@/lib/db';
@@ -72,7 +71,7 @@ export const POST = asyncHandler(async (req: Request) => {
   }
 
   // 4. Filter and Score NGOs
-  let matchedNgoList = ngos.map(ngo => {
+  const matchedNgoList = ngos.map(ngo => {
     // Coordinate check
     const hasNgoCoords = ngo.latitude != null && ngo.longitude != null;
     const hasDonorCoords = donorLat != null && donorLon != null;

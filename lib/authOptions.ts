@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
     callbacks: {
-        async signIn({ user, account }: any) {
+        async signIn({ user, account }: { user: { email?: string | null; name?: string | null; id?: string; role?: string }; account: { provider: string } | null }) {
             console.log("[AUTH] SignIn Attempt:", { email: user.email, provider: account?.provider });
             if (account?.provider === "google") {
                 try {
@@ -62,21 +62,22 @@ export const authOptions: NextAuthOptions = {
                     }
                     console.log("[AUTH] SignIn Success for:", user.email);
                     return true;
-                } catch (err) {
+                } catch (err: unknown) {
                     console.error("[AUTH] SignIn Error:", err);
                     return false;
                 }
             }
             return true;
         },
-        async jwt({ token, user }: any) {
+        async jwt({ token, user }: { token: Record<string, unknown>; user?: { id: string; role: string } }) {
             if (user) {
                 token.id = user.id;
                 token.role = user.role;
             }
             return token;
         },
-        async session({ session, token }: any) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async session({ session, token }: { session: any; token: any }) {
             if (session.user) {
                 try {
                     await dbConnect();
@@ -96,7 +97,7 @@ export const authOptions: NextAuthOptions = {
                             role: session.user.role
                         });
                     }
-                } catch (err) {
+                } catch (err: unknown) {
                     console.error("[AUTH] Session Error:", err);
                 }
             }

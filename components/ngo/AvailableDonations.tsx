@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getRequest, postRequest } from "@/lib/apiClient";
 import {
-  Package,
   MapPin,
-  Calendar,
   ChevronRight,
   CheckCircle2,
   Clock,
@@ -15,7 +13,6 @@ import {
   Sparkles,
   Info,
   Timer,
-  Weight,
   ExternalLink,
   User,
   PhoneCall,
@@ -27,13 +24,12 @@ import {
   Mail,
   ThumbsUp,
   ThumbsDown,
-  AlertTriangle,
-  ZoomIn,
-  Activity
+  AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Donation {
   _id: string;
@@ -71,11 +67,11 @@ export const AvailableDonations = ({ radius = 100, onAction }: { radius?: number
   const [verificationStatus, setVerificationStatus] = useState<string>("pending");
 
 
-  const fetchAvailable = async () => {
+  const fetchAvailable = useCallback(async () => {
     try {
       const result = await getRequest(`/api/donations/available?radius=${radius}`);
       if (result.success) {
-        setDonations(result.data.sort((a: any, b: any) => {
+        setDonations(result.data.sort((a: Donation, b: Donation) => {
           // Primary: Expiry Time (Soonest first)
           const timeA = new Date(a.expiryTime).getTime();
           const timeB = new Date(b.expiryTime).getTime();
@@ -87,12 +83,13 @@ export const AvailableDonations = ({ radius = 100, onAction }: { radius?: number
           return rankB - rankA;
         }));
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to load donations");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to load donations";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
-  };
+  }, [radius]);
 
   useEffect(() => {
     fetchAvailable();
@@ -106,7 +103,7 @@ export const AvailableDonations = ({ radius = 100, onAction }: { radius?: number
       setDonations(prev => prev.filter(d => new Date(d.expiryTime) > new Date()));
     }, 60000);
     return () => clearInterval(interval);
-  }, [radius]);
+  }, [fetchAvailable]);
 
 
   const handleAccept = async (donationId: string) => {
@@ -131,8 +128,9 @@ export const AvailableDonations = ({ radius = 100, onAction }: { radius?: number
       } else {
         setError(result.message || "Failed to accept mission");
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to accept mission");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to accept mission";
+      setError(errorMsg);
     } finally {
       setProcessingId(null);
     }
@@ -158,9 +156,10 @@ export const AvailableDonations = ({ radius = 100, onAction }: { radius?: number
       } else {
         setError(res.error || "Failed to submit report.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to report", err);
-      setError(err.message || "Failed to submit report.");
+      const errorMsg = err instanceof Error ? err.message : "Failed to submit report.";
+      setError(errorMsg);
     }
   };
 
@@ -174,8 +173,9 @@ export const AvailableDonations = ({ radius = 100, onAction }: { radius?: number
       } else {
         setError(res.error || 'Verification failed.');
       }
-    } catch (err: any) {
-      setError(err.message || 'Verification failed.');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Verification failed.';
+      setError(errorMsg);
     }
   };
 
@@ -210,12 +210,13 @@ export const AvailableDonations = ({ radius = 100, onAction }: { radius?: number
                   {acceptedMission.foodType} — Pickup Confirmed
                 </h3>
                 <p className="text-emerald-300/70 text-sm font-medium">
-                  Head to the donor's location now to collect the batch.
+                  Head to the donor&apos;s location now to collect the batch.
                 </p>
               </div>
               <button
                 onClick={handleDismissMission}
                 className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                aria-label="Dismiss"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -343,7 +344,7 @@ export const AvailableDonations = ({ radius = 100, onAction }: { radius?: number
         <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-20 text-center">
           <Navigation className="w-10 h-10 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-black text-slate-900">No Nearby Batches</h3>
-          <p className="text-slate-500 text-sm font-medium mt-1 mb-6">We'll alert you when surplus matches your operational zone.</p>
+          <p className="text-slate-500 text-sm font-medium mt-1 mb-6">We&apos;ll alert you when surplus matches your operational zone.</p>
 
           {(!donations.some(d => d.distance !== undefined)) && (
             <div className="max-w-xs mx-auto p-4 bg-slate-50 rounded-xl border border-slate-100">
@@ -420,10 +421,12 @@ const AvailableCard = ({
       {/* Visual Image Header */}
       <div className="relative h-48 w-full bg-slate-100 overflow-hidden">
         {donation.foodImage ? (
-          <img
+          <Image
             src={donation.foodImage}
             alt="Donation Verification"
+            fill
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            unoptimized={true} // Since it's from Cloudinary, external URLs often need configuration or unoptimized
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50">
@@ -432,7 +435,7 @@ const AvailableCard = ({
           </div>
         )}
 
-        <div className="absolute top-4 left-4 flex flex-col gap-2">
+        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
           <div className={cn(
             "px-2.5 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider flex items-center shadow-lg backdrop-blur-md bg-white/90",
             getUrgencyStyles(urgencyScore)
@@ -467,7 +470,7 @@ const AvailableCard = ({
         </div>
 
         {/* Overlay gradient for readability */}
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-end p-5">
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-end p-5 z-10">
           <div className="text-white w-full">
             <h4 className="text-xl font-black leading-tight truncate">
               {donation.foodType || "Surplus Batch"}
@@ -492,7 +495,7 @@ const AvailableCard = ({
 
         {donation.description && (
           <p className="text-[12px] font-medium text-slate-600 line-clamp-2 leading-relaxed">
-            "{donation.description}"
+            &quot;{donation.description}&quot;
           </p>
         )}
 

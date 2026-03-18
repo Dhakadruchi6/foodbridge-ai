@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import dbConnect from '@/lib/db';
 import Donation from '@/models/Donation';
@@ -33,7 +32,7 @@ export const GET = asyncHandler(async (req: Request) => {
         const deliveries = await Delivery.find({ ngoId: userId }).populate('donationId');
         const totalRecovered = deliveries
             .filter(d => d.status === 'completed')
-            .reduce((acc, d: any) => acc + (Number(d.donationId?.quantity) || 0), 0);
+            .reduce((acc, d: { donationId?: { quantity?: number } }) => acc + (Number(d.donationId?.quantity) || 0), 0);
 
         const completed = deliveries.filter(d => d.status === 'completed').length;
         const total = deliveries.length;

@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { authMiddleware } from '@/middleware/authMiddleware';
 import dbConnect from '@/lib/db';
 import Donation from '@/models/Donation';
@@ -53,7 +52,7 @@ export const GET = asyncHandler(async (req: Request) => {
     if (authGate.status !== 200) return authGate;
 
     const userRole = authGate.headers.get('x-user-role');
-    const url = new URL((req as any).url);
+    const url = new URL((req as Request & { url: string }).url);
     const donationId = url.searchParams.get('donationId');
 
     if (!donationId) {
@@ -79,6 +78,7 @@ export const GET = asyncHandler(async (req: Request) => {
             liveLocationUpdatedAt: delivery.liveLocationUpdatedAt,
             ageSeconds,
             isLive: ageSeconds < 60,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ngoName: (delivery.ngoId as any)?.name || 'NGO Partner',
         }, 'NGO live location fetched');
     } else {
@@ -98,6 +98,7 @@ export const GET = asyncHandler(async (req: Request) => {
             liveLocationUpdatedAt: donation.liveLocationUpdatedAt,
             ageSeconds,
             isLive: ageSeconds !== null && ageSeconds < 60,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             donorName: (donation.donorId as any)?.name || 'Donor',
         }, 'Donor live location fetched');
     }

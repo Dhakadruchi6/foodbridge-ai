@@ -5,15 +5,12 @@ import { getRequest } from "@/lib/apiClient";
 import {
     Building2,
     MapPin,
-    CheckCircle2,
     Mail,
     ShieldCheck,
     UserCheck,
-    MoreHorizontal,
     ExternalLink
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
     Table,
     TableBody,

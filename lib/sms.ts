@@ -78,15 +78,16 @@ export async function sendSMS(phone: string, message: string, type: string, user
 
         return { success: isSuccess, data: result };
 
-    } catch (err: any) {
+    } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : "Unknown error";
         console.error("SMS Error:", err);
         await SMSLog.create({
             userId,
             phone,
-            message: `[ERROR: ${err.message}] ` + message,
+            message: `[ERROR: ${errorMsg}] ` + message,
             type,
             status: 'failed'
         });
-        return { success: false, error: err.message };
+        return { success: false, error: errorMsg };
     }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck, ShieldX, Clock, User, Mail, Search, CheckCircle, XCircle, MoreVertical } from "lucide-react";
+import { ShieldCheck, ShieldX, Search, CheckCircle, XCircle, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { patchRequest } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ export const UserTable = ({
       if (res.success) {
         onNGOAction();
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("NGO action error:", err);
     } finally {

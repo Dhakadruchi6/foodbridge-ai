@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dbConnect from '@/lib/db';
@@ -83,6 +82,7 @@ export async function POST(req: Request) {
       'User registered successfully',
       201
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return errorResponse(error.message, 500);
   }
