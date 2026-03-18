@@ -3,13 +3,13 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface SwitchProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface SwitchProps extends React.HTMLAttributes<HTMLDivElement> {
     checked?: boolean;
     onCheckedChange?: (checked: boolean) => void;
 }
 
-const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
-    ({ className, checked, onCheckedChange, ...props }, ref) => (
+export function Switch({ className, checked, onCheckedChange, ...props }: SwitchProps) {
+    return (
         <div
             className={cn(
                 "inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50",
@@ -17,6 +17,7 @@ const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
                 className
             )}
             onClick={() => onCheckedChange?.(!checked)}
+            {...props}
         >
             <span
                 className={cn(
@@ -25,8 +26,5 @@ const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
                 )}
             />
         </div>
-    )
-);
-Switch.displayName = "Switch";
-
-export { Switch };
+    );
+}

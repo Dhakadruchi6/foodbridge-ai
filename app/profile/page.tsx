@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getRequest, patchRequest } from "@/lib/apiClient";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { User, Mail, Phone, MapPin, Building, Calendar, Edit3, Save, X, CheckCircle, Shield, Package, Loader2, Hash, Zap, Bell, BellOff } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "../../components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
