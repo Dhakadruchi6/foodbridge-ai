@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { io, Socket } from "socket.io-client";
@@ -27,23 +27,22 @@ const pickupIcon = L.icon({
 const createNgoIcon = (isOnline: boolean) => L.divIcon({
     html: `
     <div style="
-      width:48px;height:48px;
+      width:52px;height:52px;
       background:${isOnline ? '#4f46e5' : '#64748b'};
       border-radius:50%;
       border:4px solid white;
-      box-shadow:0 4px 20px rgba(79,70,229,0.5);
+      box-shadow:0 8px 24px rgba(79,70,229,0.4);
       display:flex;align-items:center;justify-content:center;
-      transition:background 0.3s;
-    ">
-      <svg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 24 24'
-        fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
-        <path d='M10 17h4V5H2v12h3m15 0h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5'/>
-        <circle cx='7.5' cy='17.5' r='2.5'/><circle cx='17.5' cy='17.5' r='2.5'/>
+      transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: center bottom;
+    " class="${isOnline ? 'animate-bounce-subtle' : ''}">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18.5" cy="17.5" r="2.5"/><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/>
       </svg>
     </div>`,
     className: "",
-    iconSize: [48, 48],
-    iconAnchor: [24, 48],
+    iconSize: [52, 52],
+    iconAnchor: [26, 52],
 });
 
 // ── Smooth Marker Component (lerp animation) ──────────────────────────────────
@@ -354,6 +353,18 @@ export default function LiveTrackingMap({
                     {/* Animated NGO marker */}
                     {ngoPos && (
                         <>
+                            {/* Zomato-style Delivery Path */}
+                            <Polyline
+                                positions={[ngoPos, [pickupLat, pickupLon]]}
+                                pathOptions={{
+                                    color: '#6366f1',
+                                    weight: 4,
+                                    dashArray: '10, 15',
+                                    lineCap: 'round',
+                                    lineJoin: 'round',
+                                    opacity: 0.6
+                                }}
+                            />
                             <AnimatedNgoMarker position={ngoPos} isOnline={ngoOnline} />
                             <MapFollower center={ngoPos} />
                         </>
