@@ -71,13 +71,13 @@ export const acceptDonation = async (donationId: string, ngoId: string) => {
     throw new AppError('This donation has already been accepted by another NGO partner.', 400);
   }
 
-  if (existingDonation.status !== 'pending_request' && existingDonation.status !== 'pending') {
+  if (existingDonation.status !== 'pending_request' && existingDonation.status !== 'pending' && existingDonation.status !== 'request_sent') {
     throw new AppError(`Donation is currently in ${existingDonation.status} state and cannot be accepted.`, 400);
   }
 
   // 2. Atomic update to 'accepted'
   const donation = await Donation.findOneAndUpdate(
-    { _id: donationId, status: { $in: ['pending_request', 'pending'] } },
+    { _id: donationId, status: { $in: ['pending_request', 'pending', 'request_sent'] } },
     {
       status: 'accepted',
       ngoId,

@@ -200,13 +200,13 @@ export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
                                     disabled={
                                         processingId !== null ||
                                         acceptedId === req.donationId?._id ||
-                                        req.donationId?.status !== 'pending_request'
+                                        (req.donationId?.status !== 'pending_request' && req.donationId?.status !== 'request_sent')
                                     }
                                     className={cn(
                                         "h-10 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
                                         acceptedId === req.donationId?._id
                                             ? "bg-indigo-600 text-white shadow-xl scale-105"
-                                            : req.donationId?.status !== 'pending_request'
+                                            : (req.donationId?.status !== 'pending_request' && req.donationId?.status !== 'request_sent')
                                                 ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                                                 : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
                                     )}
@@ -215,7 +215,7 @@ export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
                                         <Loader2 className="w-4 h-4 animate-spin" />
                                     ) : acceptedId === req.donationId?._id ? (
                                         <>Mission Deployed <ShieldCheck className="ml-2 w-3 h-3 animate-bounce" /></>
-                                    ) : req.donationId?.status !== 'pending_request' ? (
+                                    ) : (req.donationId?.status !== 'pending_request' && req.donationId?.status !== 'request_sent') ? (
                                         <>Already Processed</>
                                     ) : (
                                         <>Deploy Now <Check className="ml-2 w-3 h-3" /></>
