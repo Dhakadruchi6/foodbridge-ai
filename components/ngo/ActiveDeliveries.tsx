@@ -3,11 +3,7 @@
 import { useEffect, useState } from "react";
 import { getRequest } from "@/lib/apiClient";
 import {
-    Package,
-    MapPin,
-    CheckCircle2,
     Loader2,
-    Truck,
     ArrowUpRight,
     CircleDashed,
     Circle,
@@ -16,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useLocationSync } from "@/hooks/useLocationSync";
+import { Button } from "@/components/ui/button";
 
 interface Delivery {
     _id: string;
@@ -25,24 +22,34 @@ interface Delivery {
         quantity: number | string;
         pickupAddress: string;
         city: string;
+        description?: string;
+        verificationCode?: string;
+        latitude?: number;
+        longitude?: number;
+        donorId?: {
+            name: string;
+            phone: string;
+        };
     };
-    status: "accepted" | "pickup_in_progress" | "delivered" | "completed";
+    status: string;
 }
+
+import { Activity, Phone, ExternalLink, ChevronDown, CheckCircle2, ShieldCheck, Clock, MapPin, Package, Truck } from "lucide-react";
+import { DeliveryStatusUpdater } from "./DeliveryStatusUpdater";
 
 export const ActiveDeliveries = ({ refreshKey = 0 }: { refreshKey?: number }) => {
     const [deliveries, setDeliveries] = useState<Delivery[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTrackingId, setActiveTrackingId] = useState<string | null>(null);
-    const [activeDonationId, setActiveDonationId] = useState<string | null>(null);
-
-    // Get the donationId for the currently tracking delivery
-    const { lastSynced, error } = useLocationSync(activeDonationId, !!activeTrackingId);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const fetchDeliveries = async () => {
         try {
             const result = await getRequest("/api/donations/my-deliveries");
             if (result.success) {
-                setDeliveries(result.data);
+                // Feature 7: Show missions where status >= ACCEPTED, and remove completed/pending
+                setDeliveries(result.data.filter((d: any) =>
+                    d.status !== 'completed' && d.status !== 'pending' && d.status !== 'rejected'
+                ));
             }
         } catch (err) {
             console.error("Failed to fetch active deliveries", err);
@@ -53,90 +60,150 @@ export const ActiveDeliveries = ({ refreshKey = 0 }: { refreshKey?: number }) =>
 
     useEffect(() => {
         fetchDeliveries();
-        const interval = setInterval(fetchDeliveries, 30000); // Auto-refresh every 30s
-
-        // Smart Sync: Refresh when returning to dashboard
+        const interval = setInterval(fetchDeliveries, 30000);
         window.addEventListener('focus', fetchDeliveries);
-
         return () => {
             clearInterval(interval);
             window.removeEventListener('focus', fetchDeliveries);
         };
     }, [refreshKey]);
 
-    const toggleTracking = (deliveryId: string, donationId: string) => {
-        if (activeTrackingId === deliveryId) {
-            setActiveTrackingId(null);
-            setActiveDonationId(null);
-        } else {
-            setActiveTrackingId(deliveryId);
-            setActiveDonationId(donationId);
-        }
-    };
-
     if (loading) return (
-        <div className="space-y-3">
+        <div className="space-y-4">
             {[1, 2].map(i => (
-                <div key={i} className="h-16 bg-white/10 rounded-xl animate-pulse" />
+                <div key={i} className="h-24 bg-white/5 rounded-2xl animate-pulse border border-white/10" />
             ))}
         </div>
     );
 
-    const activeOnlyDeliveries = deliveries.filter(d => d.status !== 'completed');
-
-    if (activeOnlyDeliveries.length === 0) return (
-        <div className="p-6 text-center border border-slate-200/50 rounded-xl bg-slate-50/50">
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">No Active Fleet Missions</p>
+    if (deliveries.length === 0) return (
+        <div className="p-10 text-center border-2 border-dashed border-white/10 rounded-3xl bg-white/5">
+            <Activity className="w-8 h-8 text-white/20 mx-auto mb-3" />
+            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">Zero Active Mission Payloads</p>
         </div>
     );
 
     return (
-        <div className="space-y-3">
-            {activeOnlyDeliveries.slice(0, 4).map((delivery) => (
+        <div className="space-y-4">
+            {deliveries.map((delivery) => (
                 <div key={delivery._id} className={cn(
-                    "p-4 rounded-xl border transition-all duration-300 flex items-center justify-between group",
-                    activeTrackingId === delivery._id ? "bg-emerald-50/50 border-emerald-200 shadow-sm" : "bg-white border-slate-100"
+                    "group relative overflow-hidden rounded-2xl border transition-all duration-500",
+                    expandedId === delivery._id ? "bg-white border-slate-200 shadow-xl" : "bg-white/5 border-white/10 hover:border-white/20"
                 )}>
-                    <div className="flex items-center space-x-3 min-w-0">
-                        <div className={cn(
-                            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors",
-                            activeTrackingId === delivery._id ? "bg-emerald-500 text-white border-emerald-400 animate-pulse" :
-                                delivery.status === 'completed' ? "bg-emerald-50 text-emerald-500 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-100"
-                        )}>
-                            {activeTrackingId === delivery._id ? <Wifi className="w-4 h-4" /> :
-                                delivery.status === 'completed' ? <CheckCircle2 className="w-4 h-4" /> : <Package className="w-4 h-4" />}
-                        </div>
-                        <div className="min-w-0">
-                            <h4 className="text-[13px] font-black text-slate-800 leading-none truncate">
-                                {delivery.donationId?.foodType || "Surplus Batch"}
-                            </h4>
-                            <div className="flex items-center text-[10px] font-bold text-slate-400 mt-1.5">
-                                <MapPin className="w-3 h-3 mr-1 text-slate-300" />
-                                <span className="truncate">{delivery.donationId?.city} Zone</span>
-                                {activeTrackingId === delivery._id && (
-                                    <span className="ml-2 text-emerald-500 animate-pulse">● LIVE</span>
-                                )}
+                    {/* Compact Header */}
+                    <div
+                        onClick={() => setExpandedId(expandedId === delivery._id ? null : delivery._id)}
+                        className="p-5 flex items-center justify-between cursor-pointer"
+                    >
+                        <div className="flex items-center space-x-4 min-w-0">
+                            <div className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center border transition-all shrink-0",
+                                expandedId === delivery._id ? "bg-primary text-white border-primary" : "bg-white/10 text-white/40 border-white/10"
+                            )}>
+                                <Truck className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                                <h4 className={cn(
+                                    "text-sm font-black tracking-tight truncate",
+                                    expandedId === delivery._id ? "text-slate-900" : "text-white"
+                                )}>
+                                    {delivery.donationId?.foodType}
+                                </h4>
+                                <div className="flex items-center text-[10px] font-black uppercase tracking-widest mt-1 opacity-60">
+                                    <span className={expandedId === delivery._id ? "text-slate-500" : "text-white"}>
+                                        {delivery.donationId?.quantity}kg • {(delivery.status as string).replace(/_/g, ' ')}
+                                    </span>
+                                </div>
                             </div>
                         </div>
+                        <ChevronDown className={cn(
+                            "w-4 h-4 transition-transform duration-500",
+                            expandedId === delivery._id ? "rotate-180 text-slate-400" : "text-white/20"
+                        )} />
                     </div>
 
-                    <div className="flex items-center space-x-3 shrink-0">
-                        <button
-                            onClick={() => toggleTracking(delivery._id, delivery.donationId?._id)}
-                            className={cn(
-                                "text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded transition-all",
-                                activeTrackingId === delivery._id
-                                    ? "bg-emerald-500 text-white shadow-sm"
-                                    : "bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600"
+                    {/* Detailed Mission Control View */}
+                    {expandedId === delivery._id && (
+                        <div className="px-5 pb-6 space-y-6 animate-in slide-in-from-top-2 duration-300">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Donor Profile Card */}
+                                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">In-Field Donor Context</p>
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-black text-primary uppercase">
+                                            {(delivery.donationId as any).donorId?.name?.substring(0, 2) || "D"}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black text-slate-900">{(delivery.donationId as any).donorId?.name || "Donor"}</p>
+                                            <div className="flex items-center space-x-2 mt-1">
+                                                <Phone className="w-3 h-3 text-primary" />
+                                                <p className="text-[10px] font-bold text-slate-500">{(delivery.donationId as any).donorId?.phone || "Private Line"}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="pt-3 border-t border-slate-200/60 mt-2">
+                                        <div className="flex items-start space-x-2">
+                                            <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                            <p className="text-[10px] font-bold text-slate-600 leading-relaxed">
+                                                {delivery.donationId?.pickupAddress}, {delivery.donationId?.city}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Mission Actions & Location */}
+                                <div className="space-y-3">
+                                    {(delivery.donationId as any).latitude && (delivery.donationId as any).longitude ? (
+                                        <Button
+                                            onClick={(e: React.MouseEvent) => {
+                                                e.stopPropagation();
+                                                window.open(`https://www.google.com/maps?q=${(delivery.donationId as any).latitude},${(delivery.donationId as any).longitude}`, '_blank');
+                                            }}
+                                            variant="outline"
+                                            className="w-full h-11 border-primary/20 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/10 transition-all rounded-xl mt-2"
+                                        >
+                                            <ExternalLink className="w-4 h-4 mr-2" />
+                                            Launch Precision Nav
+                                        </Button>
+                                    ) : (
+                                        <div className="h-11 rounded-xl border border-dashed border-slate-200 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                            No GPS Coords Found
+                                        </div>
+                                    )}
+
+                                    {delivery.donationId?.description && (
+                                        <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+                                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Batch Intelligence</p>
+                                            <p className="text-[10px] font-medium text-slate-600 italic leading-relaxed line-clamp-2">
+                                                "{delivery.donationId.description}"
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Verification Code Box (Visible only after accept) */}
+                            {delivery.donationId?.verificationCode && (
+                                <div className="bg-slate-900 p-4 rounded-xl flex items-center justify-between border border-white/10">
+                                    <div className="flex items-center space-x-2">
+                                        <ShieldCheck className="w-4 h-4 text-primary" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/60 text-nowrap">Proof of Mission Code</span>
+                                    </div>
+                                    <span className="text-sm font-black text-primary tracking-[0.2em]">{delivery.donationId.verificationCode}</span>
+                                </div>
                             )}
-                        >
-                            {activeTrackingId === delivery._id ? "Tracking..." : "Go Live"}
-                        </button>
 
-                        <Link href={`/dashboard/ngo/logistics?deliveryId=${delivery._id}`} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-300 hover:text-indigo-600">
-                            <ArrowUpRight className="w-4 h-4" />
-                        </Link>
-                    </div>
+                            {/* Step-by-Step Logistics Updater */}
+                            <div className="pt-4 border-t border-slate-100">
+                                <DeliveryStatusUpdater
+                                    deliveryId={delivery._id}
+                                    donationId={(delivery.donationId as any)._id}
+                                    currentStatus={delivery.status as any}
+                                    onStatusUpdate={() => fetchDeliveries()}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             ))}
         </div>

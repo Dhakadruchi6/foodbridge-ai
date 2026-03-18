@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { postRequest } from "@/lib/apiClient";
-import { CheckCircle2, Truck, Package, Loader2, ChevronRight, ShieldCheck, Wifi, WifiOff, MapPin } from "lucide-react";
+import { CheckCircle2, Truck, Package, Loader2, ChevronRight, ShieldCheck, Wifi, WifiOff, MapPin, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useWebSocketLocation } from "@/hooks/useWebSocketLocation";
@@ -116,8 +116,7 @@ export const DeliveryStatusUpdater = ({
 
     const currentStepIdx = steps.findIndex(s => s.key === status);
 
-    const handleUpdate = async () => {
-        const next = nextStatus[status];
+    const handleUpdate = async (next: DeliveryStatus) => {
         if (!next) return;
 
         setLoading(true);
@@ -223,23 +222,28 @@ export const DeliveryStatusUpdater = ({
             {/* Action Button */}
             {nextStatus[status] ? (
                 <Button
-                    onClick={handleUpdate}
+                    onClick={() => handleUpdate(nextStatus[status]!)}
                     disabled={loading}
-                    className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-black uppercase tracking-widest flex items-center justify-center space-x-2"
+                    className="w-full h-12 bg-white border-2 border-primary text-primary hover:bg-primary hover:text-white font-black text-xs uppercase tracking-[0.2em] transition-all rounded-xl shadow-lg active:scale-95 group"
                 >
                     {loading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                        <>
+                        <div className="flex items-center">
                             <span>{nextLabel[status]}</span>
-                            <ChevronRight className="w-4 h-4" />
-                        </>
+                            <ArrowUpRight className="ml-2 w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        </div>
                     )}
                 </Button>
-            ) : (
+            ) : status === 'completed' ? (
                 <div className="flex items-center justify-center p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 mr-2" />
                     <span className="text-xs font-black text-emerald-700 uppercase tracking-widest">Mission Complete</span>
+                </div>
+            ) : (
+                <div className="flex items-center justify-center p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <Loader2 className="w-4 h-4 text-slate-300 animate-spin mr-2" />
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Initialising Mission...</span>
                 </div>
             )}
         </div>

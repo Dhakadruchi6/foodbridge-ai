@@ -11,20 +11,25 @@ import { CertificationModal } from "@/components/ngo/CertificationModal";
 import { NotificationBell } from "@/components/donor/NotificationBell";
 import Link from "next/link";
 import {
-  Search,
-  MapPin,
-  TrendingUp,
-  Package,
-  Clock,
-  ChevronRight,
-  ShieldCheck,
-  Zap,
-  ArrowUpRight,
-  Radar,
+  Activity,
   ArrowRight,
-  Settings,
+  ArrowUpRight,
+  CheckCircle2,
+  ChevronRight,
   CircleDot,
-  Activity
+  Clock,
+  Loader2,
+  MapPin,
+  Package,
+  Radar,
+  Search,
+  Settings,
+  ShieldCheck,
+  TrendingUp,
+  Truck,
+  Wifi,
+  WifiOff,
+  Zap
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -276,7 +281,7 @@ export default function NGODashboard() {
             <div className="lg:col-span-4 space-y-8">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Fleet Activity</h3>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Mission Control</h3>
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                 </div>
 

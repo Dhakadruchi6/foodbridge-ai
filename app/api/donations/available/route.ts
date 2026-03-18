@@ -23,7 +23,9 @@ export const GET = asyncHandler(async (req: Request) => {
   const userRole = authGate.headers.get('x-user-role');
 
   await dbConnect();
-  const allDonations = await getDonations({ status: 'pending' });
+  const allDonations = await getDonations({
+    status: { $in: ['pending', 'request_sent', 'pending_request'] }
+  });
   const now = new Date();
 
   // Filter out expired donations at the database/API level
