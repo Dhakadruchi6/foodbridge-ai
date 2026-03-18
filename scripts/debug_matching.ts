@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import NGOProfile from './models/NGOProfile';
-import Donation from './models/Donation';
+import NGOProfile from '../models/NGOProfile';
+import Donation from '../models/Donation';
 import * as dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });

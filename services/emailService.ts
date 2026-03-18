@@ -41,6 +41,34 @@ const OTP_TEMPLATE = (otp: string) => `
 </html>
 `;
 
+const PASSWORD_RESET_TEMPLATE = (resetUrl: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 24px; }
+        .logo { font-size: 24px; font-weight: 900; color: #2563eb; margin-bottom: 24px; }
+        .title { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+        .text { font-size: 16px; color: #64748b; margin-bottom: 24px; }
+        .button { display: inline-block; padding: 16px 32px; background-color: #2563eb; color: #ffffff !important; text-decoration: none; border-radius: 12px; font-weight: 700; margin-bottom: 24px; }
+        .footer { font-size: 12px; color: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">⚡ FOODBRIDGE AI</div>
+        <div class="title">Reset your password</div>
+        <p class="text">We received a request to reset your password. Click the button below to proceed. This link is valid for 1 hour.</p>
+        <a href="${resetUrl}" class="button">Reset Password</a>
+        <p class="text">If you didn't request a password reset, you can safely ignore this email.</p>
+        <div class="footer">
+            &copy; 2026 FoodBridge AI Protocol. Humanitarian Redistribution Network.
+        </div>
+    </div>
+</body>
+</html>
+`;
+
 export async function sendOtpEmail(email: string, otp: string) {
     const isSandbox = process.env.EMAIL_SANDBOX_MODE === 'true';
 
@@ -65,8 +93,38 @@ export async function sendOtpEmail(email: string, otp: string) {
             html: OTP_TEMPLATE(otp),
         });
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('[EMAIL ERROR] Failed to send email:', error);
-        throw new Error('Failed to deliver OTP email');
+        return { success: false, error: error.message || 'Failed to deliver OTP email' };
+    }
+}
+
+export async function sendPasswordResetEmail(email: string, resetUrl: string) {
+    const isSandbox = process.env.EMAIL_SANDBOX_MODE === 'true';
+
+    if (isSandbox) {
+        console.log(`[EMAIL SANDBOX] Reset Link for ${email}: ${resetUrl}`);
+        return { success: true, isSandbox: true };
+    }
+
+    const emailUser = process.env.EMAIL_USER || process.env.EMAIL_SERVER_USER;
+    const emailPass = process.env.EMAIL_PASS || process.env.EMAIL_SERVER_PASSWORD;
+
+    if (!emailUser || !emailPass) {
+        console.error('[EMAIL ERROR] SMTP credentials missing');
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    try {
+        await transporter.sendMail({
+            from: process.env.EMAIL_FROM || `"FoodBridge AI" <${emailUser}>`,
+            to: email,
+            subject: 'Reset your FoodBridge AI Password',
+            html: PASSWORD_RESET_TEMPLATE(resetUrl),
+        });
+        return { success: true };
+    } catch (error: any) {
+        console.error('[EMAIL ERROR] Failed to send reset email:', error);
+        return { success: false, error: error.message || 'Failed to deliver reset email' };
     }
 }
