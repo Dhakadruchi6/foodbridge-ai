@@ -36,11 +36,47 @@ export default function NGODashboard() {
   const [scanRadius, setScanRadius] = useState(100);
   const [syncing, setSyncing] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [locError, setLocError] = useState("");
 
   const handleAdjustRadar = () => {
     const radiuses = [10, 25, 50, 100];
     const nextIndex = (radiuses.indexOf(scanRadius) + 1) % radiuses.length;
     setScanRadius(radiuses[nextIndex]);
+  };
+
+  const handleSetOperationalCenter = async () => {
+    if (!navigator.geolocation) {
+      setLocError("Location services not supported by your browser");
+      return;
+    }
+
+    setIsCapturing(true);
+    setLocError("");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const result = await postRequest("/api/user/profile", { latitude, longitude });
+          if (result.success) {
+            // Update local user state with new location
+            setUser((prevUser: any) => ({ ...prevUser, latitude, longitude }));
+          } else {
+            setLocError(result.message || "Failed to save location");
+          }
+        } catch (err) {
+          setLocError("Internal error saving location");
+        } finally {
+          setIsCapturing(false);
+        }
+      },
+      (err) => {
+        setLocError(err.message || "Geolocation permission denied");
+        setIsCapturing(false);
+      },
+      { enableHighAccuracy: true }
+    );
   };
 
   const handleSyncPriority = async () => {
@@ -145,6 +181,16 @@ export default function NGODashboard() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                {user && (!user.latitude || !user.longitude) && (
+                  <Button
+                    onClick={handleSetOperationalCenter}
+                    disabled={isCapturing}
+                    className="h-12 px-6 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-[0.98] flex items-center space-x-2"
+                  >
+                    <MapPin className={cn("w-4 h-4", isCapturing && "animate-bounce")} />
+                    <span>{isCapturing ? "Pinning GPS..." : "Set Operational Center"}</span>
+                  </Button>
+                )}
                 <Button
                   onClick={handleSyncPriority}
                   disabled={syncing}

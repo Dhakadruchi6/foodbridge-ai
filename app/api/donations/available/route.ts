@@ -90,5 +90,21 @@ export const GET = asyncHandler(async (req: Request) => {
     return rankB - rankA;
   });
 
-  return successResponse(sortedDonations, `Donations within ${requestedRadius}km or same city retrieved`);
+  // Broaden Discovery if No Local Results or Missing Coords
+  if (sortedDonations.length === 0) {
+    // Fallback: If no local matches, show first 5 most urgent pending donations globally
+    const globalFallbacks = validDonations.sort((a: any, b: any) => {
+      const expiryA = new Date(a.expiryTime).getTime();
+      const expiryB = new Date(b.expiryTime).getTime();
+      return expiryA - expiryB;
+    }).slice(0, 5);
+
+    return successResponse(globalFallbacks, `No local matches in ${requestedRadius}km. Showing top global alerts.`);
+  }
+
+  const message = (ngoProfile.latitude && ngoProfile.longitude)
+    ? `Donations within ${requestedRadius}km or same city retrieved`
+    : `Radar inactive (GPS missing). Showing ${ngoCity || 'global'} results.`;
+
+  return successResponse(sortedDonations, message);
 });

@@ -57,7 +57,7 @@ export const PATCH = asyncHandler(async (req: Request) => {
     const userRole = authGate.headers.get('x-user-role');
     const body = await req.json();
 
-    const { name, phone, city, state, address, pincode, description, ngoName } = body;
+    const { name, phone, city, state, address, pincode, description, ngoName, latitude, longitude } = body;
 
     await dbConnect();
 
@@ -83,6 +83,8 @@ export const PATCH = asyncHandler(async (req: Request) => {
         if (phone) ngoUpdate.contactPhone = phone;
         if (description) ngoUpdate.description = description;
         if (ngoName) ngoUpdate.ngoName = ngoName;
+        if (typeof latitude === 'number') ngoUpdate.latitude = latitude;
+        if (typeof longitude === 'number') ngoUpdate.longitude = longitude;
 
         await NGOProfile.findOneAndUpdate({ userId }, ngoUpdate, { new: true });
     }
