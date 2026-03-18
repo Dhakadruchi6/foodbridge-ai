@@ -238,22 +238,36 @@ export default function LiveTrackingMap({
         };
     }, [donationId, session]);
 
-    // ── Fallback to REST if WS has no data after 5s ─────────────────────
+    // ── Hybrid Tracking Fallback (REST Polling) ──────────────────────
+    // If WebSockets are blocked (e.g. on Vercel), this ensures tracking still works.
     useEffect(() => {
-        const fallbackTimer = setTimeout(async () => {
-            if (ngoPos) return; // Already got WS data
+        const pollLocation = async () => {
+            if (ngoOnline && connected) return; // WS is healthy and receiving data
+
             try {
                 const res = await fetch(`/api/donations/live-location?donationId=${donationId}`);
                 const data = await res.json();
                 if (data.success && data.data?.isLive) {
-                    setNgoPos([data.data.liveLatitude, data.data.liveLongitude]);
-                    setNgoName(data.data.ngoName || "NGO Partner");
+                    const { liveLatitude: lat, liveLongitude: lng, ngoName: name } = data.data;
+                    setNgoPos([lat, lng]);
                     setNgoOnline(true);
+                    setConnectionLost(false);
+                    if (name) setNgoName(name);
+
+                    lastUpdateRef.current = new Date(data.data.liveLocationUpdatedAt).getTime();
+                    setLastUpdateSec(data.data.ageSeconds || 0);
                 }
-            } catch (_) { }
-        }, 5000);
-        return () => clearTimeout(fallbackTimer);
-    }, [donationId, ngoPos]);
+            } catch (err) {
+                console.warn("[Tracking-Fallback] DB Poll failed:", err);
+            }
+        };
+
+        // Poll immediately on mount, then every 10s if WS is not active
+        pollLocation();
+        const pollInterval = setInterval(pollLocation, 10000);
+
+        return () => clearInterval(pollInterval);
+    }, [donationId, ngoOnline, connected]);
 
     const statusInfo = STATUS_LABELS[liveStatus] || { label: "Tracking active", color: "text-indigo-600" };
 

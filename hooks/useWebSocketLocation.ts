@@ -6,8 +6,9 @@
  * Also emits status updates via WebSocket for instant donor sync.
  */
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { postRequest } from "@/lib/apiClient";
 
 interface LocationHookOptions {
     donationId: string | null;
@@ -22,10 +23,13 @@ export function useWebSocketLocation({
     ngoName = "NGO Partner",
     enabled,
 }: LocationHookOptions) {
+    const [isConnected, setIsConnected] = useState(false);
     const socketRef = useRef<Socket | null>(null);
     const watchIdRef = useRef<number | null>(null);
     const lastEmitRef = useRef<number>(0);
-    const THROTTLE_MS = 2500; // 2.5 seconds
+    const lastDbSyncRef = useRef<number>(0);
+    const THROTTLE_MS = 2500; // WebSocket: 2.5 seconds
+    const DB_SYNC_MS = 8000;   // Database: 8 seconds (less frequent to save bandwidth/DB load)
 
     // ── Connect & join room ─────────────────────────────────────────────
     useEffect(() => {
@@ -39,11 +43,13 @@ export function useWebSocketLocation({
 
         socket.on("connect", () => {
             console.log("[NGO-WS] Connected:", socket.id);
+            setIsConnected(true);
             socket.emit("join-room", { donationId, role: "ngo", userId });
         });
 
         socket.on("disconnect", () => {
             console.log("[NGO-WS] Disconnected");
+            setIsConnected(false);
         });
 
         socketRef.current = socket;
@@ -82,6 +88,17 @@ export function useWebSocketLocation({
                         accuracy,
                     });
                 }
+
+                // ─── DB SYNC FALLBACK ───
+                // If WS is slow or blocked, update the DB so the donor's REST fallback works.
+                if (now - lastDbSyncRef.current > DB_SYNC_MS) {
+                    lastDbSyncRef.current = now;
+                    postRequest("/api/donations/live-location", {
+                        donationId,
+                        latitude: lat,
+                        longitude: lng
+                    }).catch(err => console.error("[NGO-DB] Sync Error:", err));
+                }
             },
             (err) => {
                 console.error("[NGO-WS] GPS Error:", err.message);
@@ -114,5 +131,5 @@ export function useWebSocketLocation({
         [donationId, ngoName]
     );
 
-    return { emitStatus, isConnected: socketRef.current?.connected ?? false };
+    return { emitStatus, isConnected };
 }
