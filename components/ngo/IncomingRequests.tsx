@@ -82,11 +82,11 @@ export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
             const result = await postRequest("/api/donations/accept", { donationId });
             if (result.success) {
                 setAcceptedId(donationId);
-                const deliveryId = result.data?.delivery?._id;
-                // Smart UI Update: Filter out the accepted request immediately from the local state
+                // Smart UI Update: Filter and Notify dashboard
                 setTimeout(() => {
                     setRequests(prev => prev.filter(req => req.donationId?._id !== donationId));
-                    router.push(`/dashboard/ngo/logistics?deliveryId=${deliveryId || ''}&donationId=${donationId}`);
+                    if (onAction) onAction(); // Refreshes ActiveDeliveries on main dashboard
+                    // No router.push - stay on dashboard as requested
                 }, 1500);
             } else {
                 setError(result.message || "Failed to accept request.");

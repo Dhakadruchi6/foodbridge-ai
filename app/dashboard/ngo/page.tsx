@@ -38,6 +38,13 @@ export default function NGODashboard() {
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [locError, setLocError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleAction = () => {
+    setRefreshKey(prev => prev + 1);
+    // Also refresh stats
+    fetchStats();
+  };
 
   const handleAdjustRadar = () => {
     const radiuses = [10, 25, 50, 100];
@@ -91,15 +98,16 @@ export default function NGODashboard() {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const result = await getRequest("/api/analytics/summary");
+      if (result.success) setStats(result.data);
+    } catch (err) {
+      console.error("Failed to fetch NGO stats", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const result = await getRequest("/api/analytics/summary");
-        if (result.success) setStats(result.data);
-      } catch (err) {
-        console.error("Failed to fetch NGO stats", err);
-      }
-    };
     const fetchProfile = async () => {
       try {
         const result = await getRequest("/api/user/profile");
@@ -256,11 +264,11 @@ export default function NGODashboard() {
               </div>
 
               <div id="tour-incoming-requests" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <IncomingRequests />
+                <IncomingRequests onAction={handleAction} />
               </div>
 
               <div id="tour-available-list" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <AvailableDonations radius={scanRadius} />
+                <AvailableDonations radius={scanRadius} onAction={handleAction} />
               </div>
             </div>
 
@@ -273,7 +281,7 @@ export default function NGODashboard() {
                 </div>
 
                 <div className="bg-slate-50/50 border border-slate-200/60 rounded-[1.25rem] p-5">
-                  <ActiveDeliveries />
+                  <ActiveDeliveries refreshKey={refreshKey} />
                   <Link href="/dashboard/ngo/logistics">
                     <Button variant="ghost" className="w-full mt-4 h-12 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary hover:bg-primary/5 transition-all">
                       Open Logistics Command <ArrowRight className="w-3.5 h-3.5 ml-2" />

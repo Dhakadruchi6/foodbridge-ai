@@ -61,7 +61,7 @@ interface Donation {
   ngoVerification?: { ngoId: string; vote: string }[];
 }
 
-export const AvailableDonations = ({ radius = 100 }: { radius?: number }) => {
+export const AvailableDonations = ({ radius = 100, onAction }: { radius?: number; onAction?: () => void }) => {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -113,20 +113,26 @@ export const AvailableDonations = ({ radius = 100 }: { radius?: number }) => {
     setProcessingId(donationId);
     setError("");
     try {
-      // We can pass ngoId if we have it, but the backend is now smart enough to use our session
-      const profile = await getRequest("/api/user/profile").catch(() => null);
-      const ngoId = profile?.data?._id;
-
-      const result = await postRequest(`/api/donations/request`, { donationId, ngoId });
+      // Direct acceptance for public donations (AvailableDonations)
+      const result = await postRequest(`/api/donations/accept`, { donationId });
       if (result.success) {
+        // Find the donation object to show in the "Mission Active" panel
+        const accepted = donations.find(d => d._id === donationId);
+        if (accepted) {
+          setAcceptedMission(accepted);
+        }
+
         setDonations(prev => prev.filter(d => d._id !== donationId));
-        alert("Request sent to donor! Please wait for their confirmation.");
-        fetchAvailable();
+
+        // Trigger parent refresh (updates ActiveDeliveries)
+        if (onAction) onAction();
+
+        // No alert needed - the "Mission Active" panel provides instant feedback
       } else {
-        setError(result.message || "Failed to send request");
+        setError(result.message || "Failed to accept mission");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to send request");
+      setError(err.message || "Failed to accept mission");
     } finally {
       setProcessingId(null);
     }

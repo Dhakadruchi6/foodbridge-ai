@@ -29,7 +29,7 @@ interface Delivery {
     status: "accepted" | "pickup_in_progress" | "delivered" | "completed";
 }
 
-export const ActiveDeliveries = () => {
+export const ActiveDeliveries = ({ refreshKey = 0 }: { refreshKey?: number }) => {
     const [deliveries, setDeliveries] = useState<Delivery[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTrackingId, setActiveTrackingId] = useState<string | null>(null);
@@ -62,7 +62,7 @@ export const ActiveDeliveries = () => {
             clearInterval(interval);
             window.removeEventListener('focus', fetchDeliveries);
         };
-    }, []);
+    }, [refreshKey]);
 
     const toggleTracking = (deliveryId: string, donationId: string) => {
         if (activeTrackingId === deliveryId) {
