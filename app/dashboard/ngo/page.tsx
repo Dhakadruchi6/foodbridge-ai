@@ -177,7 +177,7 @@ export default function NGODashboard() {
                     <Activity className="w-3 h-3 mr-1.5" /> Live Radar
                   </div>
                   <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    <CircleDot className="w-3 h-3 mr-1.5 text-emerald-500 animate-pulse" /> Scanning 100km Zone
+                    <CircleDot className="w-3 h-3 mr-1.5 text-emerald-500 animate-pulse" /> Scanning {scanRadius}km Zone
                   </div>
                   {user && (!user.latitude || !user.longitude) && (
                     <Link href="/profile" className="px-2.5 py-1 bg-amber-500/10 text-amber-600 text-[10px] font-black uppercase tracking-widest rounded-md flex items-center hover:bg-amber-500/20 transition-colors">

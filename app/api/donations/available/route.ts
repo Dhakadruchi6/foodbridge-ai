@@ -96,14 +96,7 @@ export const GET = asyncHandler(async (req: Request) => {
 
   // Broaden Discovery if No Local Results or Missing Coords
   if (sortedDonations.length === 0) {
-    // Fallback: If no local matches, show first 5 most urgent pending donations globally
-    const globalFallbacks = validDonations.sort((a: any, b: any) => {
-      const expiryA = new Date(a.expiryTime).getTime();
-      const expiryB = new Date(b.expiryTime).getTime();
-      return expiryA - expiryB;
-    }).slice(0, 5);
-
-    return successResponse(globalFallbacks, `No local matches in ${requestedRadius}km. Showing top global alerts.`);
+    return successResponse([], `No active missions detected in your ${requestedRadius}km operational zone.`);
   }
 
   const message = (ngoProfile.latitude && ngoProfile.longitude)
