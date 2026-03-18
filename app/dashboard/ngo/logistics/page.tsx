@@ -149,7 +149,7 @@ function LogisticsDashboardContent() {
                                         <Zap className="w-64 h-64 text-indigo-400" />
                                     </div>
                                     <div className="relative z-10">
-                                        <ActiveDeliveries />
+                                        <ActiveDeliveries variant="dark" />
                                     </div>
                                 </div>
                             </>

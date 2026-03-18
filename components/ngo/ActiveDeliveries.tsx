@@ -37,7 +37,8 @@ interface Delivery {
 import { Activity, Phone, ExternalLink, ChevronDown, CheckCircle2, ShieldCheck, Clock, MapPin, Package, Truck } from "lucide-react";
 import { DeliveryStatusUpdater } from "./DeliveryStatusUpdater";
 
-export const ActiveDeliveries = ({ refreshKey = 0 }: { refreshKey?: number }) => {
+export const ActiveDeliveries = ({ refreshKey = 0, variant = "light" }: { refreshKey?: number, variant?: "light" | "dark" }) => {
+    const isDark = variant === "dark";
     const [deliveries, setDeliveries] = useState<Delivery[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -88,7 +89,11 @@ export const ActiveDeliveries = ({ refreshKey = 0 }: { refreshKey?: number }) =>
             {deliveries.map((delivery) => (
                 <div key={delivery._id} className={cn(
                     "group relative overflow-hidden rounded-2xl border transition-all duration-500",
-                    expandedId === delivery._id ? "bg-white border-slate-200 shadow-xl" : "bg-white/5 border-white/10 hover:border-white/20"
+                    expandedId === delivery._id
+                        ? "bg-white border-slate-200 shadow-xl"
+                        : isDark
+                            ? "bg-white/5 border-white/10 hover:border-white/20"
+                            : "bg-white border-slate-200/60 hover:border-primary/20 hover:shadow-md"
                 )}>
                     {/* Compact Header */}
                     <div
@@ -98,19 +103,23 @@ export const ActiveDeliveries = ({ refreshKey = 0 }: { refreshKey?: number }) =>
                         <div className="flex items-center space-x-4 min-w-0">
                             <div className={cn(
                                 "w-10 h-10 rounded-xl flex items-center justify-center border transition-all shrink-0",
-                                expandedId === delivery._id ? "bg-primary text-white border-primary" : "bg-white/10 text-white/40 border-white/10"
+                                expandedId === delivery._id
+                                    ? "bg-primary text-white border-primary"
+                                    : isDark
+                                        ? "bg-white/10 text-white/40 border-white/10"
+                                        : "bg-slate-50 text-slate-400 border-slate-100"
                             )}>
                                 <Truck className="w-5 h-5" />
                             </div>
                             <div className="min-w-0">
                                 <h4 className={cn(
                                     "text-sm font-black tracking-tight truncate",
-                                    expandedId === delivery._id ? "text-slate-900" : "text-white"
+                                    (expandedId === delivery._id || !isDark) ? "text-slate-900" : "text-white"
                                 )}>
                                     {delivery.donationId?.foodType}
                                 </h4>
                                 <div className="flex items-center text-[10px] font-black uppercase tracking-widest mt-1 opacity-60">
-                                    <span className={expandedId === delivery._id ? "text-slate-500" : "text-white"}>
+                                    <span className={(expandedId === delivery._id || !isDark) ? "text-slate-500" : "text-white"}>
                                         {delivery.donationId?.quantity}kg • {(delivery.status as string).replace(/_/g, ' ')}
                                     </span>
                                 </div>
@@ -118,7 +127,9 @@ export const ActiveDeliveries = ({ refreshKey = 0 }: { refreshKey?: number }) =>
                         </div>
                         <ChevronDown className={cn(
                             "w-4 h-4 transition-transform duration-500",
-                            expandedId === delivery._id ? "rotate-180 text-slate-400" : "text-white/20"
+                            expandedId === delivery._id
+                                ? "rotate-180 text-slate-400"
+                                : isDark ? "text-white/20" : "text-slate-300"
                         )} />
                     </div>
 
