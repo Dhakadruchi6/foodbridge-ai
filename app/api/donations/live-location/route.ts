@@ -2,6 +2,7 @@ import { authMiddleware } from '@/middleware/authMiddleware';
 import dbConnect from '@/lib/db';
 import Donation from '@/models/Donation';
 import Delivery from '@/models/Delivery';
+import User from '@/models/User';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 
