@@ -5,13 +5,13 @@ import { errorResponse, successResponse } from '@/lib/apiResponse';
 
 export async function POST(req: Request) {
     try {
-        const { email, otp } = await req.json();
+        const { email: rawEmail, otp } = await req.json();
 
-        if (!email || !otp) {
+        if (!rawEmail || !otp) {
             return errorResponse('Email and OTP are required', 400);
         }
 
-        email = email.toLowerCase().trim();
+        const email = rawEmail.toLowerCase().trim();
 
         await dbConnect();
 
