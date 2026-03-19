@@ -16,7 +16,9 @@ export const GET = asyncHandler(async (req: Request) => {
     const ngoProfile = await NGOProfile.findOne({ userId: ngoId });
     if (!ngoProfile) return errorResponse('NGO Profile not found', 404);
 
-    const { lat, lng } = ngoProfile;
+    const lat = ngoProfile.latitude;
+    const lng = ngoProfile.longitude;
+
     if (!lat || !lng) return errorResponse('NGO location not set', 400);
 
     // 1. Fetch Hunger Spots and Active Reports

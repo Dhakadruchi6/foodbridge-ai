@@ -47,6 +47,8 @@ export const GET = asyncHandler(async (req: Request) => {
         description: ngoProfile?.description || '',
         donationPreferences: user.donationPreferences || '',
         smsEnabled: user.smsEnabled ?? true,
+        latitude: user.latitude || ngoProfile?.latitude || null,
+        longitude: user.longitude || ngoProfile?.longitude || null,
     }, 'Profile fetched successfully');
 });
 
@@ -91,5 +93,10 @@ export const PATCH = asyncHandler(async (req: Request) => {
         await NGOProfile.findOneAndUpdate({ userId }, ngoUpdate, { new: true });
     }
 
-    return successResponse({ name: updatedUser.name, email: updatedUser.email }, 'Profile updated successfully');
+    return successResponse({
+        name: updatedUser.name,
+        email: updatedUser.email,
+        latitude: updatedUser.latitude,
+        longitude: updatedUser.longitude
+    }, 'Profile updated successfully');
 });
