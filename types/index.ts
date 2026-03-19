@@ -62,6 +62,31 @@ export interface Delivery {
     liveLatitude?: number;
     liveLongitude?: number;
     isLive?: boolean;
+    distributionStatus?: "pending" | "assigned" | "on_the_way" | "delivered";
+    hungerSpotId?: string | HungerSpot;
+}
+
+export interface HungerSpot {
+    _id: string;
+    name: string;
+    lat: number;
+    lng: number;
+    peopleCount: number;
+    category: "slum" | "shelter" | "orphanage" | "community_center" | "other";
+    urgency: "low" | "medium" | "high";
+    isActive: boolean;
+    createdAt: string;
+}
+
+export interface HungerReport {
+    _id: string;
+    locationName: string;
+    lat: number;
+    lng: number;
+    peopleCount: number;
+    urgency: "low" | "medium" | "high";
+    status: "pending" | "verified" | "resolved" | "fake";
+    createdAt: string;
 }
 
 export interface AnalyticsSummary {

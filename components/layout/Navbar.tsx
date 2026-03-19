@@ -147,6 +147,7 @@ export const Navbar = () => {
                         <NavLink href="/#technology" active={pathname === "/" && activeSection === "technology"}>Intelligence</NavLink>
                         <NavLink href="/#network" active={pathname === "/" && activeSection === "network"}>Network</NavLink>
                         <NavLink href="/#impact" active={pathname === "/" && activeSection === "impact"}>Impact</NavLink>
+                        <NavLink href="/report-hunger" active={pathname === "/report-hunger"}>Report Hunger</NavLink>
                     </nav>
                 </div>
 
@@ -213,6 +214,7 @@ export const Navbar = () => {
                     <Link href="/" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Home</Link>
                     <Link href="/#technology" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Technology</Link>
                     <Link href="/#impact" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Impact</Link>
+                    <Link href="/report-hunger" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-rose-500 py-2">Report Hunger</Link>
                     <hr className="border-slate-100" />
 
                     {mounted && (

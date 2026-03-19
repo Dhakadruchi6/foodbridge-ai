@@ -41,6 +41,16 @@ const DeliverySchema = new Schema({
     type: Boolean,
     default: false,
   },
+  distributionStatus: {
+    type: String,
+    enum: ['pending', 'assigned', 'on_the_way', 'delivered'],
+    default: 'pending',
+  },
+  hungerSpotId: {
+    type: Schema.Types.ObjectId,
+    ref: 'HungerSpot',
+    default: null,
+  },
 }, {
   timestamps: true,
 });

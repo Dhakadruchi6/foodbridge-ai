@@ -9,6 +9,7 @@ import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import { IncomingRequests } from '@/components/ngo/IncomingRequests';
 import { CertificationModal } from "@/components/ngo/CertificationModal";
 import { NotificationBell } from "@/components/donor/NotificationBell";
+import DistributionHub from "@/components/ngo/DistributionHub";
 import Link from "next/link";
 import {
   Activity,
@@ -35,11 +36,12 @@ export default function NGODashboard() {
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedTab, setSelectedTab] = useState<"radar" | "distribution">("radar");
+  const [activeDelivery, setActiveDelivery] = useState<any>(null);
   const [, setLocError] = useState("");
 
   const handleAction = () => {
     setRefreshKey(prev => prev + 1);
-    // Also refresh stats
     fetchStats();
   };
 
@@ -56,7 +58,6 @@ export default function NGODashboard() {
     }
 
     setIsCapturing(true);
-    setLocError("");
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -64,19 +65,15 @@ export default function NGODashboard() {
           const { latitude, longitude } = position.coords;
           const result = await postRequest("/api/user/profile", { latitude, longitude });
           if (result.success) {
-            // Update local user state with new location
             setUser((prevUser: User | null) => prevUser ? ({ ...prevUser, latitude, longitude } as User) : null);
-          } else {
-            setLocError(result.message || "Failed to save location");
           }
         } catch (err) {
-          setLocError("Internal error saving location");
+          console.error("Internal error saving location");
         } finally {
           setIsCapturing(false);
         }
       },
-      (err) => {
-        setLocError(err.message || "Geolocation permission denied");
+      () => {
         setIsCapturing(false);
       },
       { enableHighAccuracy: true }
@@ -104,6 +101,19 @@ export default function NGODashboard() {
     }
   };
 
+  const fetchActiveDelivery = async () => {
+    try {
+      const res = await getRequest("/api/donations/my-deliveries");
+      if (res.success) {
+        const collected = res.data.find((d: any) => d.status === 'collected' && d.distributionStatus !== 'delivered');
+        setActiveDelivery(collected);
+        if (collected) setSelectedTab("distribution");
+      }
+    } catch (err) {
+      console.error("Failed to fetch active delivery", err);
+    }
+  };
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -115,7 +125,8 @@ export default function NGODashboard() {
     };
     fetchStats();
     fetchProfile();
-  }, []);
+    fetchActiveDelivery();
+  }, [refreshKey]);
 
   const handleTourComplete = async () => {
     try {
@@ -258,68 +269,110 @@ export default function NGODashboard() {
             />
           </div>
 
-          {/* Main Interface Mesh */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            {/* Primary Feed - Available Missions */}
-            <div className="lg:col-span-8 space-y-6">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
-                <div className="flex items-center space-x-3">
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Priority Mission Pipeline</h2>
-                  <div className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded border border-slate-200/50">
-                    AI Sorted
+          {/* Navigation Tabs */}
+          <div className="flex items-center space-x-6 pb-2 border-b border-slate-200/60">
+            <button
+              onClick={() => setSelectedTab("radar")}
+              className={cn(
+                "text-xl font-black tracking-tight pb-3 transition-all relative",
+                selectedTab === "radar" ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Operational Radar
+              {selectedTab === "radar" && <div className="absolute bottom-[-1px] left-0 right-0 h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--primary-rgb),0.4)]" />}
+            </button>
+            <button
+              onClick={() => setSelectedTab("distribution")}
+              className={cn(
+                "text-xl font-black tracking-tight pb-3 transition-all relative flex items-center",
+                selectedTab === "distribution" ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Distribution Intelligence
+              {activeDelivery && <div className="ml-2 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+              {selectedTab === "distribution" && <div className="absolute bottom-[-1px] left-0 right-0 h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--primary-rgb),0.4)]" />}
+            </button>
+          </div>
+
+          {selectedTab === "radar" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 animate-in fade-in slide-in-from-left-4 duration-500">
+              {/* Primary Feed - Available Missions */}
+              <div className="lg:col-span-8 space-y-6">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                  <div className="flex items-center space-x-3">
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Priority Mission Pipeline</h2>
+                    <div className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest rounded border border-slate-200/50">
+                      AI Sorted
+                    </div>
                   </div>
                 </div>
-                <Link href="#" className="flex items-center text-[10px] font-black text-primary uppercase tracking-widest hover:translate-x-1 transition-transform">
-                  Global Map <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                </Link>
-              </div>
 
-              <div id="tour-incoming-requests" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <IncomingRequests onAction={handleAction} />
-              </div>
-
-              <div id="tour-available-list" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <AvailableDonations radius={scanRadius} onAction={handleAction} />
-              </div>
-            </div>
-
-            {/* Logistics Sidebar */}
-            <div className="lg:col-span-4 space-y-8">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Mission Control</h3>
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <div id="tour-incoming-requests" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <IncomingRequests onAction={handleAction} />
                 </div>
 
-                <div className="bg-slate-50/50 border border-slate-200/60 rounded-[1.25rem] p-5">
-                  <ActiveDeliveries refreshKey={refreshKey} />
-                  <Link href="/dashboard/ngo/logistics">
-                    <Button variant="ghost" className="w-full mt-4 h-12 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary hover:bg-primary/5 transition-all">
-                      Open Logistics Command <ArrowRight className="w-3.5 h-3.5 ml-2" />
+                <div id="tour-available-list" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <AvailableDonations radius={scanRadius} onAction={handleAction} />
+                </div>
+              </div>
+
+              {/* Logistics Sidebar */}
+              <div className="lg:col-span-4 space-y-8">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Mission Control</h3>
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  </div>
+
+                  <div className="bg-slate-50/50 border border-slate-200/60 rounded-[1.25rem] p-5">
+                    <ActiveDeliveries refreshKey={refreshKey} />
+                    <Link href="/dashboard/ngo/logistics">
+                      <Button variant="ghost" className="w-full mt-4 h-12 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary hover:bg-primary/5 transition-all">
+                        Open Logistics Command <ArrowRight className="w-3.5 h-3.5 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 rounded-[1.25rem] p-8 text-white relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                    <ShieldCheck className="w-20 h-20" />
+                  </div>
+                  <div className="relative z-10 space-y-4">
+                    <h4 className="text-lg font-black">Mission Integrity</h4>
+                    <p className="text-slate-400 text-xs font-medium leading-relaxed">
+                      All data points in this perimeter are verified for safety compliance and source authenticity.
+                    </p>
+                    <Button
+                      onClick={() => setIsCertModalOpen(true)}
+                      className="h-10 px-5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-md transition-all"
+                    >
+                      View Certifications
                     </Button>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="bg-slate-900 rounded-[1.25rem] p-8 text-white relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                  <ShieldCheck className="w-20 h-20" />
-                </div>
-                <div className="relative z-10 space-y-4">
-                  <h4 className="text-lg font-black">Mission Integrity</h4>
-                  <p className="text-slate-400 text-xs font-medium leading-relaxed">
-                    All data points in this perimeter are verified for safety compliance and source authenticity.
-                  </p>
-                  <Button
-                    onClick={() => setIsCertModalOpen(true)}
-                    className="h-10 px-5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-md transition-all"
-                  >
-                    View Certifications
-                  </Button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+              {user?.latitude && user?.longitude ? (
+                <DistributionHub
+                  ngoLocation={{ lat: user.latitude, lng: user.longitude }}
+                  activeDeliveryId={activeDelivery?._id}
+                  onComplete={() => {
+                    setRefreshKey(k => k + 1);
+                    setSelectedTab("radar");
+                  }}
+                />
+              ) : (
+                <div className="p-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200 text-center space-y-4">
+                  <MapPin className="w-12 h-12 text-slate-300 mx-auto" />
+                  <h3 className="text-xl font-black tracking-tight">Location Context Required</h3>
+                  <p className="text-slate-500 max-w-sm mx-auto">Please set your Operational Center in the header to unlock distribution intelligence.</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <CertificationModal
             isOpen={isCertModalOpen}
