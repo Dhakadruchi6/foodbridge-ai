@@ -18,12 +18,16 @@ import {
     AlertCircle,
     User as UserIcon,
     Mail,
-    FileText
+    FileText,
+    UploadCloud
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { saveToken } from "@/lib/auth";
+import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+
+const libraries: ("places")[] = ["places"];
 
 export default function CompleteProfilePage() {
     return (
@@ -43,6 +47,14 @@ function CompleteProfileContent() {
     const searchParams = useSearchParams();
     const queryRole = searchParams.get("role");
 
+    const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+        libraries
+    });
+
+    const autocompleteRef = React.useRef<google.maps.places.Autocomplete | null>(null);
+
     const [formData, setFormData] = React.useState({
         name: "",
         email: "",
@@ -56,25 +68,25 @@ function CompleteProfileContent() {
         description: "",
         donationPreferences: "",
         latitude: null as number | null,
-        longitude: null as number | null
+        longitude: null as number | null,
+        certificateUrl: "",
+        idProofUrl: "",
     });
     const [otp, setOtp] = React.useState("");
     const [isOtpSent, setIsOtpSent] = React.useState(false);
     const [isPhoneVerified, setIsPhoneVerified] = React.useState(false);
     const [otpLoading, setOtpLoading] = React.useState(false);
     const [locationLoading, setLocationLoading] = React.useState(false);
+    const [uploadingDoc, setUploadingDoc] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
     const [isActivated, setIsActivated] = React.useState(false);
     const [error, setError] = React.useState("");
 
-    // Pre-fill Google data and handle auto-redirect if profile is already complete
     React.useEffect(() => {
-        if (session === undefined) return; // Wait for session to load
+        if (session === undefined) return;
 
         if (session?.user) {
-            // Check if profile is already complete - if so, skip this page
             if (session.user.isProfileComplete) {
-                // Bridge token if missing
                 if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
                     saveToken(`social-${session.user.id}`);
                 }
@@ -124,6 +136,44 @@ function CompleteProfileContent() {
         }
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingDoc(true);
+        const uploadData = new FormData();
+        uploadData.append('document', file);
+        uploadData.append('type', type);
+
+        try {
+            const res = await fetch('/api/auth/upload-doc', { method: 'POST', body: uploadData });
+            const data = await res.json();
+            if (data.success) {
+                if (type === 'certificate') setFormData(prev => ({ ...prev, certificateUrl: data.data.documentUrl }));
+                if (type === 'id') setFormData(prev => ({ ...prev, idProofUrl: data.data.documentUrl }));
+            } else {
+                setError(data.message || 'Verification Document Upload failed');
+            }
+        } catch (err) {
+            setError("Document upload failed due to network error.");
+        } finally {
+            setUploadingDoc(false);
+        }
+    };
+
+    const onPlaceChanged = () => {
+        if (autocompleteRef.current !== null) {
+            const place = autocompleteRef.current.getPlace();
+            if (place.geometry && place.geometry.location) {
+                setFormData(prev => ({
+                    ...prev,
+                    address: place.formatted_address || place.name || prev.address,
+                    latitude: place.geometry!.location!.lat(),
+                    longitude: place.geometry!.location!.lng()
+                }));
+            }
+        }
+    };
+
     const handleGetLocation = () => {
         if (!navigator.geolocation) {
             setError("Geolocation is not supported by your browser");
@@ -137,7 +187,6 @@ function CompleteProfileContent() {
                 setFormData(prev => ({ ...prev, latitude, longitude }));
 
                 try {
-                    // Reverse geocoding using Nominatim (free, no key required for low traffic)
                     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                     const data = await res.json();
 
@@ -152,7 +201,6 @@ function CompleteProfileContent() {
                     }
                 } catch (err) {
                     console.error("Reverse geocoding error:", err);
-                    // Fallback: just keep coords
                 } finally {
                     setLocationLoading(false);
                 }
@@ -171,6 +219,17 @@ function CompleteProfileContent() {
             setError("Please verify your phone number first.");
             return;
         }
+        if (formData.role === 'ngo') {
+            if (!formData.certificateUrl || !formData.idProofUrl) {
+                setError("NGO verification documents (Registration Certificate & ID Proof) are completely mandatory for approval.");
+                return;
+            }
+            if (!formData.latitude || !formData.longitude) {
+                setError("Valid Google Maps Location address is strictly required to locate your NGO.");
+                return;
+            }
+        }
+
         setLoading(true);
         setError("");
         try {
@@ -179,14 +238,12 @@ function CompleteProfileContent() {
                 email: session?.user?.email
             });
             if (res.success) {
-                // CRITICAL: Bridge legacy token system for middleware/protection compatibility
                 if (typeof window !== 'undefined') {
                     saveToken(`social-${session?.user?.id || 'new-oauth'}`);
                     localStorage.setItem('role', formData.role);
                 }
 
                 setIsActivated(true);
-                // Force a hard redirect after a short delay to allow background sync
                 setTimeout(() => {
                     window.location.href = `/dashboard/${formData.role}`;
                 }, 1000);
@@ -236,8 +293,19 @@ function CompleteProfileContent() {
                             />
                         </div>
 
+                        {formData.role === 'ngo' && (
+                            <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl animate-in slide-in-from-top duration-300">
+                                <h4 className="text-sm font-black text-indigo-900 flex items-center mb-1">
+                                    <ShieldCheck className="w-4 h-4 mr-2" />
+                                    NGO Verification Pending
+                                </h4>
+                                <p className="text-xs text-indigo-600 font-bold leading-relaxed">
+                                    Your NGO account will be placed under Admin review securely. You cannot accept donations until our team approves your uploaded documents.
+                                </p>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Name & Email (Pre-filled from Google) */}
                             <InputField
                                 label="Full Name"
                                 icon={<UserIcon className="w-4 h-4" />}
@@ -269,8 +337,49 @@ function CompleteProfileContent() {
 
                             <InputField label="Base City" icon={<Globe className="w-4 h-4" />} value={formData.city} onChange={(v: string) => setFormData({ ...formData, city: v })} placeholder="San Francisco" />
 
+                            {isOtpSent && !isPhoneVerified && (
+                                <div className="md:col-span-2">
+                                    <InputField
+                                        label="OTP Code"
+                                        icon={<ShieldCheck className="w-4 h-4" />}
+                                        value={otp}
+                                        onChange={setOtp}
+                                        placeholder="000000"
+                                        action={<button type="button" onClick={handleVerifyOtp} className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Verify</button>}
+                                    />
+                                </div>
+                            )}
+
+                            {isPhoneVerified && (
+                                <div className="md:col-span-2 p-4 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 flex items-center space-x-2">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Identity Verified</span>
+                                </div>
+                            )}
+
                             {formData.role === 'ngo' && (
                                 <div className="md:col-span-2 animate-in slide-in-from-top duration-300 space-y-8">
+                                    <hr className="border-slate-100" />
+
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-black uppercase text-slate-800 tracking-[0.2em] flex items-center">
+                                            <UploadCloud className="w-4 h-4 text-slate-400 mr-2" />
+                                            Verification Documents Phase 2
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="border-2 border-slate-200 border-dashed rounded-xl p-6 bg-slate-50 relative focus-within:border-blue-500 focus-within:bg-blue-50 transition-all">
+                                                <label className="text-xs font-black uppercase text-slate-700 tracking-wider mb-2 block">NGO Registration Certificate</label>
+                                                <input type="file" onChange={(e) => handleFileUpload(e, 'certificate')} disabled={uploadingDoc} className="text-xs w-full mt-2 font-bold file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-all" accept="image/*,.pdf" />
+                                                {formData.certificateUrl && <span className="text-emerald-500 font-black tracking-widest block mt-4 text-[10px] uppercase flex items-center"><CheckCircle2 className="w-3 h-3 mr-1" /> Certificate Safely Uploaded</span>}
+                                            </div>
+                                            <div className="border-2 border-slate-200 border-dashed rounded-xl p-6 bg-slate-50 relative focus-within:border-blue-500 focus-within:bg-blue-50 transition-all">
+                                                <label className="text-xs font-black uppercase text-slate-700 tracking-wider mb-2 block">Government Authorized ID</label>
+                                                <input type="file" onChange={(e) => handleFileUpload(e, 'id')} disabled={uploadingDoc} className="text-xs w-full mt-2 font-bold file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-all" accept="image/*,.pdf" />
+                                                {formData.idProofUrl && <span className="text-emerald-500 font-black tracking-widest block mt-4 text-[10px] uppercase flex items-center"><CheckCircle2 className="w-3 h-3 mr-1" /> Geo ID Authenticated</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <InputField
                                         label="NGO Registration Number"
                                         icon={<FileText className="w-4 h-4" />}
@@ -300,47 +409,48 @@ function CompleteProfileContent() {
                                 </div>
                             )}
 
-                            {isOtpSent && !isPhoneVerified && (
-                                <div className="md:col-span-2">
-                                    <InputField
-                                        label="OTP Code"
-                                        icon={<ShieldCheck className="w-4 h-4" />}
-                                        value={otp}
-                                        onChange={setOtp}
-                                        placeholder="000000"
-                                        action={<button type="button" onClick={handleVerifyOtp} className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Verify</button>}
-                                    />
-                                </div>
-                            )}
-
-                            {isPhoneVerified && (
-                                <div className="md:col-span-2 p-4 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 flex items-center space-x-2">
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Identity Verified</span>
-                                </div>
-                            )}
-
                             <InputField label="State" icon={<MapPin className="w-4 h-4" />} value={formData.state} onChange={(v: string) => setFormData({ ...formData, state: v })} placeholder="California" />
                             <InputField label="Zip / Pincode" icon={<Navigation className="w-4 h-4" />} value={formData.pincode} onChange={(v: string) => setFormData({ ...formData, pincode: v })} placeholder="94103" />
 
-                            <div className="md:col-span-2">
-                                <InputField
-                                    label="Operational Address"
-                                    icon={<MapPin className="w-4 h-4" />}
-                                    value={formData.address}
-                                    onChange={(v: string) => setFormData({ ...formData, address: v })}
-                                    placeholder="123 Sustainability Ave..."
-                                    action={
-                                        <button
-                                            type="button"
-                                            onClick={handleGetLocation}
-                                            disabled={locationLoading}
-                                            className="text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest disabled:opacity-50"
-                                        >
-                                            {locationLoading ? "Fetching..." : "Get Live Location"}
-                                        </button>
-                                    }
-                                />
+                            <div className="md:col-span-2 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center">
+                                        <span className="opacity-40 mr-2"><MapPin className="w-4 h-4" /></span>
+                                        Google Authorized Operational Address
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={handleGetLocation}
+                                        disabled={locationLoading}
+                                        className="text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest disabled:opacity-50"
+                                    >
+                                        {locationLoading ? "Fetching..." : "GPS Location Overlay"}
+                                    </button>
+                                </div>
+                                {isLoaded && formData.role === 'ngo' ? (
+                                    <Autocomplete
+                                        onLoad={(autocomplete) => { autocompleteRef.current = autocomplete; }}
+                                        onPlaceChanged={onPlaceChanged}
+                                    >
+                                        <Input
+                                            type="text"
+                                            className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black text-slate-900 w-full"
+                                            value={formData.address}
+                                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                            placeholder="Extrapolate validated Google Location..."
+                                            required
+                                        />
+                                    </Autocomplete>
+                                ) : (
+                                    <Input
+                                        type="text"
+                                        className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black text-slate-900"
+                                        value={formData.address}
+                                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                        placeholder="Street Number, Building"
+                                        required
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -353,10 +463,10 @@ function CompleteProfileContent() {
 
                         <Button
                             type="submit"
-                            disabled={loading || !isPhoneVerified}
+                            disabled={loading || !isPhoneVerified || uploadingDoc}
                             className="w-full h-16 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 text-white text-xl font-black shadow-2xl shadow-blue-500/20 transition-all flex items-center justify-center space-x-2 disabled:grayscale disabled:opacity-50"
                         >
-                            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <><span>Activate Account</span> <ArrowRight className="w-6 h-6" /></>}
+                            {loading || uploadingDoc ? <Loader2 className="w-6 h-6 animate-spin" /> : <><span>Activate Account</span> <ArrowRight className="w-6 h-6" /></>}
                         </Button>
                     </form>
                 </div>
@@ -374,7 +484,7 @@ const RoleChoice = ({ active, onClick, icon, title }: any) => (
 );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const InputField = ({ label, icon, value, onChange, placeholder, action, type = "text" }: any) => (
+const InputField = ({ label, icon, value, onChange, placeholder, action, type = "text", disabled = false }: any) => (
     <div className="space-y-3">
         <div className="flex items-center justify-between">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center">
@@ -385,10 +495,11 @@ const InputField = ({ label, icon, value, onChange, placeholder, action, type = 
         </div>
         <Input
             type={type}
-            className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black text-slate-900"
+            className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black text-slate-900 disabled:opacity-50"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
+            disabled={disabled}
             required
         />
     </div>

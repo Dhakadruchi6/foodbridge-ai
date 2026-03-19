@@ -26,8 +26,23 @@ export const POST = asyncHandler(async (req: Request) => {
 
     await dbConnect();
 
+    // NGO Verification Guardrail: Prevent unverified or suspended NGOs from operational actions
+    const ngoProfile = await NGOProfile.findOne({ userId: ngoUserId });
+    if (!ngoProfile || !ngoProfile.isVerified) {
+        return errorResponse('NGO account is not verified or has been suspended. Operational actions are restricted.', 403);
+    }
+
     // Use the centralized service logic for strict lifecycle management
     const delivery = await updateDeliveryLifecycle(deliveryId, status, ngoUserId!);
+
+    // Trust Score Engine: Reward successful food completion
+    if (status === 'completed') {
+        const profile = await NGOProfile.findOne({ userId: ngoUserId });
+        if (profile) {
+            profile.trustScore = Math.min(100, (profile.trustScore || 50) + 2);
+            await profile.save();
+        }
+    }
 
     // Side Effect: Notify Donor (already partly handled in service, but let's keep notification here for flexibility)
     try {

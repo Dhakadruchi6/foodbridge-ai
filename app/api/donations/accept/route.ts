@@ -24,6 +24,12 @@ export const POST = asyncHandler(async (req: Request) => {
     return errorResponse('Donation ID is required', 400);
   }
 
+  await dbConnect();
+  const ngoProfile = await NGOProfile.findOne({ userId: ngoId });
+  if (!ngoProfile || !ngoProfile.isVerified) {
+    return errorResponse('Account Verification is pending. You cannot accept live donations until approved.', 403);
+  }
+
   const result = await acceptDonation(donationId, ngoId!);
 
   // Side Effect: Notify Donor

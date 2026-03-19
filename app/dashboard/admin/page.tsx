@@ -21,8 +21,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AdminReportsPage from "./reports/page";
+import AdminVerificationsPage from "./verifications/page";
 
-type Tab = "overview" | "users" | "donations" | "reports";
+type Tab = "overview" | "users" | "donations" | "reports" | "verifications";
 
 export default function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("overview");
@@ -56,11 +57,11 @@ export default function AdminDashboard() {
     fetchAll();
   }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tabs: { key: Tab; label: string; icon: any }[] = [
     { key: "overview", label: "Operations", icon: Activity },
     { key: "users", label: "Entities", icon: Users },
     { key: "donations", label: "Ledger", icon: Package },
+    { key: "verifications", label: "Verification", icon: ShieldCheck },
     { key: "reports", label: "Trust & Safety", icon: AlertTriangle },
   ];
 
@@ -185,6 +186,12 @@ export default function AdminDashboard() {
             {tab === "reports" && (
               <div className="bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm">
                 <AdminReportsPage />
+              </div>
+            )}
+
+            {tab === "verifications" && (
+              <div className="bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm">
+                <AdminVerificationsPage />
               </div>
             )}
           </div>

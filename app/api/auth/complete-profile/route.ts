@@ -53,7 +53,11 @@ export async function POST(req: Request) {
                     longitude,
                     contactPhone: phone,
                     userId: user._id,
-                    description
+                    description,
+                    certificateUrl: data.certificateUrl || '',
+                    idProofUrl: data.idProofUrl || '',
+                    isVerified: false,
+                    verificationStatus: 'pending',
                 },
                 { upsert: true, new: true }
             );

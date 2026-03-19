@@ -165,6 +165,20 @@ export default function NGODashboard() {
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative z-10">
               <div className="space-y-4 flex-1">
+                {user && (user as any).verificationStatus === 'pending' && (
+                  <div className="mb-6 p-6 bg-rose-50 border-2 border-rose-200 rounded-2xl flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-4 shadow-sm animate-pulse">
+                    <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+                      <ShieldCheck className="w-6 h-6 text-rose-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-black text-rose-900 tracking-tight">Security Clearance Pending</h4>
+                      <p className="text-sm text-rose-700 font-bold leading-relaxed max-w-2xl">
+                        Your operational credentials are under review by Platform Administrators. You cannot accept any live food missions or broadcast locations until your submitted registration certificates and Government IDs are securely verified.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-center gap-3 mb-2">
                   <div className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-md flex items-center">
                     <Activity className="w-3 h-3 mr-1.5" /> Live Radar

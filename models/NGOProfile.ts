@@ -53,6 +53,26 @@ const NGOProfileSchema = new Schema({
     default: 'medium',
   },
   description: String,
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  certificateUrl: {
+    type: String,
+  },
+  idProofUrl: {
+    type: String,
+  },
+  trustScore: {
+    type: Number,
+    default: 50,
+    min: 0,
+    max: 100,
+  },
+  reportsCount: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: true,
 });
