@@ -14,16 +14,19 @@ export const PATCH = asyncHandler(async (req: Request) => {
 
   const { ngoId, action } = await req.json();
 
-  if (!ngoId || !['approve', 'reject'].includes(action)) {
-    return errorResponse('Invalid ngoId or action', 400);
-  }
-
-  await dbConnect();
+  const normalizedAction = action.toLowerCase();
+  const verificationStatus = normalizedAction === 'approve' ? 'approved' : 'rejected';
+  const isVerified = normalizedAction === 'approve';
 
   // Try to find and update existing profile
   let ngo = await NGOProfile.findByIdAndUpdate(
     ngoId,
-    { verificationStatus: action === 'approve' ? 'approved' : 'rejected' },
+    {
+      verificationStatus,
+      status: verificationStatus,
+      isVerified,
+      ngo_verified: isVerified
+    },
     { new: true }
   );
 
@@ -34,7 +37,12 @@ export const PATCH = asyncHandler(async (req: Request) => {
     if (user && user.role === 'ngo') {
       ngo = await NGOProfile.findOneAndUpdate(
         { userId: ngoId },
-        { verificationStatus: action === 'approve' ? 'approved' : 'rejected' },
+        {
+          verificationStatus: action === 'approve' ? 'approved' : 'rejected',
+          status: action === 'approve' ? 'approved' : 'rejected',
+          isVerified: action === 'approve',
+          ngo_verified: action === 'approve'
+        },
         { new: true }
       );
       if (!ngo) {
@@ -46,6 +54,9 @@ export const PATCH = asyncHandler(async (req: Request) => {
           contactPhone: 'Not specified',
           registrationNumber: 'Pending',
           verificationStatus: action === 'approve' ? 'approved' : 'rejected',
+          status: action === 'approve' ? 'approved' : 'rejected',
+          isVerified: action === 'approve',
+          ngo_verified: action === 'approve',
         });
       }
     } else {

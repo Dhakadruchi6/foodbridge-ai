@@ -10,6 +10,8 @@ export interface User {
     latitude?: number;
     longitude?: number;
     verificationStatus?: string; // For NGO user profiles
+    ngo_verified?: boolean;
+    status?: string;
 }
 
 export interface NGOProfile {
@@ -27,6 +29,8 @@ export interface NGOProfile {
     createdAt?: string;
     certificateUrl?: string;
     idProofUrl?: string;
+    ngo_verified?: boolean;
+    status?: string | "pending" | "approved" | "rejected";
 }
 
 export interface Donation {

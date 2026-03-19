@@ -57,7 +57,9 @@ export async function POST(req: Request) {
                     certificateUrl: data.certificateUrl || '',
                     idProofUrl: data.idProofUrl || '',
                     isVerified: false,
+                    ngo_verified: false,
                     verificationStatus: 'pending',
+                    status: 'pending',
                 },
                 { upsert: true, new: true }
             );

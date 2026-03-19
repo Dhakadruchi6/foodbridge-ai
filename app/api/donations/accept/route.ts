@@ -26,7 +26,11 @@ export const POST = asyncHandler(async (req: Request) => {
 
   await dbConnect();
   const ngoProfile = await NGOProfile.findOne({ userId: ngoId });
-  if (!ngoProfile || !ngoProfile.isVerified) {
+
+  // [DEBUG LOG] Verification check details
+  console.log(`[NGO_AUTH] NGO: ${ngoId}, Status: ${ngoProfile?.status || 'N/A'}, Verified: ${ngoProfile?.ngo_verified}`);
+
+  if (!ngoProfile || !ngoProfile.ngo_verified) {
     return errorResponse('Account Verification is pending. You cannot accept live donations until approved.', 403);
   }
 

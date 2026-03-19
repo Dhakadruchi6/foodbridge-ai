@@ -63,6 +63,15 @@ const NGOProfileSchema = new Schema({
   idProofUrl: {
     type: String,
   },
+  ngo_verified: {
+    type: Boolean,
+    default: false,
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+  },
   trustScore: {
     type: Number,
     default: 50,

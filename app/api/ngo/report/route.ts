@@ -40,7 +40,9 @@ export const POST = asyncHandler(async (req: Request) => {
         // Execute automated safety suspension checks
         if (profile.trustScore < 20 || profile.reportsCount >= 3) {
             profile.isVerified = false;
+            profile.ngo_verified = false;
             profile.verificationStatus = 'rejected';
+            profile.status = 'rejected';
 
             // Propagate strict ban to root Identity User object
             await User.findByIdAndUpdate(targetNgoId, { isActive: false });

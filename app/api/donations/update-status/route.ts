@@ -28,7 +28,7 @@ export const POST = asyncHandler(async (req: Request) => {
 
     // NGO Verification Guardrail: Prevent unverified or suspended NGOs from operational actions
     const ngoProfile = await NGOProfile.findOne({ userId: ngoUserId });
-    if (!ngoProfile || !ngoProfile.isVerified) {
+    if (!ngoProfile || !ngoProfile.ngo_verified) {
         return errorResponse('NGO account is not verified or has been suspended. Operational actions are restricted.', 403);
     }
 
