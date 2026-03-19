@@ -6,7 +6,7 @@
  * for live route directions and smooth marker tracing.
  */
 
-import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { useEffect, useState, useRef, useCallback, memo, useMemo } from "react";
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from "@react-google-maps/api";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Truck, WifiOff, Wifi } from "lucide-react";
@@ -54,7 +54,8 @@ export default memo(function LiveTrackingMap({
     });
 
     const [ngoPos, setNgoPos] = useState<{ lat: number, lng: number } | null>(null);
-    const pickupPos = { lat: pickupLat, lng: pickupLon };
+    const [interpolatedPos, setInterpolatedPos] = useState<{ lat: number, lng: number } | null>(null);
+    const pickupPos = useMemo(() => ({ lat: pickupLat, lng: pickupLon }), [pickupLat, pickupLon]);
     const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
 
     const [ngoName, setNgoName] = useState<string>("NGO Partner");
@@ -70,6 +71,10 @@ export default memo(function LiveTrackingMap({
     const connectionLostTimerRef = useRef<NodeJS.Timeout | null>(null);
     const mapRef = useRef<google.maps.Map | null>(null);
     const lastRouteCalcTime = useRef<number>(0);
+    const ngoPosRef = useRef<{ lat: number, lng: number } | null>(null);
+    const prevPosRef = useRef<{ lat: number, lng: number } | null>(null);
+    const animationFrameRef = useRef<number | null>(null);
+    const INTERPOLATION_DURATION = 2500; // Matches NGO heartbeat
 
     // ── Tick "X seconds ago" display ──────────────────────────────────────
     useEffect(() => {
@@ -88,7 +93,7 @@ export default memo(function LiveTrackingMap({
         // Anti-spam: Only query Google Maps Directions API once every 5 seconds maximum.
         // This ensures the route path updates gracefully as the NGO location marker bounces/moves without exploding quotas.
         const now = Date.now();
-        if (now - lastRouteCalcTime.current < 5000) return;
+        if (now - lastRouteCalcTime.current < 3000) return;
 
         try {
             const directionsService = new google.maps.DirectionsService();
@@ -107,10 +112,8 @@ export default memo(function LiveTrackingMap({
     useEffect(() => {
         if (ngoPos) {
             calculateRoute(ngoPos, pickupPos);
-            // Optional: center map around NGO occasionally if moved significantly out of frame. Map center tracks naturally.
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ngoPos, isLoaded]); // We do NOT include pickupPos as dependency since it's constant
+    }, [ngoPos, calculateRoute, pickupPos]);
 
     // ── Socket.IO connection ──────────────────────────────────────────────
     useEffect(() => {
@@ -146,7 +149,45 @@ export default memo(function LiveTrackingMap({
 
         // ── Receive NGO Location (Feature 1, 2, 3) ─────────────────────────────────────────
         socket.on("receive-location", ({ lat, lng, ngoName: name, timestamp }) => {
-            setNgoPos({ lat, lng });
+            const newPos = { lat, lng };
+
+            // Start smooth interpolation
+            if (!ngoPosRef.current) {
+                // Initial position - no animation
+                setNgoPos(newPos);
+                ngoPosRef.current = newPos;
+                setInterpolatedPos(newPos);
+                prevPosRef.current = newPos;
+            } else {
+                setNgoPos(newPos);
+
+                // Animate from current interpolated position to new target
+                const startPos = prevPosRef.current || ngoPosRef.current;
+                ngoPosRef.current = newPos;
+                const startTime = Date.now();
+
+                if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / INTERPOLATION_DURATION, 1);
+
+                    // Linear interpolation (Ease function could be added for more "Uber" feel)
+                    const currentLat = startPos.lat + (newPos.lat - startPos.lat) * progress;
+                    const currentLng = startPos.lng + (newPos.lng - startPos.lng) * progress;
+
+                    const currentPos = { lat: currentLat, lng: currentLng };
+                    setInterpolatedPos(currentPos);
+                    prevPosRef.current = currentPos;
+
+                    if (progress < 1) {
+                        animationFrameRef.current = requestAnimationFrame(animate);
+                    }
+                };
+
+                animationFrameRef.current = requestAnimationFrame(animate);
+            }
+
             setNgoOnline(true);
             setConnectionLost(false);
             if (name) setNgoName(name);
@@ -210,7 +251,7 @@ export default memo(function LiveTrackingMap({
         const pollInterval = setInterval(pollLocation, 10000);
 
         return () => clearInterval(pollInterval);
-    }, [donationId, ngoOnline, connected]);
+    }, [donationId, ngoOnline, connected, ngoPos]);
 
     const statusInfo = STATUS_LABELS[liveStatus] || { label: "Tracking active", color: "text-indigo-600" };
 
@@ -336,15 +377,14 @@ export default memo(function LiveTrackingMap({
                         />
 
                         {/* Feature 3: NGO Live Tracking Moving Marker */}
-                        {ngoPos && (
+                        {interpolatedPos && (
                             <Marker
-                                position={ngoPos}
+                                position={interpolatedPos}
                                 icon={{
                                     url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
                                 }}
                                 title={ngoName}
-                            >
-                            </Marker>
+                            />
                         )}
                     </GoogleMap>
                 )}

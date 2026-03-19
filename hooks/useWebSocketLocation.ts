@@ -30,6 +30,8 @@ export function useWebSocketLocation({
     const lastDbSyncRef = useRef<number>(0);
     const THROTTLE_MS = 2500; // WebSocket: 2.5 seconds
     const DB_SYNC_MS = 8000;   // Database: 8 seconds (less frequent to save bandwidth/DB load)
+    const MOVEMENT_THRESHOLD = 0.00001; // Degrees (~1 meter)
+    const lastPosRef = useRef<{ lat: number, lng: number } | null>(null);
 
     // ── Connect & join room ─────────────────────────────────────────────
     useEffect(() => {
@@ -77,6 +79,19 @@ export function useWebSocketLocation({
                 lastEmitRef.current = now;
 
                 const { latitude: lat, longitude: lng, accuracy } = position.coords;
+
+                // ─── STOPPED DETECTION ───
+                if (lastPosRef.current) {
+                    const dLat = Math.abs(lat - lastPosRef.current.lat);
+                    const dLng = Math.abs(lng - lastPosRef.current.lng);
+                    if (dLat < MOVEMENT_THRESHOLD && dLng < MOVEMENT_THRESHOLD) {
+                        // Position hasn't changed significantly, we can skip emitting or emit at lower frequency
+                        // For now we'll just continue so the "LIVE" indicator stays active, 
+                        // but we could optimize here if needed.
+                    }
+                }
+                lastPosRef.current = { lat, lng };
+
                 const socket = socketRef.current;
 
                 if (socket?.connected) {
