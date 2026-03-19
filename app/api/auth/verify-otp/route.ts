@@ -5,8 +5,7 @@ import { errorResponse, successResponse } from '@/lib/apiResponse';
 
 export async function POST(req: Request) {
     try {
-        let { email } = await req.json();
-        const { otp } = await req.json();
+        const { email, otp } = await req.json();
 
         if (!email || !otp) {
             return errorResponse('Email and OTP are required', 400);
