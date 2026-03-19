@@ -9,7 +9,9 @@ import { useParams, useRouter } from "next/navigation";
 
 export default function ResetPasswordPage() {
     const params = useParams();
-    const token = Array.isArray(params.token) ? params.token[0] : params.token;
+    const rt = (Array.isArray(params.rt) ? params.rt[0] : params.rt) || "";
+    // Note: the backend API expects 'token', so we'll pass 'rt' as 'token'
+    const token = rt;
     const router = useRouter();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
