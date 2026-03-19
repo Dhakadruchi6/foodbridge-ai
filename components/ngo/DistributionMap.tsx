@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import * as React from "react";
+import { useState, useEffect } from "react";
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 import { MapPin, Users, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ interface DistributionMapProps {
     ngoLocation: { lat: number; lng: number };
     suggestions: DistributionMarker[];
     onSelectSpot: (spot: DistributionMarker) => void;
+    externallySelectedSpot?: DistributionMarker | null;
 }
 
 const mapContainerStyle = {
@@ -34,7 +36,7 @@ const urgencyColors: Record<string, string> = {
     low: "#10b981",    // Emerald 500
 };
 
-export default function DistributionMap({ ngoLocation, suggestions, onSelectSpot }: DistributionMapProps) {
+export default function DistributionMap({ ngoLocation, suggestions, onSelectSpot, externallySelectedSpot }: DistributionMapProps) {
     const { isLoaded } = useJsApiLoader({
         id: "google-map-script",
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
@@ -42,14 +44,21 @@ export default function DistributionMap({ ngoLocation, suggestions, onSelectSpot
 
     const [selectedSpot, setSelectedSpot] = useState<DistributionMarker | null>(null);
 
+    // Sync external selection
+    useEffect(() => {
+        if (externallySelectedSpot) {
+            setSelectedSpot(externallySelectedSpot);
+        }
+    }, [externallySelectedSpot]);
+
     if (!isLoaded) return <div className="h-[500px] w-full bg-slate-100 animate-pulse rounded-[1.5rem]" />;
 
     return (
         <div className="relative group">
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
-                center={ngoLocation}
-                zoom={13}
+                center={selectedSpot ? { lat: selectedSpot.lat, lng: selectedSpot.lng } : ngoLocation}
+                zoom={selectedSpot ? 15 : 13}
                 options={{
                     styles: [
                         {

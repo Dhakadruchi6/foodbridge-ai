@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getRequest, postRequest } from "@/lib/apiClient";
 import DistributionMap from "./DistributionMap";
 import { Button } from "@/components/ui/button";
-import { Users, Zap, CheckCircle2, Navigation, AlertCircle, X, Package } from "lucide-react";
+import { Users, Zap, CheckCircle2, Navigation, AlertCircle, X, Package, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DistributionHubProps {
@@ -98,6 +98,7 @@ export default function DistributionHub({ ngoLocation, activeDeliveryId, onCompl
                             ngoLocation={ngoLocation}
                             suggestions={suggestions}
                             onSelectSpot={(spot) => setSelectedSpot(spot as SuggestionSpot)}
+                            externallySelectedSpot={selectedSpot}
                         />
                     </div>
                 </div>
@@ -144,9 +145,23 @@ export default function DistributionHub({ ngoLocation, activeDeliveryId, onCompl
                                                     <span className="flex items-center"><Navigation className="w-3.5 h-3.5 mr-1.5 opacity-70" /> {spot.distance.toFixed(1)}km</span>
                                                 </div>
                                             </div>
-                                            {selectedSpot?._id === spot._id && (
-                                                <CheckCircle2 className="w-6 h-6 text-white" />
-                                            )}
+                                            <div className="flex flex-col items-end space-y-2">
+                                                {selectedSpot?._id === spot._id && (
+                                                    <CheckCircle2 className="w-6 h-6 text-white" />
+                                                )}
+                                                <a
+                                                    href={`https://www.google.com/maps?q=${spot.lat},${spot.lng}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className={cn(
+                                                        "p-2 rounded-lg transition-colors border",
+                                                        selectedSpot?._id === spot._id ? "bg-white/10 border-white/20 text-white" : "bg-primary/10 border-primary/20 text-primary"
+                                                    )}
+                                                >
+                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                </a>
+                                            </div>
                                         </div>
                                     </button>
                                 ))
@@ -182,6 +197,15 @@ export default function DistributionHub({ ngoLocation, activeDeliveryId, onCompl
                                 >
                                     {isSubmitting ? "Processing..." : "Authorize Delivery"}
                                 </Button>
+                                <a
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${selectedSpot.lat},${selectedSpot.lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full h-12 rounded-2xl border-2 border-slate-900 flex items-center justify-center space-x-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+                                >
+                                    <Navigation className="w-4 h-4" />
+                                    <span>Open Directions</span>
+                                </a>
                                 <p className="text-[9px] text-center text-slate-400 font-black uppercase tracking-widest">
                                     Security audit will be finalized upon authorization.
                                 </p>
