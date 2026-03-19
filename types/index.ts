@@ -25,6 +25,8 @@ export interface NGOProfile {
     latitude?: number;
     longitude?: number;
     createdAt?: string;
+    certificateUrl?: string;
+    idProofUrl?: string;
 }
 
 export interface Donation {

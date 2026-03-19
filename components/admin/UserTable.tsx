@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck, ShieldX, Search, CheckCircle, XCircle, MoreVertical } from "lucide-react";
+import { ShieldCheck, ShieldX, Search, CheckCircle, XCircle, MoreVertical, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { patchRequest } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,14 @@ interface PlatformUser {
   createdAt: string;
   isActive: boolean;
 }
-
 interface NGOProfile {
   _id: string;
   ngoName: string;
   city: string;
   verificationStatus: "pending" | "approved" | "rejected";
   userId: { name: string; email: string };
+  certificateUrl?: string;
+  idProofUrl?: string;
 }
 
 const roleStyle: Record<string, string> = {
@@ -163,6 +164,7 @@ export const UserTable = ({
                   <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Hub Entity</th>
                   <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Auth Context</th>
                   <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Jurisdiction</th>
+                  <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Credentials</th>
                   <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Compliance</th>
                   <th className="text-right px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Orchestration</th>
                 </tr>
@@ -173,6 +175,26 @@ export const UserTable = ({
                     <td className="px-6 py-4 font-black text-slate-900 tracking-tight">{ngo.ngoName}</td>
                     <td className="px-6 py-4 text-slate-500 font-bold text-xs">{ngo.userId?.email || "—"}</td>
                     <td className="px-6 py-4 text-slate-500 font-bold text-[11px] uppercase tracking-tighter">{ngo.city}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        {ngo.certificateUrl ? (
+                          <a href={ngo.certificateUrl} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-primary hover:underline text-[10px] font-black uppercase tracking-widest group">
+                            <FileText className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                            <span>Cert</span>
+                          </a>
+                        ) : (
+                          <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest italic">No Cert</span>
+                        )}
+                        {ngo.idProofUrl ? (
+                          <a href={ngo.idProofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-indigo-600 hover:underline text-[10px] font-black uppercase tracking-widest group">
+                            <ShieldCheck className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                            <span>ID</span>
+                          </a>
+                        ) : (
+                          <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest italic">No ID</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
                       <span className={cn("px-2.5 py-1 rounded-md border text-[9px] font-black uppercase tracking-widest", ngoStatusStyle[ngo.verificationStatus])}>
                         {ngo.verificationStatus}

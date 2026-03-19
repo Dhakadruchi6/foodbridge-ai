@@ -21,7 +21,9 @@ import {
   Target,
   Navigation,
   Phone,
-  CheckCircle2
+  CheckCircle2,
+  FileText,
+  Upload
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -46,7 +48,13 @@ export const RegisterForm = () => {
     category: "",
     contactPhone: "",
     latitude: null as number | null,
-    longitude: null as number | null
+    longitude: null as number | null,
+    certificateUrl: "",
+    idProofUrl: ""
+  });
+  const [docs, setDocs] = useState({
+    certificate: null as File | null,
+    idProof: null as File | null
   });
   const [otp, setOtp] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -166,6 +174,15 @@ export const RegisterForm = () => {
     setLoading(true);
     setError("");
 
+    // --- NGO Document Checks ---
+    if (formData.role === "ngo") {
+      if (!docs.certificate || !docs.idProof) {
+        setError("Please upload all required verification documents.");
+        setLoading(false);
+        return;
+      }
+    }
+
     // --- Client Side Validation ---
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
@@ -199,7 +216,38 @@ export const RegisterForm = () => {
     }
 
     try {
-      const result = await postRequest("/api/auth/register", formData);
+      const finalFormData = { ...formData };
+
+      // Handle NGO Document Uploads
+      if (formData.role === "ngo") {
+        setLoading(true); // Redundant but safe
+        try {
+          // 1. Upload Certificate
+          const certData = new FormData();
+          certData.append("document", docs.certificate!);
+          certData.append("type", "certificate");
+          const certRes = await fetch("/api/auth/upload-doc", { method: "POST", body: certData });
+          const certResult = await certRes.json();
+          if (!certResult.success) throw new Error("Certificate upload failed");
+
+          // 2. Upload ID Proof
+          const idData = new FormData();
+          idData.append("document", docs.idProof!);
+          idData.append("type", "idproof");
+          const idRes = await fetch("/api/auth/upload-doc", { method: "POST", body: idData });
+          const idResult = await idRes.json();
+          if (!idResult.success) throw new Error("ID Proof upload failed");
+
+          finalFormData.certificateUrl = certResult.data.documentUrl;
+          finalFormData.idProofUrl = idResult.data.documentUrl;
+        } catch (uploadErr) {
+          setError(uploadErr instanceof Error ? uploadErr.message : "Document upload failed");
+          setLoading(false);
+          return;
+        }
+      }
+
+      const result = await postRequest("/api/auth/register", finalFormData);
       if (result.success) {
         router.push("/login?registered=true");
       }
@@ -382,6 +430,20 @@ export const RegisterForm = () => {
                   <option value="Community Kitchen">Community Kitchen</option>
                 </select>
               </div>
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 reg-item">
+                <FileField
+                  label="NGO Registration Certificate"
+                  icon={<FileText className="w-4 h-4" />}
+                  value={docs.certificate}
+                  onChange={(file) => setDocs({ ...docs, certificate: file })}
+                />
+                <FileField
+                  label="Government ID Proof"
+                  icon={<ShieldCheck className="w-4 h-4" />}
+                  value={docs.idProof}
+                  onChange={(file) => setDocs({ ...docs, idProof: file })}
+                />
+              </div>
             </>
           )}
 
@@ -518,6 +580,43 @@ const InputField = ({ label, icon, placeholder, value, onChange, type = "text", 
       />
       <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
         <Navigation className="w-5 h-5 text-gray-400" />
+      </div>
+    </div>
+  </div>
+);
+
+const FileField = ({ label, icon, value, onChange }: { label: string; icon: React.ReactNode; value: File | null; onChange: (file: File | null) => void }) => (
+  <div className="space-y-3">
+    <label className="text-xs font-black text-gray-600 uppercase tracking-widest flex items-center">
+      <span className="opacity-40 mr-2">{icon}</span>
+      {label}
+    </label>
+    <div className={cn(
+      "relative h-14 rounded-[1.25rem] bg-white border-2 border-dashed transition-all flex items-center px-4 cursor-pointer overflow-hidden",
+      value ? "border-emerald-500 bg-emerald-50/10" : "border-slate-300 hover:border-primary/50"
+    )}>
+      <input
+        type="file"
+        accept="image/*,application/pdf"
+        className="absolute inset-0 opacity-0 cursor-pointer z-20"
+        onChange={(e) => {
+          const file = e.target.files?.[0] || null;
+          onChange(file);
+        }}
+        required
+      />
+      <div className="flex items-center justify-between w-full">
+        <span className={cn(
+          "text-[11px] font-bold truncate max-w-[150px]",
+          value ? "text-emerald-700" : "text-slate-400"
+        )}>
+          {value ? value.name : "Select File (PDF, IMG)"}
+        </span>
+        {value ? (
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+        ) : (
+          <Upload className="w-4 h-4 text-slate-300 flex-shrink-0" />
+        )}
       </div>
     </div>
   </div>

@@ -7,7 +7,7 @@ import { successResponse, errorResponse } from '@/lib/apiResponse';
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, role, address, city, state, pincode, ngoRegNo, contactPhone, phone, latitude, longitude } = await req.json();
+    const { name, email, password, role, address, city, state, pincode, ngoRegNo, contactPhone, phone, latitude, longitude, certificateUrl, idProofUrl } = await req.json();
 
     let finalPhone = phone || contactPhone;
 
@@ -67,6 +67,8 @@ export async function POST(req: Request) {
         verificationStatus: 'pending',
         latitude: latitude || null,
         longitude: longitude || null,
+        certificateUrl: certificateUrl || null,
+        idProofUrl: idProofUrl || null,
       });
     }
 
