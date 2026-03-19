@@ -72,6 +72,8 @@ export const PATCH = asyncHandler(async (req: Request) => {
     if (state) userUpdate.state = state;
     if (address) userUpdate.address = address;
     if (pincode) userUpdate.pincode = pincode;
+    if (typeof latitude === 'number') userUpdate.latitude = latitude;
+    if (typeof longitude === 'number') userUpdate.longitude = longitude;
     if (typeof smsEnabled === 'boolean') userUpdate.smsEnabled = smsEnabled;
 
     const updatedUser = await User.findByIdAndUpdate(userId, userUpdate, { new: true, select: '-password -otp -otpExpires' });

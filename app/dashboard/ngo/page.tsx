@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getRequest, postRequest } from "@/lib/apiClient";
+import { getRequest, postRequest, patchRequest } from "@/lib/apiClient";
 import { AvailableDonations } from "@/components/ngo/AvailableDonations";
 import { ActiveDeliveries } from "@/components/ngo/ActiveDeliveries";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
@@ -64,7 +64,7 @@ export default function NGODashboard() {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          const result = await postRequest("/api/user/profile", { latitude, longitude });
+          const result = await patchRequest("/api/user/profile", { latitude, longitude });
           if (result.success) {
             setUser((prevUser: User | null) => prevUser ? ({ ...prevUser, latitude, longitude } as User) : null);
           }
