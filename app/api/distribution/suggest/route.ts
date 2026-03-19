@@ -55,7 +55,8 @@ export const GET = asyncHandler(async (req: Request) => {
         ) * 111.32; // Approx km
 
         // Score based on distance (closer is better), peopleCount (more is better), urgency
-        const urgencyWeight = { high: 2, medium: 1, low: 0.5 }[spot.urgency] || 1;
+        const weights: Record<string, number> = { high: 2, medium: 1, low: 0.5 };
+        const urgencyWeight = weights[spot.urgency] || 1;
         const score = (spot.peopleCount * urgencyWeight) / (distance + 0.1);
 
         return { ...spot, distance, score };
