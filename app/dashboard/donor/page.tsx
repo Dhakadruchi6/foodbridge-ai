@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { NotificationBell } from "@/components/donor/NotificationBell";
 import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import Link from "next/link";
+import Image from "next/image";
 import {
   TrendingUp,
   Plus,
@@ -76,7 +77,17 @@ export default function DonorDashboard() {
           {/* Unified Navigation - Breadcrumbs */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
-              <Link href="/" className="hover:text-primary transition-colors">Platform</Link>
+              <Link href="/" className="flex items-center space-x-2 hover:text-primary transition-colors">
+                <div className="relative w-6 h-6">
+                  <Image
+                    src="/logo.png"
+                    alt="FoodBridge Logo"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <span>Platform</span>
+              </Link>
               <ChevronRight className="w-3 h-3 opacity-50" />
               <span className="text-slate-900">Donor Control Station</span>
             </div>

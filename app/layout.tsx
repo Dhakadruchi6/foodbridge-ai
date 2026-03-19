@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Image from "next/image";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/layout/Navbar";
@@ -50,13 +51,16 @@ export default function RootLayout({
         <footer className="border-t bg-white relative z-10 py-16">
           <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
             <div className="col-span-1 md:col-span-2 space-y-6">
-              <div className="flex items-center space-x-2">
-                <div className="bg-primary p-2 rounded-xl">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                  </svg>
+              <div className="flex items-center space-x-3">
+                <div className="relative w-10 h-10">
+                  <Image
+                    src="/logo.png"
+                    alt="FoodBridge AI Logo"
+                    fill
+                    className="object-contain"
+                  />
                 </div>
-                <span className="font-black text-xl tracking-tight">FoodBridge AI</span>
+                <span className="font-black text-xl tracking-tight text-slate-900">FoodBridge AI</span>
               </div>
               <p className="text-gray-600 max-w-sm leading-relaxed font-medium">
                 The world&apos;s most advanced platform for food recovery. Using AI to ensure every surplus meal finds a home.
@@ -83,7 +87,7 @@ export default function RootLayout({
           </div>
 
           <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
-            <span>© 2024 FoodBridge AI Technology Group</span>
+            <span>© 2026 FoodBridge AI Technology Group</span>
             <div className="flex space-x-6">
               <a href="#" className="hover:text-slate-600">Twitter</a>
               <a href="#" className="hover:text-slate-600">LinkedIn</a>

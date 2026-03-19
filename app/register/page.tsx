@@ -1,6 +1,7 @@
 "use client";
 
 import { RegisterForm } from "@/components/forms/RegisterForm";
+import Image from "next/image";
 import { Zap, Globe } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -13,8 +14,14 @@ export default function RegisterPage() {
 
       <div className="relative z-10 w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex flex-col items-center mb-10 space-y-6">
-          <Link href="/" className="bg-primary p-4 rounded-xl shadow-2xl shadow-primary/20 hover:-rotate-12 transition-all duration-500 group">
-            <Zap className="w-8 h-8 text-white fill-white/20 group-hover:scale-110 transition-transform" />
+          <Link href="/" className="relative w-24 h-24 hover:-rotate-12 transition-transform duration-500 group">
+            <Image
+              src="/logo.png"
+              alt="FoodBridge AI Logo"
+              fill
+              className="object-contain"
+              priority
+            />
           </Link>
           <div className="text-center space-y-2">
             <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-none text-center">

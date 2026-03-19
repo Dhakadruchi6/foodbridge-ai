@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -133,8 +134,14 @@ export const Navbar = () => {
                 {/* Brand */}
                 <div className="flex items-center space-x-10">
                     <Link href="/" className="flex items-center space-x-3 group">
-                        <div className="bg-primary p-2.5 rounded-xl shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform duration-500 flex items-center justify-center border border-white/10">
-                            <Zap className="w-5 h-5 text-primary-foreground fill-primary-foreground/20" />
+                        <div className="relative w-12 h-12 group-hover:scale-110 transition-transform duration-500">
+                            <Image
+                                src="/logo.png"
+                                alt="FoodBridge AI Logo"
+                                fill
+                                className="object-contain"
+                                priority
+                            />
                         </div>
                         <span className="font-black text-xl tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
                             FoodBridge <span className="text-primary italic">AI</span>
