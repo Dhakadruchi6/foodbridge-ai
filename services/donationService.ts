@@ -1,6 +1,7 @@
 import Donation from '@/models/Donation';
 import Delivery from '@/models/Delivery';
 import dbConnect from '@/lib/db';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import User from '@/models/User';
 import { AppError } from '@/lib/errorHandler';
 

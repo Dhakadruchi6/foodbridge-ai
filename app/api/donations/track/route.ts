@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Delivery from '@/models/Delivery';
 import Donation from '@/models/Donation';
 import NGOProfile from '@/models/NGOProfile';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import User from '@/models/User';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';

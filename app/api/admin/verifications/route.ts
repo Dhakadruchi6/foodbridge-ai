@@ -4,6 +4,7 @@ import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 import dbConnect from '@/lib/db';
 import NGOProfile from '@/models/NGOProfile';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import User from '@/models/User';
 
 export const GET = asyncHandler(async (req: Request) => {
