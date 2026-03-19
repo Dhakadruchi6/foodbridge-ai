@@ -118,11 +118,14 @@ export default function DistributionHub({ ngoLocation, activeDeliveryId, onCompl
                                 ))
                             ) : suggestions.length > 0 ? (
                                 suggestions.map((spot, idx) => (
-                                    <button
+                                    <div
                                         key={spot._id}
                                         onClick={() => setSelectedSpot(spot)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => e.key === 'Enter' && setSelectedSpot(spot)}
                                         className={cn(
-                                            "w-full p-5 rounded-2xl border transition-all text-left group relative backdrop-blur-md",
+                                            "w-full p-5 rounded-2xl border transition-all text-left group relative backdrop-blur-md cursor-pointer",
                                             selectedSpot?._id === spot._id
                                                 ? "bg-primary border-primary shadow-xl shadow-primary/30 scale-[1.02]"
                                                 : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
@@ -163,7 +166,7 @@ export default function DistributionHub({ ngoLocation, activeDeliveryId, onCompl
                                                 </a>
                                             </div>
                                         </div>
-                                    </button>
+                                    </div>
                                 ))
                             ) : (
                                 <div className="p-10 text-center text-slate-500 space-y-4">
