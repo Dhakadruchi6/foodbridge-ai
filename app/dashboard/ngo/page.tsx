@@ -10,6 +10,7 @@ import { IncomingRequests } from '@/components/ngo/IncomingRequests';
 import { CertificationModal } from "@/components/ngo/CertificationModal";
 import { NotificationBell } from "@/components/donor/NotificationBell";
 import DistributionHub from "@/components/ngo/DistributionHub";
+import { Delivery } from "@/types";
 import Link from "next/link";
 import {
   Activity,
@@ -37,7 +38,7 @@ export default function NGODashboard() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTab, setSelectedTab] = useState<"radar" | "distribution">("radar");
-  const [activeDelivery, setActiveDelivery] = useState<any>(null);
+  const [activeDelivery, setActiveDelivery] = useState<Delivery | null>(null);
   const [, setLocError] = useState("");
 
   const handleAction = () => {
@@ -105,7 +106,7 @@ export default function NGODashboard() {
     try {
       const res = await getRequest("/api/donations/my-deliveries");
       if (res.success) {
-        const collected = res.data.find((d: any) => d.status === 'collected' && d.distributionStatus !== 'delivered');
+        const collected = res.data.find((d: { status: string; distributionStatus?: string }) => d.status === 'collected' && d.distributionStatus !== 'delivered');
         setActiveDelivery(collected);
         if (collected) setSelectedTab("distribution");
       }
@@ -358,7 +359,7 @@ export default function NGODashboard() {
               {user?.latitude && user?.longitude ? (
                 <DistributionHub
                   ngoLocation={{ lat: user.latitude, lng: user.longitude }}
-                  activeDeliveryId={activeDelivery?._id}
+                  activeDeliveryId={activeDelivery?._id || null}
                   onComplete={() => {
                     setRefreshKey(k => k + 1);
                     setSelectedTab("radar");

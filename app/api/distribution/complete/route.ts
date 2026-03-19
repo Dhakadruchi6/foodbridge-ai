@@ -2,41 +2,41 @@ import dbConnect from '@/lib/db';
 import Delivery from '@/models/Delivery';
 import HungerReport from '@/models/HungerReport';
 import { authMiddleware } from '@/middleware/authMiddleware';
+import { allowRoles } from '@/middleware/roleMiddleware';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
-import { NextResponse } from 'next/server';
+import { asyncHandler } from '@/utils/asyncHandler';
 
-export async function POST(req: Request) {
-    try {
-        const authResult = await authMiddleware(req);
-        if (authResult instanceof NextResponse) return authResult;
+export const POST = asyncHandler(async (req: Request) => {
+    const authGate = await authMiddleware(req);
+    if (authGate.status !== 200) return authGate;
 
-        const { deliveryId, hungerSpotId, spotType } = await req.json();
+    const roleGate = await allowRoles('ngo')(authGate);
+    if (roleGate.status !== 200) return roleGate;
 
-        if (!deliveryId || !hungerSpotId) {
-            return errorResponse('Delivery ID and Hunger Spot ID are required', 400);
-        }
+    const ngoId = authGate.headers.get('x-user-id');
+    const { deliveryId, hungerSpotId, spotType } = await req.json();
 
-        await dbConnect();
-
-        const delivery = await Delivery.findOne({ _id: deliveryId, ngoId: authResult.id });
-
-        if (!delivery) {
-            return errorResponse('Delivery mission not found or unauthorized', 404);
-        }
-
-        delivery.status = 'delivered';
-        delivery.distributionStatus = 'delivered';
-        delivery.hungerSpotId = hungerSpotId;
-        await delivery.save();
-
-        // If it was a volunteer report, we could mark it as resolved
-        if (spotType === 'report') {
-            await HungerReport.findByIdAndUpdate(hungerSpotId, { status: 'resolved' });
-        }
-
-        return successResponse(delivery, 'Distribution completed successfully');
-    } catch (error: any) {
-        console.error('Distribution completion error:', error);
-        return errorResponse(error.message);
+    if (!deliveryId || !hungerSpotId) {
+        return errorResponse('Delivery ID and Hunger Spot ID are required', 400);
     }
-}
+
+    await dbConnect();
+
+    const delivery = await Delivery.findOne({ _id: deliveryId, ngoId });
+
+    if (!delivery) {
+        return errorResponse('Delivery mission not found or unauthorized', 404);
+    }
+
+    delivery.status = 'delivered';
+    delivery.distributionStatus = 'delivered';
+    delivery.hungerSpotId = hungerSpotId;
+    await delivery.save();
+
+    // If it was a volunteer report, we could mark it as resolved
+    if (spotType === 'report') {
+        await HungerReport.findByIdAndUpdate(hungerSpotId, { status: 'resolved' });
+    }
+
+    return successResponse(delivery, 'Distribution completed successfully');
+});

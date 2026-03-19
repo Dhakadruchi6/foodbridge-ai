@@ -36,7 +36,7 @@ export const POST = asyncHandler(async (req: Request) => {
     return successResponse(report, 'Hunger report submitted successfully. Thank you!', 201);
 });
 
-export const GET = asyncHandler(async (req: Request) => {
+export const GET = asyncHandler(async () => {
     await dbConnect();
     const reports = await HungerReport.find({ status: 'pending' }).sort({ createdAt: -1 });
     return successResponse(reports, 'Active hunger reports retrieved');

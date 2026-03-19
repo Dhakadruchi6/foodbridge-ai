@@ -13,10 +13,21 @@ interface DistributionHubProps {
     onComplete: () => void;
 }
 
+export interface SuggestionSpot {
+    _id: string;
+    type: string;
+    name: string;
+    urgency: string;
+    peopleCount: number;
+    distance: number;
+    lat: number;
+    lng: number;
+}
+
 export default function DistributionHub({ ngoLocation, activeDeliveryId, onComplete }: DistributionHubProps) {
-    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [suggestions, setSuggestions] = useState<SuggestionSpot[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedSpot, setSelectedSpot] = useState<any>(null);
+    const [selectedSpot, setSelectedSpot] = useState<SuggestionSpot | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
@@ -86,7 +97,7 @@ export default function DistributionHub({ ngoLocation, activeDeliveryId, onCompl
                         <DistributionMap
                             ngoLocation={ngoLocation}
                             suggestions={suggestions}
-                            onSelectSpot={setSelectedSpot}
+                            onSelectSpot={(spot) => setSelectedSpot(spot as SuggestionSpot)}
                         />
                     </div>
                 </div>

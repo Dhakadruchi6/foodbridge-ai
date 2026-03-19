@@ -5,7 +5,7 @@ import { allowRoles } from '@/middleware/roleMiddleware';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { asyncHandler } from '@/utils/asyncHandler';
 
-export const GET = asyncHandler(async (req: Request) => {
+export const GET = asyncHandler(async () => {
     await dbConnect();
     const spots = await HungerSpot.find({ isActive: true }).sort({ createdAt: -1 });
     return successResponse(spots, 'Hunger spots retrieved successfully');

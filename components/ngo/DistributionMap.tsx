@@ -5,10 +5,21 @@ import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-map
 import { MapPin, Users, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export interface DistributionMarker {
+    _id: string;
+    lat: number;
+    lng: number;
+    urgency: string;
+    name: string;
+    type?: string;
+    peopleCount?: number;
+    distance?: number;
+}
+
 interface DistributionMapProps {
     ngoLocation: { lat: number; lng: number };
-    suggestions: any[];
-    onSelectSpot: (spot: any) => void;
+    suggestions: DistributionMarker[];
+    onSelectSpot: (spot: DistributionMarker) => void;
 }
 
 const mapContainerStyle = {
@@ -29,7 +40,7 @@ export default function DistributionMap({ ngoLocation, suggestions, onSelectSpot
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
     });
 
-    const [selectedSpot, setSelectedSpot] = useState<any>(null);
+    const [selectedSpot, setSelectedSpot] = useState<DistributionMarker | null>(null);
 
     if (!isLoaded) return <div className="h-[500px] w-full bg-slate-100 animate-pulse rounded-[1.5rem]" />;
 
@@ -63,7 +74,14 @@ export default function DistributionMap({ ngoLocation, suggestions, onSelectSpot
                         url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
                     }}
                     title="Your NGO Hub"
-                    onClick={() => setSelectedSpot({ name: "Your NGO Hub", lat: ngoLocation.lat, lng: ngoLocation.lng, type: "ngo" })}
+                    onClick={() => setSelectedSpot({
+                        _id: "ngo-hub",
+                        name: "Your NGO Hub",
+                        lat: ngoLocation.lat,
+                        lng: ngoLocation.lng,
+                        type: "ngo",
+                        urgency: "low"
+                    })}
                 />
 
                 {/* Hunger Spot Markers */}
@@ -78,7 +96,7 @@ export default function DistributionMap({ ngoLocation, suggestions, onSelectSpot
                             strokeWeight: 2,
                             strokeColor: "#ffffff",
                             scale: 1.5,
-                            anchor: new google.maps.Point(12, 22),
+                            anchor: isLoaded ? new google.maps.Point(12, 22) : undefined,
                         }}
                         onClick={() => setSelectedSpot(spot)}
                     />
