@@ -64,8 +64,7 @@ export default function NGODashboard() {
           const result = await postRequest("/api/user/profile", { latitude, longitude });
           if (result.success) {
             // Update local user state with new location
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setUser((prevUser: any) => ({ ...prevUser, latitude, longitude }));
+            setUser((prevUser: Record<string, unknown> | null) => prevUser ? { ...prevUser, latitude, longitude } : null);
           } else {
             setLocError(result.message || "Failed to save location");
           }
@@ -120,8 +119,7 @@ export default function NGODashboard() {
   const handleTourComplete = async () => {
     try {
       await getRequest("/api/user/tour-complete");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setUser((prev: any) => ({ ...prev, isFirstLogin: false }));
+      setUser((prev: Record<string, unknown> | null) => prev ? { ...prev, isFirstLogin: false } : null);
     } catch (err) {
       console.error("Failed to mark tour as complete", err);
     }
@@ -165,7 +163,7 @@ export default function NGODashboard() {
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative z-10">
               <div className="space-y-4 flex-1">
-                {user && (user as any).verificationStatus === 'pending' && (
+                {user && (user as { verificationStatus?: string }).verificationStatus === 'pending' && (
                   <div className="mb-6 p-6 bg-rose-50 border-2 border-rose-200 rounded-2xl flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-4 shadow-sm animate-pulse">
                     <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
                       <ShieldCheck className="w-6 h-6 text-rose-600" />

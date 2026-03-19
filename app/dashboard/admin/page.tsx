@@ -57,7 +57,7 @@ export default function AdminDashboard() {
     fetchAll();
   }, []);
 
-  const tabs: { key: Tab; label: string; icon: any }[] = [
+  const tabs: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: "overview", label: "Operations", icon: Activity },
     { key: "users", label: "Entities", icon: Users },
     { key: "donations", label: "Ledger", icon: Package },
@@ -162,8 +162,7 @@ export default function AdminDashboard() {
                         Full Ledger <ArrowRight className="w-3.5 h-3.5 ml-2" />
                       </button>
                     </div>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    <DonationTable donations={donations.slice(0, 10) as any} />
+                    <DonationTable donations={donations.slice(0, 10) as any[]} />
                   </div>
                 </div>
               </div>
@@ -171,15 +170,13 @@ export default function AdminDashboard() {
 
             {tab === "users" && (
               <div className="bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                <UserTable users={users as any} ngos={ngos as any} onNGOAction={fetchAll} />
+                <UserTable users={users as any[]} ngos={ngos as any[]} onNGOAction={fetchAll} />
               </div>
             )}
 
             {tab === "donations" && (
               <div className="bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                <DonationTable donations={donations as any} />
+                <DonationTable donations={donations as any[]} />
               </div>
             )}
 
@@ -201,12 +198,11 @@ export default function AdminDashboard() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const MetricsCards = ({ metrics }: { metrics: Record<string, any> | null }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
     <MetricsBlock label="Total Donations (All Time)" value={metrics ? `${metrics.totalDonations}` : "--"} trend="Ledger Total" />
     <MetricsBlock label="Verified Food Hubs (NGO)" value={metrics ? `${metrics.totalNGOs}` : "--"} trend="Active NGOs" />
-    <MetricsBlock label="Actionable Alerts" value={metrics ? `${metrics.totalReports ?? 0}` : "--"} trend="Pending Review" isWarning={metrics?.totalReports > 0} />
+    <MetricsBlock label="Actionable Alerts" value={metrics ? `${metrics.totalReports ?? 0}` : "--"} trend="Pending Review" isWarning={metrics ? (metrics.totalReports as number) > 0 : false} />
     <MetricsBlock label="Successful Deliveries" value={metrics ? `${metrics.successfulDeliveries}` : "--"} trend="Completed" />
   </div>
 );
