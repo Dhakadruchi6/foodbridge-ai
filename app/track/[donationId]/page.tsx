@@ -157,11 +157,11 @@ export default function LiveTrackPage() {
                                 <span className="text-xs font-black uppercase tracking-widest">Directions</span>
                             </button>
                             <button
-                                onClick={() => window.open(`tel:911`)} // Fallback emergency or just contact
+                                onClick={openGoogleMaps}
                                 className="h-14 bg-slate-50 hover:bg-slate-100 text-slate-900 border border-slate-200 rounded-2xl flex items-center justify-center space-x-2 transition-all active:scale-95"
                             >
                                 <MapPin className="w-5 h-5 text-slate-400" />
-                                <span className="text-xs font-black uppercase tracking-widest">Show Info</span>
+                                <span className="text-xs font-black uppercase tracking-widest">View in Maps</span>
                             </button>
                         </div>
 
