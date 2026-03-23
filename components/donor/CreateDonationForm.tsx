@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Loader2,
   Navigation,
-  Target,
   Box,
   Globe,
   Camera,
@@ -27,6 +26,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LocationPicker } from "@/components/shared/LocationPicker";
 
 // --- Feature 1: Generate Verification Code ---
 function generateVerificationCode(): string {
@@ -51,7 +51,6 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
@@ -79,42 +78,16 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
     }
   };
 
-  const handleDetectLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
-      return;
-    }
-
-    setLocationLoading(true);
-    setError("");
-
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      try {
-        const { latitude, longitude } = position.coords;
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
-        const data = await res.json();
-
-        if (data.address) {
-          const address = data.display_name;
-          const city = data.address.city || data.address.town || data.address.village || data.address.suburb || "";
-
-          setFormData(prev => ({
-            ...prev,
-            address: address,
-            city: city,
-            latitude: latitude,
-            longitude: longitude
-          }));
-        }
-      } catch (err) {
-        setError("Failed to resolve address. Please enter manually.");
-      } finally {
-        setLocationLoading(false);
-      }
-    }, () => {
-      setError("Permission denied or location unavailable.");
-      setLocationLoading(false);
-    });
+  const handleLocationSelect = (loc: { lat: number; lng: number; address: string; city?: string; state?: string; pincode?: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      address: loc.address,
+      city: loc.city || prev.city,
+      state: loc.state || prev.state,
+      pincode: loc.pincode || prev.pincode,
+      latitude: loc.lat,
+      longitude: loc.lng
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,8 +126,8 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
     }
 
 
-    if (!formData.state || !formData.pincode) {
-      setError("State and Pincode are required for pickup location.");
+    if (!formData.latitude || !formData.longitude) {
+      setError("Please select a pickup location using the map.");
       setLoading(false);
       return;
     }
@@ -421,72 +394,12 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
               required
             />
           </FormGroup>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:col-span-2">
-            <FormGroup label="City" icon={<MapPin className="w-4 h-4" />}>
-              <Input
-                placeholder="Your City"
-                className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                required
-              />
-            </FormGroup>
-
-            <FormGroup label="State" icon={<Globe className="w-4 h-4" />}>
-              <Input
-                placeholder="State"
-                className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                required
-              />
-            </FormGroup>
-
-            <FormGroup label="Zip / Pincode" icon={<Navigation className="w-4 h-4" />}>
-              <Input
-                placeholder="Pincode"
-                className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
-                value={formData.pincode}
-                onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
-                required
-              />
-            </FormGroup>
-          </div>
-
-          <div className="md:col-span-2">
-            <FormGroup
-              label="Pickup Address"
-              icon={<MapPin className="w-4 h-4" />}
-              action={
-                <button
-                  type="button"
-                  onClick={handleDetectLocation}
-                  disabled={locationLoading}
-                  className="flex items-center space-x-1.5 text-primary hover:text-primary/80 transition-colors group"
-                >
-                  {locationLoading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Target className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                  )}
-                  <span className="text-[9px] font-black uppercase tracking-widest">Use My Location</span>
-                </button>
-              }
-            >
-              <div className="relative">
-                <Input
-                  placeholder="Street Address, Suite / Room"
-                  className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-bold text-xs pr-12 text-slate-700 dark:text-white"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  required
-                />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-                  <Navigation className="w-4 h-4" />
-                </div>
-              </div>
-            </FormGroup>
+          <div className="md:col-span-2 pt-6">
+            <LocationPicker
+              label="Accurate Pickup Location"
+              onLocationSelect={handleLocationSelect}
+              initialLocation={formData.latitude && formData.longitude ? { lat: formData.latitude, lng: formData.longitude, address: formData.address } : undefined}
+            />
           </div>
         </div>
 

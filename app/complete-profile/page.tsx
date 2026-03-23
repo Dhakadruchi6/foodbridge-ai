@@ -25,9 +25,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { saveToken } from "@/lib/auth";
-import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+import { LocationPicker } from "@/components/shared/LocationPicker";
 
-const libraries: ("places")[] = ["places"];
+
 
 export default function CompleteProfilePage() {
     return (
@@ -46,12 +46,6 @@ function CompleteProfileContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const queryRole = searchParams.get("role");
-
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-        libraries
-    });
 
     const autocompleteRef = React.useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -124,57 +118,16 @@ function CompleteProfileContent() {
         }
     };
 
-    const onPlaceChanged = () => {
-        if (autocompleteRef.current !== null) {
-            const place = autocompleteRef.current.getPlace();
-            if (place.geometry && place.geometry.location) {
-                setFormData(prev => ({
-                    ...prev,
-                    address: place.formatted_address || place.name || prev.address,
-                    latitude: place.geometry!.location!.lat(),
-                    longitude: place.geometry!.location!.lng()
-                }));
-            }
-        }
-    };
-
-    const handleGetLocation = () => {
-        if (!navigator.geolocation) {
-            setError("Geolocation is not supported by your browser");
-            return;
-        }
-
-        setLocationLoading(true);
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-                setFormData(prev => ({ ...prev, latitude, longitude }));
-
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-                    const data = await res.json();
-
-                    if (data && data.address) {
-                        setFormData(prev => ({
-                            ...prev,
-                            address: data.display_name || prev.address,
-                            city: data.address.city || data.address.town || data.address.village || prev.city,
-                            state: data.address.state || prev.state,
-                            pincode: data.address.postcode || prev.pincode
-                        }));
-                    }
-                } catch (err) {
-                    console.error("Reverse geocoding error:", err);
-                } finally {
-                    setLocationLoading(false);
-                }
-            },
-            () => {
-                setError("Failed to get location. Please allow location permissions.");
-                setLocationLoading(false);
-            },
-            { enableHighAccuracy: true }
-        );
+    const handleLocationSelect = (loc: { lat: number; lng: number; address: string; city?: string; state?: string; pincode?: string }) => {
+        setFormData(prev => ({
+            ...prev,
+            address: loc.address,
+            city: loc.city || prev.city,
+            state: loc.state || prev.state,
+            pincode: loc.pincode || prev.pincode,
+            latitude: loc.lat,
+            longitude: loc.lng
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -296,9 +249,6 @@ function CompleteProfileContent() {
                                 placeholder="+91 98765 43210"
                             />
 
-                            <InputField label="Base City" icon={<Globe className="w-4 h-4" />} value={formData.city} onChange={(v: string) => setFormData({ ...formData, city: v })} placeholder="San Francisco" />
-
-
                             {formData.role === 'ngo' && (
                                 <div className="md:col-span-2 animate-in slide-in-from-top duration-300 space-y-8">
                                     <hr className="border-slate-100" />
@@ -351,48 +301,12 @@ function CompleteProfileContent() {
                                 </div>
                             )}
 
-                            <InputField label="State" icon={<MapPin className="w-4 h-4" />} value={formData.state} onChange={(v: string) => setFormData({ ...formData, state: v })} placeholder="California" />
-                            <InputField label="Zip / Pincode" icon={<Navigation className="w-4 h-4" />} value={formData.pincode} onChange={(v: string) => setFormData({ ...formData, pincode: v })} placeholder="94103" />
-
-                            <div className="md:col-span-2 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center">
-                                        <span className="opacity-40 mr-2"><MapPin className="w-4 h-4" /></span>
-                                        Google Authorized Operational Address
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={handleGetLocation}
-                                        disabled={locationLoading}
-                                        className="text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest disabled:opacity-50"
-                                    >
-                                        {locationLoading ? "Fetching..." : "GPS Location Overlay"}
-                                    </button>
-                                </div>
-                                {isLoaded && formData.role === 'ngo' ? (
-                                    <Autocomplete
-                                        onLoad={(autocomplete) => { autocompleteRef.current = autocomplete; }}
-                                        onPlaceChanged={onPlaceChanged}
-                                    >
-                                        <Input
-                                            type="text"
-                                            className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black text-slate-900 w-full"
-                                            value={formData.address}
-                                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                            placeholder="Extrapolate validated Google Location..."
-                                            required
-                                        />
-                                    </Autocomplete>
-                                ) : (
-                                    <Input
-                                        type="text"
-                                        className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black text-slate-900"
-                                        value={formData.address}
-                                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                        placeholder="Street Number, Building"
-                                        required
-                                    />
-                                )}
+                            <div className="md:col-span-2 pt-6">
+                                <LocationPicker
+                                    label="Operational Address"
+                                    onLocationSelect={handleLocationSelect}
+                                    initialLocation={formData.latitude && formData.longitude ? { lat: formData.latitude, lng: formData.longitude, address: formData.address } : undefined}
+                                />
                             </div>
                         </div>
 

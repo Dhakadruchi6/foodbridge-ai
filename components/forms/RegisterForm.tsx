@@ -17,8 +17,6 @@ import {
   Building2,
   Heart,
   Globe,
-  MapPin,
-  Target,
   Navigation,
   Phone,
   CheckCircle2,
@@ -27,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { LocationPicker } from "@/components/shared/LocationPicker";
 
 export const RegisterForm = () => {
   const searchParams = useSearchParams();
@@ -61,7 +60,6 @@ export const RegisterForm = () => {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
   const [error, setError] = useState("");
   const [debugOtp, setDebugOtp] = useState("");
   const [isSandbox, setIsSandbox] = useState(false);
@@ -84,42 +82,16 @@ export const RegisterForm = () => {
     return () => clearInterval(timer);
   }, [resendTimer]);
 
-  const handleDetectLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
-      return;
-    }
-
-    setLocationLoading(true);
-    setError("");
-
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      try {
-        const { latitude, longitude } = position.coords;
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
-        const data = await res.json();
-
-        if (data.address) {
-          const address = data.display_name;
-          const city = data.address.city || data.address.town || data.address.village || data.address.suburb || "";
-
-          setFormData(prev => ({
-            ...prev,
-            address: address,
-            city: city,
-            latitude: latitude,
-            longitude: longitude
-          }));
-        }
-      } catch (err) {
-        setError("Failed to resolve address. Please enter manually.");
-      } finally {
-        setLocationLoading(false);
-      }
-    }, () => {
-      setError("Location access denied.");
-      setLocationLoading(false);
-    });
+  const handleLocationSelect = (loc: { lat: number; lng: number; address: string; city?: string; state?: string; pincode?: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      address: loc.address,
+      city: loc.city || prev.city,
+      state: loc.state || prev.state,
+      pincode: loc.pincode || prev.pincode,
+      latitude: loc.lat,
+      longitude: loc.lng
+    }));
   };
 
   const handleSendOtp = async () => {
@@ -447,46 +419,11 @@ export const RegisterForm = () => {
             </>
           )}
 
-          <InputField
-            label="Base City"
-            icon={<Globe className="w-4 h-4" />}
-            placeholder="San Francisco"
-            value={formData.city}
-            onChange={(val: string) => setFormData({ ...formData, city: val })}
-            className="reg-item"
-          />
-          <InputField
-            label="Pincode / Zip"
-            icon={<MapPin className="w-4 h-4" />}
-            placeholder="94103"
-            value={formData.pincode}
-            onChange={(val: string) => setFormData({ ...formData, pincode: val })}
-            className="reg-item"
-          />
-
-          <div className="md:col-span-2">
-            <InputField
-              label={formData.role === "ngo" ? "NGO Head Office Address" : "Operational Address"}
-              icon={<MapPin className="w-4 h-4" />}
-              placeholder={formData.role === "ngo" ? "NGO Hub, 4th Floor..." : "123 Sustainability Ave..."}
-              value={formData.address}
-              onChange={(val: string) => setFormData({ ...formData, address: val })}
-              className="reg-item"
-              action={
-                <button
-                  type="button"
-                  onClick={handleDetectLocation}
-                  disabled={locationLoading}
-                  className="flex items-center space-x-1.5 text-primary hover:text-primary/80 transition-colors group"
-                >
-                  {locationLoading ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Target className="w-3 h-3 group-hover:scale-110 transition-transform" />
-                  )}
-                  <span className="text-[10px] font-black uppercase tracking-wider">Locate Me</span>
-                </button>
-              }
+          <div className="md:col-span-2 pt-6">
+            <LocationPicker
+              label={formData.role === "ngo" ? "NGO Head Office Location" : "Operational Center Location"}
+              onLocationSelect={handleLocationSelect}
+              initialLocation={formData.latitude && formData.longitude ? { lat: formData.latitude, lng: formData.longitude, address: formData.address } : undefined}
             />
           </div>
         </div>
