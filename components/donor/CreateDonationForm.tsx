@@ -152,14 +152,9 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
       return;
     }
 
-    if (!formData.description) {
-      setError("Please provide a description of the items.");
-      setLoading(false);
-      return;
-    }
 
     if (!formData.state || !formData.pincode) {
-      setError("Strategic location details (State and Pincode) are required.");
+      setError("State and Pincode are required for pickup location.");
       setLoading(false);
       return;
     }
@@ -284,8 +279,8 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center mb-4">
             <UtensilsIcon className="w-5 h-5 text-white" />
           </div>
-          <h3 className="text-2xl font-black tracking-tight">Initiate Surplus Ledger</h3>
-          <p className="text-slate-400 font-bold text-sm">Multi-layer verified food donation with AI proof system.</p>
+          <h3 className="text-2xl font-black tracking-tight">Donate Surplus Food</h3>
+          <p className="text-slate-400 font-bold text-sm">Tell us about the food you'd like to donate. Our AI will verify it and match it to nearby NGOs.</p>
         </div>
       </div>
 
@@ -385,9 +380,9 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <FormGroup label="Asset Category" icon={<Package className="w-4 h-4" />}>
+          <FormGroup label="Food Type" icon={<Package className="w-4 h-4" />} hint="e.g. cooked meal, fresh vegetables, packaged food">
             <Input
-              placeholder="e.g. Fresh Produce"
+              placeholder="e.g. Rice & Dal, Fruits, Bread"
               className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
               value={formData.foodItem}
               onChange={(e) => setFormData({ ...formData, foodItem: e.target.value })}
@@ -395,10 +390,10 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             />
           </FormGroup>
 
-          <FormGroup label="Payload (kg/units)" icon={<Box className="w-4 h-4" />}>
+          <FormGroup label="Quantity (kg or servings)" icon={<Box className="w-4 h-4" />} hint="Enter approximate weight in kg, or number of servings">
             <Input
               type="number"
-              placeholder="0.00"
+              placeholder="e.g. 10"
               className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
               value={formData.quantity}
               onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -406,19 +401,8 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             />
           </FormGroup>
 
-          <div className="md:col-span-2">
-            <FormGroup label="Asset Description" icon={<Box className="w-4 h-4" />}>
-              <Input
-                placeholder="e.g. 10 kg of tomatoes, 5 kg of onions"
-                className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                required
-              />
-            </FormGroup>
-          </div>
 
-          <FormGroup label="Food Prepared At (Time)" icon={<Clock className="w-4 h-4" />}>
+          <FormGroup label="When was it prepared?" icon={<Clock className="w-4 h-4" />} hint="Date and time the food was cooked or packed">
             <Input
               type="datetime-local"
               className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
@@ -428,7 +412,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             />
           </FormGroup>
 
-          <FormGroup label="Best Before (Expiry Time)" icon={<Calendar className="w-4 h-4" />}>
+          <FormGroup label="Best Before (Expiry)" icon={<Calendar className="w-4 h-4" />} hint="When does this food expire or become unsafe?">
             <Input
               type="datetime-local"
               className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
@@ -439,9 +423,9 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
           </FormGroup>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:col-span-2">
-            <FormGroup label="Strategic City" icon={<MapPin className="w-4 h-4" />}>
+            <FormGroup label="City" icon={<MapPin className="w-4 h-4" />}>
               <Input
-                placeholder="Pickup City"
+                placeholder="Your City"
                 className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
@@ -449,7 +433,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
               />
             </FormGroup>
 
-            <FormGroup label="Strategic State" icon={<Globe className="w-4 h-4" />}>
+            <FormGroup label="State" icon={<Globe className="w-4 h-4" />}>
               <Input
                 placeholder="State"
                 className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
@@ -472,7 +456,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
 
           <div className="md:col-span-2">
             <FormGroup
-              label="Collection Coordinate"
+              label="Pickup Address"
               icon={<MapPin className="w-4 h-4" />}
               action={
                 <button
@@ -486,7 +470,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
                   ) : (
                     <Target className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                   )}
-                  <span className="text-[9px] font-black uppercase tracking-widest">Geo-Locate</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">Use My Location</span>
                 </button>
               }
             >
@@ -522,7 +506,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <>
-              <span>Submit for Multi-Layer Verification</span>
+              <span>Donate Food Now</span>
               <ChevronRight className="w-4 h-4" />
             </>
           )}
@@ -532,7 +516,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
   );
 };
 
-const FormGroup = ({ label, icon, children, action }: { label: string; icon: React.ReactNode; children: React.ReactNode; action?: React.ReactNode }) => (
+const FormGroup = ({ label, icon, children, action, hint }: { label: string; icon: React.ReactNode; children: React.ReactNode; action?: React.ReactNode; hint?: string }) => (
   <div className="space-y-2.5">
     <div className="flex items-center justify-between">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center space-x-2">
@@ -541,6 +525,7 @@ const FormGroup = ({ label, icon, children, action }: { label: string; icon: Rea
       </label>
       {action}
     </div>
+    {hint && <p className="text-[10px] text-slate-400 font-medium -mt-1">{hint}</p>}
     {children}
   </div>
 );
