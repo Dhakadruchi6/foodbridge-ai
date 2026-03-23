@@ -2,8 +2,20 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { MapPin, Navigation, WifiOff, RefreshCw, ChevronRight } from "lucide-react";
+import { MapPin, Navigation, WifiOff, RefreshCw, ChevronRight, Truck, Clock, Timer } from "lucide-react";
 import { getRequest } from "@/lib/apiClient";
+import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
+
+const LiveTrackingMap = dynamic(() => import("@/components/donor/LiveTrackingMap"), {
+    ssr: false,
+    loading: () => (
+        <div className="h-full w-full bg-slate-900 flex flex-col items-center justify-center space-y-4">
+            <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/50">Initializing Geospatial Engine</p>
+        </div>
+    )
+});
 
 interface LiveData {
     liveLatitude: number | null;
@@ -18,6 +30,7 @@ export default function LiveTrackPage() {
     const params = useParams();
     const donationId = params?.donationId as string;
     const [liveData, setLiveData] = useState<LiveData | null>(null);
+    const [trackingStats, setTrackingStats] = useState({ distance: "...", duration: "...", isNearby: false });
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const fetchLiveLocation = useCallback(async () => {
@@ -68,104 +81,112 @@ export default function LiveTrackPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6">
-            <div className="w-full max-w-lg space-y-6">
-                {/* Header */}
-                <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center space-x-2 mb-4">
-                        <div className={`w-3 h-3 rounded-full ${liveData?.isLive ? 'bg-emerald-400 animate-pulse shadow-[0_0_12px_rgba(52,211,153,0.8)]' : 'bg-slate-600'}`} />
-                        <span className={`text-[10px] font-black uppercase tracking-[0.25em] ${liveData?.isLive ? 'text-emerald-400' : 'text-slate-500'}`}>
-                            {liveData?.isLive ? 'Live Tracking Active' : 'Waiting for Donor...'}
-                        </span>
+        <div className="h-screen w-full bg-slate-950 overflow-hidden relative font-sans">
+            {/* ── Header Overlay ─────────────────────────────────────── */}
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
+                <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-2xl flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                            <Truck className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                            <h1 className="text-sm font-black text-white leading-tight">NGO Live Tracking</h1>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
+                                {liveData?.donorName || 'Donor'} Destination
+                            </p>
+                        </div>
                     </div>
-                    <h1 className="text-3xl font-black tracking-tighter">
-                        {liveData?.donorName || 'Donor'} Live Location
-                    </h1>
-                    <p className="text-slate-400 text-sm font-medium">
-                        Auto-refreshes every 10 seconds
-                    </p>
                 </div>
+            </div>
 
-                {/* Location Card */}
-                <div className={`rounded-2xl p-6 border ${liveData?.isLive ? 'bg-emerald-950/60 border-emerald-800/40' : 'bg-slate-900 border-slate-800'} space-y-5`}>
-                    {liveData?.liveLatitude && liveData?.liveLongitude ? (
-                        <>
-                            <div className="flex items-start justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">GPS Coordinates</p>
-                                    <p className="font-black text-xl font-mono text-emerald-400">
-                                        {liveData.liveLatitude.toFixed(5)}, {liveData.liveLongitude.toFixed(5)}
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Updated</p>
-                                    <p className={`text-sm font-black ${liveData.isLive ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                        {getAgeLabel(liveData.ageSeconds)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Map Embed-like link block */}
-                            <button
-                                onClick={openGoogleMaps}
-                                className="w-full bg-slate-800 hover:bg-slate-700 rounded-xl p-4 flex items-center justify-between group transition-colors border border-slate-700 hover:border-emerald-800/50"
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 rounded-lg bg-emerald-900/50 border border-emerald-800/40 flex items-center justify-center">
-                                        <MapPin className="w-5 h-5 text-emerald-400" />
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="font-black text-white text-sm">View on Google Maps</p>
-                                        <p className="text-[10px] text-slate-500 font-bold">Tap to open pinned location</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
-                            </button>
-
-                            {/* Navigation */}
-                            <button
-                                onClick={openNavigation}
-                                className="w-full bg-emerald-500 hover:bg-emerald-400 rounded-xl p-4 flex items-center justify-center space-x-3 transition-colors font-black text-sm uppercase tracking-widest shadow-lg shadow-emerald-900/40"
-                            >
-                                <Navigation className="w-5 h-5" />
-                                <span>Get Directions (Turn-by-Turn)</span>
-                            </button>
-
-                            <button
-                                onClick={fetchLiveLocation}
-                                className="w-full bg-white/5 hover:bg-white/10 rounded-xl p-3 flex items-center justify-center space-x-2 transition-colors border border-white/10 text-[11px] font-black uppercase tracking-widest text-slate-400"
-                            >
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                <span>Refresh Now</span>
-                            </button>
-                        </>
-                    ) : (
-                        <div className="text-center py-10 space-y-4">
-                            <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto">
-                                <WifiOff className="w-7 h-7 text-slate-600" />
+            {/* ── Main Map View ───────────────────────────────────────── */}
+            <div className="absolute inset-0 z-0">
+                {liveData?.liveLatitude && liveData?.liveLongitude ? (
+                    <LiveTrackingMap
+                        donationId={donationId}
+                        pickupLat={liveData.liveLatitude}
+                        pickupLon={liveData.liveLongitude}
+                        onTrackingUpdate={(stats) => setTrackingStats(stats)}
+                    />
+                ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-slate-900">
+                        <div className="text-center space-y-4">
+                            <div className="w-16 h-16 rounded-3xl bg-slate-800 flex items-center justify-center mx-auto border border-white/5 animate-pulse">
+                                <WifiOff className="w-8 h-8 text-slate-600" />
                             </div>
                             <div>
-                                <h3 className="font-black text-lg text-slate-300">No Live Signal Yet</h3>
-                                <p className="text-slate-500 text-sm font-medium mt-1">
-                                    Ask the donor to click <strong>&quot;Go Live&quot;</strong> on their dashboard to start sharing their location.
-                                </p>
+                                <h3 className="text-white font-black">No Signal Detected</h3>
+                                <p className="text-slate-500 text-xs mt-1">Waiting for donor to go live...</p>
                             </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ── Uber-style Bottom Panel ──────────────────────────────── */}
+            {liveData?.liveLatitude && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4 animate-in slide-in-from-bottom-8 duration-700">
+                    <div className="bg-white rounded-[2.5rem] p-8 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] space-y-6">
+                        {/* Status bar */}
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <div className="flex items-center space-x-2">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">NGO on the way</p>
+                                </div>
+                                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                                    {trackingStats.duration || "Calculating..."}
+                                </h2>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Distance</p>
+                                <p className="text-lg font-black text-slate-700">{trackingStats.distance}</p>
+                            </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex p-1 border border-slate-50">
+                            <div className={cn(
+                                "h-full bg-emerald-500 rounded-full transition-all duration-1000",
+                                trackingStats.isNearby ? "w-[90%]" : "w-[40%]"
+                            )} />
+                        </div>
+
+                        {/* Actions */}
+                        <div className="grid grid-cols-2 gap-4">
                             <button
-                                onClick={fetchLiveLocation}
-                                className="mx-auto h-11 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-black uppercase tracking-widest flex items-center space-x-2 transition-colors border border-slate-700"
+                                onClick={openNavigation}
+                                className="h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl flex items-center justify-center space-x-2 transition-all active:scale-95 group shadow-xl shadow-slate-900/20"
                             >
-                                <RefreshCw className="w-4 h-4" />
-                                <span>Check Again</span>
+                                <Navigation className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                                <span className="text-xs font-black uppercase tracking-widest">Directions</span>
+                            </button>
+                            <button
+                                onClick={() => window.open(`tel:911`)} // Fallback emergency or just contact
+                                className="h-14 bg-slate-50 hover:bg-slate-100 text-slate-900 border border-slate-200 rounded-2xl flex items-center justify-center space-x-2 transition-all active:scale-95"
+                            >
+                                <MapPin className="w-5 h-5 text-slate-400" />
+                                <span className="text-xs font-black uppercase tracking-widest">Show Info</span>
                             </button>
                         </div>
-                    )}
-                </div>
 
-                {/* Info Footer */}
-                <p className="text-center text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                    Polling interval: 10s · Powered by FoodBridge AI
-                </p>
-            </div>
+                        {/* Proximity Tip */}
+                        {trackingStats.isNearby && (
+                            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-center space-x-3 animate-bounce shadow-sm">
+                                <div className="w-8 h-8 bg-amber-500 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
+                                    <Clock className="w-4 h-4 text-white" />
+                                </div>
+                                <p className="text-xs font-bold text-amber-700 leading-tight">
+                                    NGO is nearby! Please ensure the food is ready for pickup.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

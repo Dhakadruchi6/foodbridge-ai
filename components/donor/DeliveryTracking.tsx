@@ -15,7 +15,8 @@ import {
     Package,
     Navigation,
     ShieldCheck,
-    AlertTriangle
+    AlertTriangle,
+    Timer
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -62,6 +63,7 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
     const [reportDesc, setReportDesc] = useState("");
     const [reportLoading, setReportLoading] = useState(false);
     const [reportSuccess, setReportSuccess] = useState(false);
+    const [trackingStats, setTrackingStats] = useState({ distance: "", duration: "", isNearby: false });
 
     const handleReportSubmit = async () => {
         if (!reportReason || !info?.ngoId?._id) return;
@@ -233,7 +235,22 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
                         donationId={donationId}
                         pickupLat={info.donation.latitude}
                         pickupLon={info.donation.longitude}
+                        onTrackingUpdate={(stats) => setTrackingStats(stats)}
                     />
+                    
+                    {trackingStats.duration && (
+                        <div className="flex items-center justify-center space-x-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                             <div className="flex items-center space-x-1.5">
+                                <Timer className="w-3.5 h-3.5 text-indigo-500" />
+                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{trackingStats.duration} away</span>
+                             </div>
+                             <div className="w-px h-3 bg-slate-200" />
+                             <div className="flex items-center space-x-1.5">
+                                <Navigation className="w-3.5 h-3.5 text-slate-400" />
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{trackingStats.distance}</span>
+                             </div>
+                        </div>
+                    )}
                 </div>
             )}
 

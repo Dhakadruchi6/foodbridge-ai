@@ -9,7 +9,7 @@
 import { useEffect, useState, useRef, useCallback, memo, useMemo } from "react";
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from "@react-google-maps/api";
 import { io, Socket } from "socket.io-client";
-import { Loader2, Truck, WifiOff, Wifi } from "lucide-react";
+import { Loader2, Truck, WifiOff, Wifi, Target, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 
@@ -32,6 +32,7 @@ interface LiveTrackingMapProps {
     pickupLat: number;
     pickupLon: number;
     currentStatus?: string;
+    onTrackingUpdate?: (data: { distance: string; duration: string; isNearby: boolean }) => void;
 }
 
 const mapContainerStyle = {
@@ -44,6 +45,7 @@ export default memo(function LiveTrackingMap({
     pickupLat,
     pickupLon,
     currentStatus,
+    onTrackingUpdate,
 }: LiveTrackingMapProps) {
     const { data: session } = useSession();
 
@@ -64,6 +66,7 @@ export default memo(function LiveTrackingMap({
     const [lastUpdateSec, setLastUpdateSec] = useState<number | null>(null);
     const [liveStatus, setLiveStatus] = useState(currentStatus || "accepted");
     const [connectionLost, setConnectionLost] = useState(false);
+    const [shouldFollow, setShouldFollow] = useState(true); // Track Live toggle
 
     // Use refs to avoid closure stale state
     const socketRef = useRef<Socket | null>(null);
@@ -104,6 +107,17 @@ export default memo(function LiveTrackingMap({
             });
             setDirectionsResponse(results);
             lastRouteCalcTime.current = now;
+
+            // Feature 4: Expose Distance & ETA
+            if (results.routes[0]?.legs[0] && onTrackingUpdate) {
+                const leg = results.routes[0].legs[0];
+                const distValue = leg.distance?.value || 0; // meters
+                onTrackingUpdate({
+                    distance: leg.distance?.text || "Calculating...",
+                    duration: leg.duration?.text || "Calculating...",
+                    isNearby: distValue < 500
+                });
+            }
         } catch (error) {
             console.error("Directions query failed", error);
         }
@@ -186,6 +200,11 @@ export default memo(function LiveTrackingMap({
                 };
 
                 animationFrameRef.current = requestAnimationFrame(animate);
+
+                // Feature 8: Recenter if following
+                if (shouldFollow && mapRef.current) {
+                    mapRef.current.panTo(newPos);
+                }
             }
 
             setNgoOnline(true);
@@ -326,67 +345,94 @@ export default memo(function LiveTrackingMap({
                 )}
 
                 {isLoaded && (
-                    <GoogleMap
-                        mapContainerStyle={mapContainerStyle}
-                        zoom={14}
-                        center={mapCenter}
-                        options={{
-                            disableDefaultUI: true,
-                            zoomControl: true,
-                            mapTypeControl: false,
-                            streetViewControl: false,
-                            fullscreenControl: false,
-                            styles: [
-                                {
-                                    featureType: "poi",
-                                    elementType: "labels",
-                                    stylers: [{ visibility: "off" }]
-                                }
-                            ]
-                        }}
-                        onLoad={map => { mapRef.current = map; }}
-                        onUnmount={() => { mapRef.current = null; }}
-                    >
-                        {/* Validating Routes and Polylines (Feature 5) */}
-                        {directionsResponse && (
-                            <DirectionsRenderer
-                                directions={directionsResponse}
-                                options={{
-                                    suppressMarkers: true,
-                                    polylineOptions: {
-                                        strokeColor: '#6366f1',
-                                        strokeWeight: 5,
-                                        strokeOpacity: 0.8
+                    <>
+                        <GoogleMap
+                            mapContainerStyle={mapContainerStyle}
+                            zoom={14}
+                            center={mapCenter}
+                            options={{
+                                disableDefaultUI: true,
+                                zoomControl: false, // Custom styled controls look better
+                                mapTypeControl: false,
+                                streetViewControl: false,
+                                fullscreenControl: false,
+                                styles: [
+                                    {
+                                        featureType: "poi",
+                                        elementType: "labels",
+                                        stylers: [{ visibility: "off" }]
+                                    }
+                                ]
+                            }}
+                            onLoad={map => { mapRef.current = map; }}
+                            onUnmount={() => { mapRef.current = null; }}
+                        >
+                            {/* Validating Routes and Polylines (Feature 5) */}
+                            {directionsResponse && (
+                                <DirectionsRenderer
+                                    directions={directionsResponse}
+                                    options={{
+                                        suppressMarkers: true,
+                                        polylineOptions: {
+                                            strokeColor: '#6366f1',
+                                            strokeWeight: 5,
+                                            strokeOpacity: 0.8
+                                        }
+                                    }}
+                                />
+                            )}
+
+                            {/* Feature 4: Donor Location Marker — Modern Home Icon */}
+                            <Marker
+                                position={pickupPos}
+                                icon={typeof google !== 'undefined' ? {
+                                    url: 'https://cdn-icons-png.flaticon.com/512/619/619153.png',
+                                    scaledSize: new google.maps.Size(40, 40),
+                                    anchor: new google.maps.Point(20, 40),
+                                } : undefined}
+                                title="Your Location"
+                            />
+
+                            {/* Feature 3: NGO Live Tracking Moving Marker — Vehicle Hub */}
+                            {interpolatedPos && (
+                                <Marker
+                                    position={interpolatedPos}
+                                    icon={typeof google !== 'undefined' ? {
+                                        url: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png',
+                                        scaledSize: new google.maps.Size(45, 45),
+                                        anchor: new google.maps.Point(22, 22),
+                                    } : undefined}
+                                    title={ngoName}
+                                />
+                            )}
+                        </GoogleMap>
+
+                        {/* Floating Recenter & Track Controls */}
+                        <div className="absolute right-4 bottom-24 flex flex-col space-y-3 z-10">
+                            <button
+                                onClick={() => {
+                                    if (mapRef.current && (ngoPos || pickupPos)) {
+                                        mapRef.current.panTo(ngoPos || pickupPos);
+                                        mapRef.current.setZoom(16);
                                     }
                                 }}
-                            />
-                        )}
-
-                        {/* Feature 4: Initializing Points - Donor Location Marker */}
-                        <Marker
-                            position={pickupPos}
-                            icon={typeof google !== 'undefined' ? {
-                                path: google.maps.SymbolPath.CIRCLE,
-                                scale: 10,
-                                fillColor: '#10b981',
-                                fillOpacity: 1,
-                                strokeWeight: 3,
-                                strokeColor: '#ffffff'
-                            } : undefined}
-                            title="Your Pickup Location"
-                        />
-
-                        {/* Feature 3: NGO Live Tracking Moving Marker */}
-                        {interpolatedPos && (
-                            <Marker
-                                position={interpolatedPos}
-                                icon={{
-                                    url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-                                }}
-                                title={ngoName}
-                            />
-                        )}
-                    </GoogleMap>
+                                className="w-12 h-12 bg-white rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center text-slate-600 hover:text-indigo-600 active:scale-90 transition-all"
+                                title="Recenter Map"
+                            >
+                                <Target className="w-6 h-6" />
+                            </button>
+                            <button
+                                onClick={() => setShouldFollow(!shouldFollow)}
+                                className={cn(
+                                    "w-12 h-12 rounded-2xl shadow-xl border flex items-center justify-center transition-all active:scale-90",
+                                    shouldFollow ? "bg-indigo-600 border-indigo-500 text-white" : "bg-white border-slate-100 text-slate-400"
+                                )}
+                                title="Auto-Follow Agent"
+                            >
+                                <Crosshair className="w-6 h-6" />
+                            </button>
+                        </div>
+                    </>
                 )}
             </div>
 
