@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { MapPin, Navigation, WifiOff, RefreshCw, ChevronRight, Truck, Clock, Timer } from "lucide-react";
+import { MapPin, Navigation, WifiOff, Truck, Clock } from "lucide-react";
 import { getRequest } from "@/lib/apiClient";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
@@ -70,14 +70,6 @@ export default function LiveTrackPage() {
                 '_blank'
             );
         }
-    };
-
-    const getAgeLabel = (seconds: number | null) => {
-        if (seconds === null) return "Never updated";
-        if (seconds < 10) return "Just now";
-        if (seconds < 60) return `${seconds}s ago`;
-        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-        return "Over 1 hour ago";
     };
 
     return (

@@ -155,13 +155,15 @@ export default memo(function LiveTrackingMap({
         } catch (error) {
             console.error("Directions query failed", error);
         }
-    }, [isLoaded]);
+    }, [isLoaded, onTrackingUpdate]);
 
     useEffect(() => {
         if (ngoPos) {
             calculateRoute(ngoPos, pickupPos);
         }
     }, [ngoPos, calculateRoute, pickupPos]);
+
+    const mapCenter = useMemo(() => ngoPos || pickupPos, [ngoPos, pickupPos]);
 
     // ── Socket.IO connection ──────────────────────────────────────────────
     useEffect(() => {
@@ -281,7 +283,7 @@ export default memo(function LiveTrackingMap({
             socketRef.current = null;
             if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
         };
-    }, [donationId, session]);
+    }, [donationId, session, pickupPos, shouldFollow]); // Added pickupPos and shouldFollow as they are used in the Receive Location listener
 
     // ── Hybrid Tracking Fallback (REST Polling) ──────────────────────
     useEffect(() => {
@@ -311,13 +313,11 @@ export default memo(function LiveTrackingMap({
         const pollInterval = setInterval(pollLocation, 10000);
 
         return () => clearInterval(pollInterval);
-    }, [donationId, ngoOnline, connected, ngoPos]);
+    }, [donationId, ngoOnline, connected, ngoPos, setNgoPos, setNgoOnline, setConnectionLost, setNgoName, setLastUpdateSec]);
 
     const statusInfo = STATUS_LABELS[liveStatus] || { label: "Tracking active", color: "text-indigo-600" };
 
     if (loadError) return <div className="p-4 text-rose-500 font-bold">Error loading Google Maps API</div>;
-
-    const mapCenter = useMemo(() => ngoPos || pickupPos, [ngoPos, pickupPos]);
 
     return (
         <div className="space-y-3">
