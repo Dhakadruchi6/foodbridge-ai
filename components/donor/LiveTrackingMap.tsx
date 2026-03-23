@@ -12,6 +12,7 @@ import { io, Socket } from "socket.io-client";
 import { Loader2, Truck, WifiOff, Wifi, Target, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { getRequest } from "@/lib/apiClient";
 
 // ── Status labels ─────────────────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ export default memo(function LiveTrackingMap({
 
     const [ngoPos, setNgoPos] = useState<{ lat: number, lng: number } | null>(null);
     const [interpolatedPos, setInterpolatedPos] = useState<{ lat: number, lng: number } | null>(null);
+
     const pickupPos = useMemo(() => ({ lat: pickupLat, lng: pickupLon }), [pickupLat, pickupLon]);
     const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
 
@@ -67,6 +69,38 @@ export default memo(function LiveTrackingMap({
     const [liveStatus, setLiveStatus] = useState(currentStatus || "accepted");
     const [connectionLost, setConnectionLost] = useState(false);
     const [shouldFollow, setShouldFollow] = useState(true); // Track Live toggle
+
+    // Step 12: Fallback Polling if socket fails or stalls
+    useEffect(() => {
+        if (!donationId || !connected || ngoOnline) return;
+
+        const fallbackInterval = setInterval(async () => {
+            if (Date.now() - lastUpdateRef.current > 10000) {
+                console.log("[WS-DEBUG] Stalled for 10s, triggering REST fallback...");
+                try {
+                    const res = await getRequest(`/api/donations/live-location?donationId=${donationId}`);
+                    if (res.success && res.data?.isLive) {
+                        const { liveLatitude: lat, liveLongitude: lng } = res.data;
+                        if (lat && lng) {
+                            // Update as if it came from socket
+                            // (We trigger the same logic as socket receive here or similar)
+                             const newPos = { lat, lng };
+                             setNgoPos(newPos);
+                             setInterpolatedPos(newPos);
+                             ngoPosRef.current = newPos;
+                             setNgoOnline(true);
+                             lastUpdateRef.current = Date.now();
+                        }
+                    }
+                } catch (e) {
+                    console.error("[WS-DEBUG] Fallback failed:", e);
+                }
+            }
+        }, 10000);
+
+        return () => clearInterval(fallbackInterval);
+    }, [donationId, connected, ngoOnline]);
+
 
     // Use refs to avoid closure stale state
     const socketRef = useRef<Socket | null>(null);
@@ -134,7 +168,7 @@ export default memo(function LiveTrackingMap({
         if (!donationId) return;
 
         const socket = io(window.location.origin, {
-            transports: ["websocket", "polling"],
+            transports: ["websocket"], // Step 1: Force websocket for critical stability
             reconnectionAttempts: 10,
             reconnectionDelay: 1500,
         });
@@ -142,13 +176,11 @@ export default memo(function LiveTrackingMap({
         socketRef.current = socket;
 
         socket.on("connect", () => {
+            console.log("[WS-DEBUG] Donor socket connected:", socket.id);
             setConnected(true);
             setConnectionLost(false);
-            socket.emit("join-room", {
-                donationId,
-                role: "donor",
-                userId: (session?.user as { id: string })?.id || "anonymous",
-            });
+            // Step 1: Join room using donationId
+            socket.emit("join-room", donationId);
         });
 
         socket.on("disconnect", () => {
@@ -161,13 +193,13 @@ export default memo(function LiveTrackingMap({
             socket.emit("join-room", { donationId, role: "donor" });
         });
 
-        // ── Receive NGO Location (Feature 1, 2, 3) ─────────────────────────────────────────
+        // ── Receive NGO Location (Step 3, 4, 11) ─────────────────────────────────────────
         socket.on("receive-location", ({ lat, lng, ngoName: name, timestamp }) => {
+            console.log(`[WS-DEBUG] Received location for ${donationId}:`, { lat, lng });
             const newPos = { lat, lng };
 
-            // Start smooth interpolation
+            // Step 4: Render NGO marker only when location is received
             if (!ngoPosRef.current) {
-                // Initial position - no animation
                 setNgoPos(newPos);
                 ngoPosRef.current = newPos;
                 setInterpolatedPos(newPos);
@@ -175,7 +207,7 @@ export default memo(function LiveTrackingMap({
             } else {
                 setNgoPos(newPos);
 
-                // Animate from current interpolated position to new target
+                // Step 5: Smooth Marker Movement (Interpolation)
                 const startPos = prevPosRef.current || ngoPosRef.current;
                 ngoPosRef.current = newPos;
                 const startTime = Date.now();
@@ -186,7 +218,6 @@ export default memo(function LiveTrackingMap({
                     const elapsed = Date.now() - startTime;
                     const progress = Math.min(elapsed / INTERPOLATION_DURATION, 1);
 
-                    // Linear interpolation (Ease function could be added for more "Uber" feel)
                     const currentLat = startPos.lat + (newPos.lat - startPos.lat) * progress;
                     const currentLng = startPos.lng + (newPos.lng - startPos.lng) * progress;
 
@@ -201,9 +232,13 @@ export default memo(function LiveTrackingMap({
 
                 animationFrameRef.current = requestAnimationFrame(animate);
 
-                // Feature 8: Recenter if following
+                // Step 10 & 8: Recenter and Auto-Follow if enabled
                 if (shouldFollow && mapRef.current) {
-                    mapRef.current.panTo(newPos);
+                    // Step 10: Auto Zoom Map / Fit Bounds
+                    const bounds = new google.maps.LatLngBounds();
+                    bounds.extend(pickupPos);
+                    bounds.extend(newPos);
+                    mapRef.current.fitBounds(bounds, { top: 100, bottom: 250, left: 50, right: 50 });
                 }
             }
 
@@ -218,11 +253,17 @@ export default memo(function LiveTrackingMap({
             connectionLostTimerRef.current = setTimeout(() => {
                 setNgoOnline(false);
                 setConnectionLost(true);
-            }, 30000);
+                // Step 12: If no update for 10s (using shorter timer here for active fallback)
+            }, 10000); // 10s fallback threshold
         });
 
         socket.on("status-changed", ({ status }) => {
             setLiveStatus(status);
+            // Step 13: When ARRIVED, we can stop active tracking or transition UI
+            if (status === 'ARRIVED' || status === 'delivered') {
+                console.log("[WS-DEBUG] Mission reached terminal state, stopping tracking.");
+                setNgoOnline(false);
+            }
         });
 
         socket.on("tracking-stopped", () => {
@@ -276,7 +317,7 @@ export default memo(function LiveTrackingMap({
 
     if (loadError) return <div className="p-4 text-rose-500 font-bold">Error loading Google Maps API</div>;
 
-    const mapCenter = ngoPos || pickupPos;
+    const mapCenter = useMemo(() => ngoPos || pickupPos, [ngoPos, pickupPos]);
 
     return (
         <div className="space-y-3">
@@ -337,6 +378,22 @@ export default memo(function LiveTrackingMap({
 
             {/* ── Google Map ───────────────────────────────────────────────── */}
             <div className="h-[420px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-lg relative z-0">
+                {/* Step 6: Connection Status Banner */}
+                {!connected ? (
+                    <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
+                        <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col items-center space-y-4">
+                            <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                            <p className="text-xs font-black uppercase tracking-widest text-white/70">Reconnecting...</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="absolute top-20 right-4 z-10">
+                         <div className="bg-emerald-500/90 backdrop-blur px-3 py-1.5 rounded-full flex items-center space-x-2 border border-emerald-400/50 shadow-lg">
+                            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Live tracking active</span>
+                         </div>
+                    </div>
+                )}
                 {!isLoaded && (
                     <div className="absolute inset-0 bg-slate-100 flex items-center justify-center z-10 w-full h-full">
                         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
@@ -440,9 +497,9 @@ export default memo(function LiveTrackingMap({
             <div className="flex items-center justify-between px-2 text-[10px] font-bold text-slate-400 mt-2">
                 <div className="flex items-center space-x-1">
                     <Wifi className="w-3 h-3" />
-                    <span>{connected ? "WebSocket Connected" : "Connecting..."}</span>
+                    <span>{connected ? "Live tracking active" : "Reconnecting..."}</span>
                 </div>
-                <span>Google Maps Directions API Navigation</span>
+                <span>Google Maps Directions Engine</span>
             </div>
         </div>
     );

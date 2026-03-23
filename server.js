@@ -46,10 +46,14 @@ app.prepare().then(() => {
         console.log(`[WS] Client connected: ${socket.id}`);
 
         // ─── JOIN ROOM ────────────────────────────────────────────────
-        // Called by both NGO and Donor to subscribe to a donation's channel.
-        socket.on('join-room', ({ donationId, role, userId }) => {
+        // Handles both object { donationId, role, userId } and raw donationId string
+        socket.on('join-room', (data) => {
+            const donationId = typeof data === 'string' ? data : data.donationId;
+            const role = data.role || 'viewer';
+            const userId = data.userId || 'anonymous';
+            
             socket.join(donationId);
-            console.log(`[WS] ${role} (${userId}) joined room: ${donationId}`);
+            console.log(`[WS-DEBUG] ${role} (${userId}) joined room: ${donationId}`);
 
             // Track active clients in this room
             if (!activeRooms.has(donationId)) activeRooms.set(donationId, new Set());
@@ -59,10 +63,10 @@ app.prepare().then(() => {
             const lastPos = lastKnownPositions.get(donationId);
             if (lastPos) {
                 socket.emit('receive-location', lastPos);
-                console.log(`[WS] Sent last-known position to ${role}`);
+                console.log(`[WS-DEBUG] Sent last-known position to ${role}`);
             }
 
-            // Notify room that a donor joined (NGO can see it)
+            // Notify room that a user joined
             socket.to(donationId).emit('room-update', {
                 type: 'joined',
                 role,
@@ -71,22 +75,20 @@ app.prepare().then(() => {
         });
 
         // ─── NGO SENDS LOCATION ───────────────────────────────────────
-        // Called by NGO every 2–3 seconds with their GPS coords.
-        socket.on('send-location', ({ donationId, lat, lng, ngoName, accuracy }) => {
+        socket.on('send-location', (data) => {
+            const { donationId, lat, lng } = data;
+            console.log(`[WS-DEBUG] Location received for ${donationId}: ${lat}, ${lng}`);
+            
             const payload = {
-                donationId,
-                lat,
-                lng,
-                ngoName,
-                accuracy,
+                ...data,
                 timestamp: Date.now(),
             };
 
             // Persist as last-known position
             lastKnownPositions.set(donationId, payload);
 
-            // Broadcast to all donors in the room (exclude sender)
-            socket.to(donationId).emit('receive-location', payload);
+            // Broadcast to all in the room (including sender if they rely on it, but usually socket.to excludes sender)
+            io.to(donationId).emit('receive-location', payload);
         });
 
         // ─── STATUS UPDATE ────────────────────────────────────────────

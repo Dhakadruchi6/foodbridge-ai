@@ -38,15 +38,16 @@ export function useWebSocketLocation({
         if (!donationId || !userId || !enabled) return;
 
         const socket = io(window.location.origin, {
-            transports: ["websocket", "polling"],
+            transports: ["websocket"], // Step 1: Force websocket for stability
             reconnectionDelay: 1000,
             reconnectionAttempts: 10,
         });
 
         socket.on("connect", () => {
-            console.log("[NGO-WS] Connected:", socket.id);
+            console.log("[WS-DEBUG] NGO socket connected:", socket.id);
             setIsConnected(true);
-            socket.emit("join-room", { donationId, role: "ngo", userId });
+            // Step 1: Join room using donation ID
+            socket.emit("join-room", donationId);
         });
 
         socket.on("disconnect", () => {
@@ -95,12 +96,13 @@ export function useWebSocketLocation({
                 const socket = socketRef.current;
 
                 if (socket?.connected) {
+                    console.log(`[WS-DEBUG] Sending location for ${donationId}:`, { lat, lng });
+                    // Step 2: Send NGO live location
                     socket.emit("send-location", {
                         donationId,
                         lat,
                         lng,
-                        ngoName,
-                        accuracy,
+                        ngoName, // Keeping it for UI convenience even if not in user's minimal snippet
                     });
                 }
 
