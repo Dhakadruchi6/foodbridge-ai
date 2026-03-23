@@ -6,9 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
     Phone,
-    MapPin,
-    Globe,
-    Navigation,
     Building2,
     Heart,
     Loader2,
@@ -47,7 +44,7 @@ function CompleteProfileContent() {
     const searchParams = useSearchParams();
     const queryRole = searchParams.get("role");
 
-    const autocompleteRef = React.useRef<google.maps.places.Autocomplete | null>(null);
+
 
     const [formData, setFormData] = React.useState({
         name: "",
@@ -66,7 +63,6 @@ function CompleteProfileContent() {
         certificateUrl: "",
         idProofUrl: "",
     });
-    const [locationLoading, setLocationLoading] = React.useState(false);
     const [uploadingDoc, setUploadingDoc] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
     const [isActivated, setIsActivated] = React.useState(false);

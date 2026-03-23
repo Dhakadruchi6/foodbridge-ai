@@ -7,15 +7,12 @@ import { Input } from "@/components/ui/input";
 import { postRequest } from "@/lib/apiClient";
 import {
   Package,
-  MapPin,
   Calendar,
   ChevronRight,
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Navigation,
   Box,
-  Globe,
   Camera,
   Image as ImageIcon,
   Clock,
