@@ -145,7 +145,7 @@ export default memo(function LiveTrackingMap({
             const results = await directionsService.route({
                 origin,
                 destination: dest,
-                travelMode: google.maps.TravelMode.DRIVING,
+                travelMode: typeof google !== 'undefined' ? google.maps.TravelMode.DRIVING : 'DRIVING' as any,
             });
             setDirectionsResponse(results);
             lastRouteCalcTime.current = now;
@@ -242,10 +242,11 @@ export default memo(function LiveTrackingMap({
                     }
                 };
 
-                animationFrameRef.current = requestAnimationFrame(animate);
-
+                if (newPos?.lat && newPos?.lng) {
+                    animationFrameRef.current = requestAnimationFrame(animate);
+                }
                 // Step 10 & 8: Recenter and Auto-Follow if enabled
-                if (shouldFollow && mapRef.current) {
+                if (shouldFollow && mapRef.current && typeof google !== 'undefined') {
                     // Step 10: Auto Zoom Map / Fit Bounds
                     const bounds = new google.maps.LatLngBounds();
                     bounds.extend(pickupPos);

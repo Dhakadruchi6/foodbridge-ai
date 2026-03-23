@@ -7,10 +7,12 @@ import { getRequest } from "@/lib/apiClient";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+
 const LiveTrackingMap = dynamic(() => import("@/components/donor/LiveTrackingMap"), {
     ssr: false,
     loading: () => (
-        <div className="h-full w-full bg-slate-900 flex flex-col items-center justify-center space-y-4">
+        <div className="h-screen w-full bg-slate-900 flex flex-col items-center justify-center space-y-4">
             <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/50">Initializing Geospatial Engine</p>
         </div>
@@ -31,7 +33,14 @@ export default function LiveTrackPage() {
     const donationId = params?.donationId as string;
     const [liveData, setLiveData] = useState<LiveData | null>(null);
     const [trackingStats, setTrackingStats] = useState({ distance: "...", duration: "...", isNearby: false });
+    const [ready, setReady] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Step 8: Delay Map Render to prevent hydration/timing crashes
+    useEffect(() => {
+        const timer = setTimeout(() => setReady(true), 300);
+        return () => clearTimeout(timer);
+    }, []);
 
     const fetchLiveLocation = useCallback(async () => {
         try {
@@ -93,26 +102,33 @@ export default function LiveTrackPage() {
 
             {/* ── Main Map View ───────────────────────────────────────── */}
             <div className="absolute inset-0 z-0">
-                {liveData?.liveLatitude && liveData?.liveLongitude ? (
-                    <LiveTrackingMap
-                        donationId={donationId}
-                        pickupLat={liveData.liveLatitude}
-                        pickupLon={liveData.liveLongitude}
-                        onTrackingUpdate={(stats) => setTrackingStats(stats)}
-                    />
-                ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-slate-900">
-                        <div className="text-center space-y-4">
-                            <div className="w-16 h-16 rounded-3xl bg-slate-800 flex items-center justify-center mx-auto border border-white/5 animate-pulse">
-                                <WifiOff className="w-8 h-8 text-slate-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-white font-black">No Signal Detected</h3>
-                                <p className="text-slate-500 text-xs mt-1">Waiting for donor to go live...</p>
+                <ErrorBoundary>
+                    {!ready || !donationId ? (
+                        <div className="h-full w-full bg-slate-900 flex flex-col items-center justify-center space-y-4">
+                            <div className="w-12 h-12 border-4 border-slate-800 border-t-indigo-500 rounded-full animate-spin" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Connecting to Tracking System...</p>
+                        </div>
+                    ) : liveData?.liveLatitude && liveData?.liveLongitude ? (
+                        <LiveTrackingMap
+                            donationId={donationId}
+                            pickupLat={liveData.liveLatitude}
+                            pickupLon={liveData.liveLongitude}
+                            onTrackingUpdate={(stats) => setTrackingStats(stats)}
+                        />
+                    ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-slate-900">
+                            <div className="text-center space-y-4">
+                                <div className="w-16 h-16 rounded-3xl bg-slate-800 flex items-center justify-center mx-auto border border-white/5 animate-pulse">
+                                    <WifiOff className="w-8 h-8 text-slate-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-black">No Signal Detected</h3>
+                                    <p className="text-slate-500 text-xs mt-1">Waiting for donor to go live...</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </ErrorBoundary>
             </div>
 
             {/* ── Uber-style Bottom Panel ──────────────────────────────── */}
