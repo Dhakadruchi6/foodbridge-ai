@@ -72,10 +72,6 @@ function CompleteProfileContent() {
         certificateUrl: "",
         idProofUrl: "",
     });
-    const [otp, setOtp] = React.useState("");
-    const [isOtpSent, setIsOtpSent] = React.useState(false);
-    const [isPhoneVerified, setIsPhoneVerified] = React.useState(false);
-    const [otpLoading, setOtpLoading] = React.useState(false);
     const [locationLoading, setLocationLoading] = React.useState(false);
     const [uploadingDoc, setUploadingDoc] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
@@ -103,38 +99,6 @@ function CompleteProfileContent() {
         }
     }, [session, router, queryRole]);
 
-    const handleSendOtp = async () => {
-        if (!formData.phone) return;
-        setOtpLoading(true);
-        try {
-            const res = await postRequest("/api/auth/send-otp", { phone: formData.phone });
-            if (res.success) {
-                setIsOtpSent(true);
-                setError("");
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            setError(err.message || "Failed to send OTP");
-        } finally {
-            setOtpLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        setOtpLoading(true);
-        try {
-            const res = await postRequest("/api/auth/verify-otp", { phone: formData.phone, otp });
-            if (res.success) {
-                setIsPhoneVerified(true);
-                setIsOtpSent(false);
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            setError(err.message || "Invalid OTP");
-        } finally {
-            setOtpLoading(false);
-        }
-    };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
         const file = e.target.files?.[0];
@@ -215,10 +179,6 @@ function CompleteProfileContent() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!isPhoneVerified) {
-            setError("Please verify your phone number first.");
-            return;
-        }
         if (formData.role === 'ngo') {
             if (!formData.certificateUrl || !formData.idProofUrl) {
                 setError("NGO verification documents (Registration Certificate & ID Proof) are completely mandatory for approval.");
@@ -230,12 +190,18 @@ function CompleteProfileContent() {
             }
         }
 
+        const emailToUse = formData.email || session?.user?.email;
+        if (!emailToUse) {
+            setError("Unable to identify your account email. Please try signing in again.");
+            return;
+        }
+
         setLoading(true);
         setError("");
         try {
             const res = await postRequest("/api/auth/complete-profile", {
                 ...formData,
-                email: session?.user?.email
+                email: emailToUse
             });
             if (res.success) {
                 if (typeof window !== 'undefined') {
@@ -323,39 +289,15 @@ function CompleteProfileContent() {
                             />
 
                             <InputField
-                                label="Verified Phone"
+                                label="Phone Number"
                                 icon={<Phone className="w-4 h-4" />}
                                 value={formData.phone}
                                 onChange={(v: string) => setFormData({ ...formData, phone: v })}
-                                placeholder="+1 555-0100"
-                                action={!isPhoneVerified && (
-                                    <button type="button" onClick={handleSendOtp} className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                                        {otpLoading ? "..." : "Send OTP"}
-                                    </button>
-                                )}
+                                placeholder="+91 98765 43210"
                             />
 
                             <InputField label="Base City" icon={<Globe className="w-4 h-4" />} value={formData.city} onChange={(v: string) => setFormData({ ...formData, city: v })} placeholder="San Francisco" />
 
-                            {isOtpSent && !isPhoneVerified && (
-                                <div className="md:col-span-2">
-                                    <InputField
-                                        label="OTP Code"
-                                        icon={<ShieldCheck className="w-4 h-4" />}
-                                        value={otp}
-                                        onChange={setOtp}
-                                        placeholder="000000"
-                                        action={<button type="button" onClick={handleVerifyOtp} className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Verify</button>}
-                                    />
-                                </div>
-                            )}
-
-                            {isPhoneVerified && (
-                                <div className="md:col-span-2 p-4 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 flex items-center space-x-2">
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Identity Verified</span>
-                                </div>
-                            )}
 
                             {formData.role === 'ngo' && (
                                 <div className="md:col-span-2 animate-in slide-in-from-top duration-300 space-y-8">
@@ -463,7 +405,7 @@ function CompleteProfileContent() {
 
                         <Button
                             type="submit"
-                            disabled={loading || !isPhoneVerified || uploadingDoc}
+                            disabled={loading || uploadingDoc}
                             className="w-full h-16 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 text-white text-xl font-black shadow-2xl shadow-blue-500/20 transition-all flex items-center justify-center space-x-2 disabled:grayscale disabled:opacity-50"
                         >
                             {loading || uploadingDoc ? <Loader2 className="w-6 h-6 animate-spin" /> : <><span>Activate Account</span> <ArrowRight className="w-6 h-6" /></>}
