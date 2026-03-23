@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="space-y-2">
             <h2 className="text-xl font-black text-white">Tracking Engine Halted</h2>
             <p className="text-slate-400 text-sm max-w-xs mx-auto">
-              A temporary glitch occurred while rendering the live map. We're ready to restart the tracking engine.
+              A temporary glitch occurred while rendering the live map. We&apos;re ready to restart the tracking engine.
             </p>
           </div>
           <button

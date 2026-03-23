@@ -145,7 +145,7 @@ export default memo(function LiveTrackingMap({
             const results = await directionsService.route({
                 origin,
                 destination: dest,
-                travelMode: typeof google !== 'undefined' ? google.maps.TravelMode.DRIVING : 'DRIVING' as any,
+                travelMode: google.maps.TravelMode.DRIVING,
             });
             setDirectionsResponse(results);
             lastRouteCalcTime.current = now;
