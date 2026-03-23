@@ -52,29 +52,57 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
         if (typeof google === 'undefined') return;
         const geocoder = new google.maps.Geocoder();
         try {
-            const result = await geocoder.geocode({ location: { lat, lng } });
-            if (result.results[0]) {
-                const formattedAddress = result.results[0].formatted_address;
-                const addressComponents = result.results[0].address_components;
-
+            const response = await geocoder.geocode({ location: { lat, lng } });
+            
+            if (response.results && response.results.length > 0) {
+                const result = response.results[0];
+                const formattedAddress = result.formatted_address;
+                const addressComponents = result.address_components;
+ 
                 let city = "";
                 let state = "";
                 let pincode = "";
-
+ 
                 addressComponents.forEach(comp => {
-                    if (comp.types.includes("locality")) city = comp.long_name;
-                    if (comp.types.includes("administrative_area_level_1")) state = comp.long_name;
-                    if (comp.types.includes("postal_code")) pincode = comp.long_name;
+                    if (comp.types.includes("locality") || comp.types.includes("sublocality") || comp.types.includes("administrative_area_level_2")) {
+                        city = comp.long_name;
+                    }
+                    if (comp.types.includes("administrative_area_level_1")) {
+                        state = comp.long_name;
+                    }
+                    if (comp.types.includes("postal_code")) {
+                        pincode = comp.long_name;
+                    }
                 });
-
+ 
                 setAddress(formattedAddress);
-                onLocationSelect({ lat, lng, address: formattedAddress, city, state, pincode });
+                onLocationSelect({ 
+                    lat, 
+                    lng, 
+                    address: formattedAddress, 
+                    city: city || "Unknown City", 
+                    state: state || "Unknown State", 
+                    pincode: pincode || "000000" 
+                });
+                setError("");
                 setSuccess(true);
                 setTimeout(() => setSuccess(false), 3000);
+            } else {
+                setError("Location found, but no address resolved. You can still use the pin.");
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Geocoding failed:", err);
-            setError("Failed to resolve address. You can still use the pin.");
+            // Handle specific Google Maps error codes if they exist in the error object
+            const status = err?.code || err?.status || "ERROR";
+            if (status === "ZERO_RESULTS") {
+                setError("No address found for this exact spot. Try moving the pin slightly.");
+            } else if (status === "OVER_QUERY_LIMIT") {
+                setError("Maps quota exceeded. Please try again in a moment.");
+            } else if (status === "REQUEST_DENIED") {
+                setError("Geocoding API is disabled or denied. Please check API configuration.");
+            } else {
+                setError("Failed to resolve address. You can still use the marker pin.");
+            }
         }
     }, [onLocationSelect]);
 
