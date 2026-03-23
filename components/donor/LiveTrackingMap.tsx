@@ -197,8 +197,9 @@ export default memo(function LiveTrackingMap({
         });
 
         // ── Receive NGO Location (Step 3, 4, 11) ─────────────────────────────────────────
-        socket.on("receive-location", ({ lat, lng, ngoName: name, timestamp }) => {
-            console.log(`[WS-DEBUG] Received location for ${donationId}:`, { lat, lng });
+        socket.on("receive-location", (data) => {
+            console.log("[WS-DEBUG] NGO location received:", data);
+            const { lat, lng, ngoName: name, timestamp } = data;
             const newPos = { lat, lng };
 
             // Step 4: Render NGO marker only when location is received
@@ -297,10 +298,31 @@ export default memo(function LiveTrackingMap({
                 const data = await res.json();
                 if (data.success && data.data?.isLive) {
                     const { liveLatitude: lat, liveLongitude: lng, ngoName: name } = data.data;
-                    setNgoPos({ lat, lng });
+                    if (typeof lat !== 'number' || typeof lng !== 'number') {
+                        console.warn("[Tracking-Fallback] Invalid coordinates received:", { lat, lng });
+                        return;
+                    }
+
+                    const newPos = { lat, lng };
+                    
+                    setNgoPos(newPos);
                     setNgoOnline(true);
                     setConnectionLost(false);
                     if (name) setNgoName(name);
+
+                    // Step 8: Update Map centering/bounds during polling too
+                    if (shouldFollow && mapRef.current) {
+                        const bounds = new google.maps.LatLngBounds();
+                        bounds.extend(pickupPos);
+                        bounds.extend(newPos);
+                        mapRef.current.fitBounds(bounds, { top: 100, bottom: 250, left: 50, right: 50 });
+                    }
+
+                    // Ensure marker shows up even if it was just loaded via polling
+                    if (!ngoPosRef.current) {
+                        ngoPosRef.current = newPos;
+                        setInterpolatedPos(newPos);
+                    }
 
                     lastUpdateRef.current = new Date(data.data.liveLocationUpdatedAt).getTime();
                     setLastUpdateSec(data.data.ageSeconds || 0);
