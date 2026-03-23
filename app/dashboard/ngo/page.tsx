@@ -10,6 +10,7 @@ import { IncomingRequests } from '@/components/ngo/IncomingRequests';
 import { CertificationModal } from "@/components/ngo/CertificationModal";
 import { NotificationBell } from "@/components/donor/NotificationBell";
 import DistributionHub from "@/components/ngo/DistributionHub";
+import HungerRequests from "@/components/ngo/HungerRequests";
 import { Delivery } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
@@ -38,7 +39,7 @@ export default function NGODashboard() {
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedTab, setSelectedTab] = useState<"radar" | "distribution">("radar");
+  const [selectedTab, setSelectedTab] = useState<"radar" | "distribution" | "hunger">("radar");
   const [activeDelivery, setActiveDelivery] = useState<Delivery | null>(null);
   const [, setLocError] = useState("");
 
@@ -304,6 +305,16 @@ export default function NGODashboard() {
               {activeDelivery && <div className="ml-2 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
               {selectedTab === "distribution" && <div className="absolute bottom-[-1px] left-0 right-0 h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--primary-rgb),0.4)]" />}
             </button>
+            <button
+              onClick={() => setSelectedTab("hunger")}
+              className={cn(
+                "text-xl font-black tracking-tight pb-3 transition-all relative flex items-center",
+                selectedTab === "hunger" ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Hunger Requests
+              {selectedTab === "hunger" && <div className="absolute bottom-[-1px] left-0 right-0 h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--primary-rgb),0.4)]" />}
+            </button>
           </div>
 
           {selectedTab === "radar" ? (
@@ -365,7 +376,7 @@ export default function NGODashboard() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : selectedTab === "distribution" ? (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
               {user?.latitude && user?.longitude ? (
                 <DistributionHub
@@ -381,6 +392,21 @@ export default function NGODashboard() {
                   <MapPin className="w-12 h-12 text-slate-300 mx-auto" />
                   <h3 className="text-xl font-black tracking-tight">Location Context Required</h3>
                   <p className="text-slate-500 max-w-sm mx-auto">Please set your Operational Center in the header to unlock distribution intelligence.</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+              {user?.latitude && user?.longitude ? (
+                <HungerRequests 
+                  ngoLat={user.latitude} 
+                  ngoLng={user.longitude} 
+                />
+              ) : (
+                <div className="p-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200 text-center space-y-4">
+                  <MapPin className="w-12 h-12 text-slate-300 mx-auto" />
+                  <h3 className="text-xl font-black tracking-tight">Location Context Required</h3>
+                  <p className="text-slate-500 max-w-sm mx-auto">Please set your Operational Center in the header to view nearby hunger requests.</p>
                 </div>
               )}
             </div>
