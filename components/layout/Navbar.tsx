@@ -11,7 +11,6 @@ import {
     Menu,
     X,
     LayoutDashboard,
-    Zap,
     LogOut
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";

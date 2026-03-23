@@ -280,7 +280,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
             <UtensilsIcon className="w-5 h-5 text-white" />
           </div>
           <h3 className="text-2xl font-black tracking-tight">Donate Surplus Food</h3>
-          <p className="text-slate-400 font-bold text-sm">Tell us about the food you'd like to donate. Our AI will verify it and match it to nearby NGOs.</p>
+          <p className="text-slate-400 font-bold text-sm">Tell us about the food you&apos;d like to donate. Our AI will verify it and match it to nearby NGOs.</p>
         </div>
       </div>
 

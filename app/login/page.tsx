@@ -2,7 +2,7 @@
 
 import { LoginForm } from "@/components/forms/LoginForm";
 import Image from "next/image";
-import { Zap, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {

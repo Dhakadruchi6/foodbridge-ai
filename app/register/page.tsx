@@ -2,7 +2,7 @@
 
 import { RegisterForm } from "@/components/forms/RegisterForm";
 import Image from "next/image";
-import { Zap, Globe } from "lucide-react";
+import { Globe } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
