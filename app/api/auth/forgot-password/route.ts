@@ -25,14 +25,11 @@ export async function POST(req: Request) {
         user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
         await user.save();
 
-        // Robust URL generation for emails, favoring actual host over env configurations
-        const host = req.headers.get('host') || 'foodbridge-ai.vercel.app';
-        const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-        const absoluteUrl = process.env.NEXTAUTH_URL?.includes('localhost') 
-            ? `${protocol}://${host}` 
-            : (process.env.NEXTAUTH_URL || `${protocol}://${host}`);
+        // Use NEXT_PUBLIC_BASE_URL, fallback to VERCEL_URL, fallback to localhost
+        const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL 
+            || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
-        const resetUrl = `${absoluteUrl}/reset-password/${token}`;
+        const resetUrl = `${BASE_URL}/reset-password/${token}`;
         const emailResult = await import('@/services/emailService').then(m => m.sendPasswordResetEmail(email, resetUrl));
 
         if (!emailResult.success) {
