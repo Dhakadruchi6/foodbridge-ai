@@ -9,9 +9,7 @@ import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import { IncomingRequests } from '@/components/ngo/IncomingRequests';
 import { CertificationModal } from "@/components/ngo/CertificationModal";
 import { NotificationBell } from "@/components/donor/NotificationBell";
-import DistributionHub from "@/components/ngo/DistributionHub";
 import HungerRequests from "@/components/ngo/HungerRequests";
-import { Delivery } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -39,8 +37,7 @@ export default function NGODashboard() {
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedTab, setSelectedTab] = useState<"radar" | "distribution" | "hunger">("radar");
-  const [activeDelivery, setActiveDelivery] = useState<Delivery | null>(null);
+  const [selectedTab, setSelectedTab] = useState<"radar" | "hunger">("radar");
   const [, setLocError] = useState("");
 
   const handleAction = () => {
@@ -104,18 +101,6 @@ export default function NGODashboard() {
     }
   };
 
-  const fetchActiveDelivery = async () => {
-    try {
-      const res = await getRequest("/api/donations/my-deliveries");
-      if (res.success) {
-        const collected = res.data.find((d: { status: string; distributionStatus?: string }) => d.status === 'collected' && d.distributionStatus !== 'delivered');
-        setActiveDelivery(collected);
-        if (collected) setSelectedTab("distribution");
-      }
-    } catch (err) {
-      console.error("Failed to fetch active delivery", err);
-    }
-  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -128,7 +113,6 @@ export default function NGODashboard() {
     };
     fetchStats();
     fetchProfile();
-    fetchActiveDelivery();
   }, [refreshKey]);
 
   const handleTourComplete = async () => {
@@ -295,17 +279,6 @@ export default function NGODashboard() {
               {selectedTab === "radar" && <div className="absolute bottom-[-1px] left-0 right-0 h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--primary-rgb),0.4)]" />}
             </button>
             <button
-              onClick={() => setSelectedTab("distribution")}
-              className={cn(
-                "text-xl font-black tracking-tight pb-3 transition-all relative flex items-center",
-                selectedTab === "distribution" ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              Distribution Intelligence
-              {activeDelivery && <div className="ml-2 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
-              {selectedTab === "distribution" && <div className="absolute bottom-[-1px] left-0 right-0 h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--primary-rgb),0.4)]" />}
-            </button>
-            <button
               onClick={() => setSelectedTab("hunger")}
               className={cn(
                 "text-xl font-black tracking-tight pb-3 transition-all relative flex items-center",
@@ -375,25 +348,6 @@ export default function NGODashboard() {
                   </div>
                 </div>
               </div>
-            </div>
-          ) : selectedTab === "distribution" ? (
-            <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              {user?.latitude && user?.longitude ? (
-                <DistributionHub
-                  ngoLocation={{ lat: user.latitude, lng: user.longitude }}
-                  activeDeliveryId={activeDelivery?._id || null}
-                  onComplete={() => {
-                    setRefreshKey(k => k + 1);
-                    setSelectedTab("radar");
-                  }}
-                />
-              ) : (
-                <div className="p-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200 text-center space-y-4">
-                  <MapPin className="w-12 h-12 text-slate-300 mx-auto" />
-                  <h3 className="text-xl font-black tracking-tight">Location Context Required</h3>
-                  <p className="text-slate-500 max-w-sm mx-auto">Please set your Operational Center in the header to unlock distribution intelligence.</p>
-                </div>
-              )}
             </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">

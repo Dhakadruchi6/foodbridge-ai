@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getRequest, postRequest } from "@/lib/apiClient";
+import { getRequest, patchRequest } from "@/lib/apiClient";
 import {
     MapPin, Phone, Package, Clock, Navigation,
-    CheckCircle2, AlertTriangle, Loader2, RefreshCw, ExternalLink, Users
+    CheckCircle2, AlertTriangle, Loader2, RefreshCw, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -54,7 +54,7 @@ export default function HungerRequests({ ngoLat, ngoLng }: { ngoLat: number; ngo
     const handleAccept = async (req: HungerRequest) => {
         setAccepting(req._id);
         try {
-            const res = await postRequest(`/api/hunger-reports/${req._id}/accept`, {});
+            const res = await patchRequest(`/api/hunger-reports/${req._id}/accept`, {});
             if (res.success) {
                 setNotification({ type: "success", msg: "Request accepted! Please head to the location." });
                 setRequests(prev => prev.filter(r => r._id !== req._id));
