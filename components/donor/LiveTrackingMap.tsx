@@ -70,35 +70,43 @@ export default memo(function LiveTrackingMap({
     const [connectionLost, setConnectionLost] = useState(false);
     const [shouldFollow, setShouldFollow] = useState(true); // Track Live toggle
 
-    // Step 12: Fallback Polling if socket fails or stalls
+    // Step 6 & 12: Initial Load + Fallback Polling
     useEffect(() => {
-        if (!donationId || !connected || ngoOnline) return;
+        if (!donationId) return;
 
-        const fallbackInterval = setInterval(async () => {
-            if (Date.now() - lastUpdateRef.current > 10000) {
-                console.log("[WS-DEBUG] Stalled for 10s, triggering REST fallback...");
-                try {
-                    const res = await getRequest(`/api/donations/live-location?donationId=${donationId}`);
-                    if (res.success && res.data?.isLive) {
-                        const { liveLatitude: lat, liveLongitude: lng } = res.data;
-                        if (lat && lng) {
-                            // Update as if it came from socket
-                            // (We trigger the same logic as socket receive here or similar)
-                             const newPos = { lat, lng };
-                             setNgoPos(newPos);
-                             setInterpolatedPos(newPos);
-                             ngoPosRef.current = newPos;
-                             setNgoOnline(true);
-                             lastUpdateRef.current = Date.now();
-                        }
-                    }
-                } catch (e) {
-                    console.error("[WS-DEBUG] Fallback failed:", e);
-                }
-            }
-        }, 10000);
+        const fetchInitialOrPoll = async () => {
+             // If we already have a live socket update, we don't need to force a REST poll unless we stall
+             if (ngoOnline && connected && (Date.now() - lastUpdateRef.current < 10000)) return;
 
-        return () => clearInterval(fallbackInterval);
+             console.log("[WS-DEBUG] Fetching location from API...");
+             try {
+                 const res = await getRequest(`/api/donations/live-location?donationId=${donationId}`);
+                 if (res.success && res.data?.isLive) {
+                     const { liveLatitude: lat, liveLongitude: lng, ngoName: name } = res.data;
+                     if (lat && lng) {
+                          const newPos = { lat, lng };
+                          setNgoPos(newPos);
+                          setNgoOnline(true);
+                          setConnectionLost(false);
+                          if (name) setNgoName(name);
+
+                          if (!ngoPosRef.current) {
+                              ngoPosRef.current = newPos;
+                              setInterpolatedPos(newPos);
+                          }
+                          lastUpdateRef.current = new Date(res.data.liveLocationUpdatedAt).getTime();
+                          setLastUpdateSec(res.data.ageSeconds || 0);
+                     }
+                 }
+             } catch (e) {
+                 console.error("[WS-DEBUG] Initial/Fallback fetch failed:", e);
+             }
+        };
+
+        fetchInitialOrPoll(); // Run immediately on mount or when connected state changes
+        const interval = setInterval(fetchInitialOrPoll, 10000);
+
+        return () => clearInterval(interval);
     }, [donationId, connected, ngoOnline]);
 
 
@@ -287,56 +295,7 @@ export default memo(function LiveTrackingMap({
         };
     }, [donationId, session, pickupPos, shouldFollow]); // Added pickupPos and shouldFollow as they are used in the Receive Location listener
 
-    // ── Hybrid Tracking Fallback (REST Polling) ──────────────────────
-    useEffect(() => {
-        const pollLocation = async () => {
-            if (ngoOnline && connected) return;
 
-            try {
-                const res = await fetch(`/api/donations/live-location?donationId=${donationId}`);
-                if (!res.ok) return;
-                const data = await res.json();
-                if (data.success && data.data?.isLive) {
-                    const { liveLatitude: lat, liveLongitude: lng, ngoName: name } = data.data;
-                    if (typeof lat !== 'number' || typeof lng !== 'number') {
-                        console.warn("[Tracking-Fallback] Invalid coordinates received:", { lat, lng });
-                        return;
-                    }
-
-                    const newPos = { lat, lng };
-                    
-                    setNgoPos(newPos);
-                    setNgoOnline(true);
-                    setConnectionLost(false);
-                    if (name) setNgoName(name);
-
-                    // Step 8: Update Map centering/bounds during polling too
-                    if (shouldFollow && mapRef.current) {
-                        const bounds = new google.maps.LatLngBounds();
-                        bounds.extend(pickupPos);
-                        bounds.extend(newPos);
-                        mapRef.current.fitBounds(bounds, { top: 100, bottom: 250, left: 50, right: 50 });
-                    }
-
-                    // Ensure marker shows up even if it was just loaded via polling
-                    if (!ngoPosRef.current) {
-                        ngoPosRef.current = newPos;
-                        setInterpolatedPos(newPos);
-                    }
-
-                    lastUpdateRef.current = new Date(data.data.liveLocationUpdatedAt).getTime();
-                    setLastUpdateSec(data.data.ageSeconds || 0);
-                }
-            } catch (err) {
-                console.warn("[Tracking-Fallback] DB Poll failed:", err);
-            }
-        };
-
-        pollLocation();
-        const pollInterval = setInterval(pollLocation, 10000);
-
-        return () => clearInterval(pollInterval);
-    }, [donationId, ngoOnline, connected, ngoPos, setNgoPos, setNgoOnline, setConnectionLost, setNgoName, setLastUpdateSec]);
 
     const statusInfo = STATUS_LABELS[liveStatus] || { label: "Tracking active", color: "text-indigo-600" };
 
@@ -476,12 +435,18 @@ export default memo(function LiveTrackingMap({
                             {/* Feature 3: NGO Live Tracking Moving Marker — Vehicle Hub */}
                             {interpolatedPos && (
                                 <Marker
-                                    position={interpolatedPos}
+                                    position={
+                                        // Visual Offset if perfectly overlapping with Home icon
+                                        interpolatedPos.lat === pickupPos.lat && interpolatedPos.lng === pickupPos.lng
+                                            ? { lat: interpolatedPos.lat + 0.00005, lng: interpolatedPos.lng + 0.00005 }
+                                            : interpolatedPos
+                                    }
                                     icon={typeof google !== 'undefined' ? {
                                         url: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png',
                                         scaledSize: new google.maps.Size(45, 45),
                                         anchor: new google.maps.Point(22, 22),
                                     } : undefined}
+                                    zIndex={1000} // Ensure it's above the home icon
                                     title={ngoName}
                                 />
                             )}
