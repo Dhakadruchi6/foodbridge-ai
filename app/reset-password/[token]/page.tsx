@@ -6,18 +6,34 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Lock, ArrowRight, Loader2, AlertCircle, CheckCircle2, ShieldCheck } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function ResetPasswordPage() {
     const params = useParams();
-    const rt = (Array.isArray(params.rt) ? params.rt[0] : params.rt) || "";
-    // Note: the backend API expects 'token', so we'll pass 'rt' as 'token'
-    const token = rt;
+    const token = typeof params.token === 'string' ? params.token : Array.isArray(params.token) ? params.token[0] : "";
     const router = useRouter();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [tokenValidating, setTokenValidating] = useState(true);
+    const [tokenInvalid, setTokenInvalid] = useState(false);
+
+    useEffect(() => {
+        if (!token) {
+            setTokenValidating(false);
+            setTokenInvalid(true);
+            return;
+        }
+        
+        postRequest("/api/auth/verify-reset-token", { token })
+            .then(res => {
+                if (!res.success) setTokenInvalid(true);
+            })
+            .catch(() => setTokenInvalid(true))
+            .finally(() => setTokenValidating(false));
+    }, [token]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,7 +52,7 @@ export default function ResetPasswordPage() {
         try {
             const res = await postRequest("/api/auth/reset-password", { token, password });
             if (res.success) {
-                setMessage("Security credentials updated. Redirecting to login...");
+                setMessage("Password updated successfully");
                 setTimeout(() => router.push("/login"), 3000);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,6 +63,33 @@ export default function ResetPasswordPage() {
         }
     };
 
+    if (tokenValidating) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            </div>
+        );
+    }
+    
+    if (tokenInvalid) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.05),transparent_500px)]">
+                <div className="max-w-md w-full glass-card rounded-[2.5rem] bg-white p-10 shadow-2xl text-center space-y-6">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-rose-50 mb-2">
+                        <AlertCircle className="w-8 h-8 text-rose-500" />
+                    </div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">Invalid or expired reset link</h1>
+                    <p className="text-slate-500 text-sm font-medium">
+                        This password reset link has expired or was already used. Please request a new link.
+                    </p>
+                    <Button onClick={() => router.push("/forgot-password")} className="w-full h-14 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800 transition-all">
+                        Back to Forgot Password
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.05),transparent_500px)]">
             <div className="max-w-md w-full space-y-8">
@@ -54,7 +97,7 @@ export default function ResetPasswordPage() {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-white shadow-xl mb-4">
                         <ShieldCheck className="w-8 h-8 text-blue-600" />
                     </div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Set New Keys</h1>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Reset Your Password</h1>
                     <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Update your security credentials for access</p>
                 </div>
 
@@ -63,7 +106,7 @@ export default function ResetPasswordPage() {
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
                                 <Lock className="w-3.5 h-3.5 mr-2" />
-                                New Security Key
+                                New Password
                             </label>
                             <Input
                                 type="password"
@@ -78,7 +121,7 @@ export default function ResetPasswordPage() {
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
                                 <Lock className="w-3.5 h-3.5 mr-2" />
-                                Confirm New Key
+                                Confirm Password
                             </label>
                             <Input
                                 type="password"
@@ -109,7 +152,7 @@ export default function ResetPasswordPage() {
                             disabled={loading || !!message}
                             className="w-full h-16 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-black shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center space-x-2"
                         >
-                            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <><span>Update Credentials</span> <ArrowRight className="w-5 h-5" /></>}
+                            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <><span>Update Password</span> <ArrowRight className="w-5 h-5" /></>}
                         </Button>
                     </form>
                 </div>
