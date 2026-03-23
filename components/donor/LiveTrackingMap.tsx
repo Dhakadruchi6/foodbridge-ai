@@ -169,8 +169,9 @@ export default memo(function LiveTrackingMap({
     useEffect(() => {
         if (!donationId) return;
 
-        const socket = io(window.location.origin, {
-            transports: ["websocket"], // Step 1: Force websocket for critical stability
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin;
+        const socket = io(socketUrl, {
+            transports: ["websocket"], // Step 3: Force websocket for critical stability
             reconnectionAttempts: 10,
             reconnectionDelay: 1500,
         });
@@ -378,7 +379,7 @@ export default memo(function LiveTrackingMap({
 
             {/* ── Google Map ───────────────────────────────────────────────── */}
             <div className="h-[420px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-lg relative z-0">
-                {/* Step 6: Connection Status Banner */}
+                {/* Step 7: Connection Status Banner — Dynamic logic */}
                 {!connected ? (
                     <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
                         <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col items-center space-y-4">

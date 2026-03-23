@@ -37,8 +37,9 @@ export function useWebSocketLocation({
     useEffect(() => {
         if (!donationId || !userId || !enabled) return;
 
-        const socket = io(window.location.origin, {
-            transports: ["websocket"], // Step 1: Force websocket for stability
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin;
+        const socket = io(socketUrl, {
+            transports: ["websocket"], // Step 3: Force websocket for stability
             reconnectionDelay: 1000,
             reconnectionAttempts: 10,
         });
