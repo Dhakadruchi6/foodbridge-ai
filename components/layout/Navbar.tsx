@@ -16,9 +16,7 @@ import {
     Cpu,
     Network,
     HandHeart,
-    MapPin,
-    User,
-    ChevronDown
+    MapPin
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 

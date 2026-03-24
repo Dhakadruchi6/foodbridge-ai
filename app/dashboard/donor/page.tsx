@@ -15,7 +15,6 @@ import {
   History,
   ChevronRight,
   Leaf,
-  Zap,
   Activity,
   LayoutDashboard,
   UserCircle,

@@ -19,8 +19,6 @@ import {
   Clock,
   ShieldCheck,
   ShieldAlert,
-  Hash,
-  AlertTriangle,
   Sparkles,
   Phone as PhoneIcon
 } from "lucide-react";

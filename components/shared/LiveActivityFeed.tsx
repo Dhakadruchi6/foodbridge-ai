@@ -19,13 +19,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || '';
 
-const iconMap = {
-    NEW_DONATION: <Package className="w-4 h-4 text-amber-500" />,
-    MISSION_ACCEPTED: <Handshake className="w-4 h-4 text-blue-500" />,
-    PICKUP_STARTED: <Truck className="w-4 h-4 text-indigo-500" />,
-    DELIVERY_COMPLETED: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
-    HUNGER_REPORT: <Megaphone className="w-4 h-4 text-rose-500" />
-};
+
 
 const emojiMap = {
     NEW_DONATION: "🍱",

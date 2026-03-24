@@ -19,7 +19,16 @@ export const GET = asyncHandler(async () => {
         .sort({ createdAt: -1 })
         .limit(5);
 
-    const activities: any[] = [];
+    interface Activity {
+        _id: string;
+        type: string;
+        title: string;
+        description: string;
+        timestamp: Date | string;
+        id: string;
+    }
+
+    const activities: Activity[] = [];
 
     // Map Hunger Reports
     latestHungerReports.forEach(report => {
