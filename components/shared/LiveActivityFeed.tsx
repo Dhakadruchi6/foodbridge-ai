@@ -6,11 +6,6 @@ import { getRequest } from '@/lib/apiClient';
 import { Activity } from '@/types';
 import { Button } from '@/components/ui/button';
 import { 
-    Package, 
-    Handshake, 
-    Truck, 
-    CheckCircle2, 
-    Megaphone,
     Zap,
     History
 } from 'lucide-react';
