@@ -20,7 +20,10 @@ import {
   Activity,
   Box,
   LayoutDashboard,
-  UserCircle
+  UserCircle,
+  Package2,
+  Utensils,
+  Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -159,28 +162,28 @@ export default function DonorDashboard() {
               {/* High-Performance Stats Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                  label="Asset Throughput"
-                  value={stats ? `${stats.activeSurplus} Units` : "--"}
-                  icon={<Box className="w-5 h-5 text-indigo-500" />}
-                  trend="Active Ledger"
+                  label="Total Donations"
+                  value={stats ? `${stats.totalDonations}` : "--"}
+                  icon={<Package2 className="w-5 h-5 text-indigo-500" />}
+                  trend="Food posts created"
                 />
                 <StatCard
-                  label="CO2 Mitigation"
-                  value={stats ? `${stats.co2}t` : "--"}
-                  icon={<Leaf className="w-5 h-5 text-emerald-500" />}
-                  trend="Carbon Impact"
+                  label="Meals Served"
+                  value={stats ? `${stats.mealsServed}` : "--"}
+                  icon={<Utensils className="w-5 h-5 text-emerald-500" />}
+                  trend="Successfully delivered"
                 />
                 <StatCard
-                  label="Entity Reach"
-                  value={stats ? "Connected" : "--"}
-                  icon={<Globe2 className="w-5 h-5 text-blue-500" />}
-                  trend="Regional Map"
+                  label="Active Missions"
+                  value={stats ? `${stats.activeMissions}` : "--"}
+                  icon={<Truck className="w-5 h-5 text-blue-500" />}
+                  trend="Currently in progress"
                 />
                 <StatCard
-                  label="Network Tier"
-                  value={(stats?.networkRank as string) || "Pro"}
-                  icon={<TrendingUp className="w-5 h-5 text-amber-500" />}
-                  trend="Efficiency Rank"
+                  label="Carbon Saved"
+                  value={stats ? `${stats.carbonSaved}kg` : "--"}
+                  icon={<Leaf className="w-5 h-5 text-amber-500" />}
+                  trend="Environmental impact"
                 />
               </div>
 

@@ -90,10 +90,12 @@ export interface HungerReport {
 }
 
 export interface AnalyticsSummary {
-    totalRecovered: number;
-    successRate: number;
+    totalDonations: number;
+    mealsServed: number;
     activeMissions: number;
-    [key: string]: any; // Allow for dynamic trend data safely
+    carbonSaved: number;
+    successRate: string;
+    [key: string]: any;
 }
 
 export interface AdminMetrics {

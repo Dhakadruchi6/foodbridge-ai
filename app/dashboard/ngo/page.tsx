@@ -23,7 +23,11 @@ import {
   Settings,
   ShieldCheck,
   TrendingUp,
-  Zap
+  Zap,
+  Package2,
+  Utensils,
+  Truck,
+  Leaf
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -241,28 +245,28 @@ export default function NGODashboard() {
           {/* High-Contrast Key Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatBlock
-              label="Fleet Throughput"
-              value={stats ? `${stats.totalRecovered}kg` : "--"}
-              icon={<Package className="w-5 h-5" />}
-              status="Live Feed"
+              label="Total Donations"
+              value={stats ? `${stats.totalDonations}` : "--"}
+              icon={<Package2 className="w-5 h-5" />}
+              status="Food posts created"
             />
             <StatBlock
-              label="Mission Success"
-              value={stats ? `${stats.successRate}%` : "--"}
-              icon={<ShieldCheck className="w-5 h-5" />}
-              status="Optimal"
-            />
-            <StatBlock
-              label="Recovery Matrix"
-              value={stats ? `${(Number(stats.totalRecovered) * 12).toLocaleString()}` : "--"}
-              icon={<TrendingUp className="w-5 h-5" />}
-              status="+12.4%"
+              label="Meals Served"
+              value={stats ? `${stats.mealsServed}` : "--"}
+              icon={<Utensils className="w-5 h-5" />}
+              status="Successfully delivered"
             />
             <StatBlock
               label="Active Missions"
-              value={stats?.activeMissions ? String(stats.activeMissions) : "0"}
-              icon={<Activity className="w-5 h-5" />}
-              status="Processing"
+              value={stats ? `${stats.activeMissions}` : "--"}
+              icon={<Truck className="w-5 h-5" />}
+              status="Currently in progress"
+            />
+            <StatBlock
+              label="Carbon Saved"
+              value={stats ? `${stats.carbonSaved}kg` : "--"}
+              icon={<Leaf className="w-5 h-5" />}
+              status="Environmental impact"
             />
           </div>
 
