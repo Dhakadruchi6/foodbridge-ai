@@ -93,15 +93,8 @@ export const LoginForm = () => {
             <label className="text-sm font-black text-gray-700 uppercase tracking-widest flex items-center justify-between">
               <div className="flex items-center">
                 <Lock className="w-4 h-4 mr-2 text-gray-500" />
-                Security Key
+                Password
               </div>
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-[10px] font-black text-primary hover:underline"
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
             </label>
             <div className="relative">
               <Input
@@ -112,9 +105,14 @@ export const LoginForm = () => {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </div>
+              </button>
             </div>
           </div>
         </div>

@@ -21,7 +21,9 @@ import {
   Phone,
   CheckCircle2,
   FileText,
-  Upload
+  Upload,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -64,6 +66,8 @@ export const RegisterForm = () => {
   const [debugOtp, setDebugOtp] = useState("");
   const [isSandbox, setIsSandbox] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -169,7 +173,7 @@ export const RegisterForm = () => {
     }
 
     if (formData.password.length < 6) {
-      setError("Security Key must be at least 6 characters long.");
+      setError("Password must be at least 6 characters long.");
       setLoading(false);
       return;
     }
@@ -347,22 +351,26 @@ export const RegisterForm = () => {
           />
 
           <InputField
-            label="Security Key"
+            label="Password"
             icon={<Lock className="w-4 h-4" />}
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             value={formData.password}
             onChange={(val) => setFormData({ ...formData, password: val })}
             className="reg-item"
+            togglePassword={() => setShowPassword(!showPassword)}
+            showPassword={showPassword}
           />
           <InputField
             label="Confirm Password"
             icon={<Lock className="w-4 h-4" />}
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             placeholder="••••••••"
             value={formData.confirmPassword}
             onChange={(val) => setFormData({ ...formData, confirmPassword: val })}
             className="reg-item"
+            togglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+            showPassword={showConfirmPassword}
           />
 
           {formData.role === "ngo" && (
@@ -375,15 +383,7 @@ export const RegisterForm = () => {
                 onChange={(val) => setFormData({ ...formData, ngoRegNo: val })}
                 className="reg-item"
               />
-              <InputField
-                label="Public Contact Phone"
-                icon={<Phone className="w-4 h-4" />}
-                type="tel"
-                placeholder="+1 555-0100"
-                value={formData.contactPhone}
-                onChange={(val) => setFormData({ ...formData, contactPhone: val })}
-                className="reg-item"
-              />
+
               <div className="space-y-3 reg-item">
                 <label className="text-xs font-black text-gray-600 uppercase tracking-widest flex items-center">
                   <span className="opacity-40 mr-2"><Globe className="w-4 h-4" /></span>
@@ -497,7 +497,29 @@ const RoleCard = ({ active, onClick, icon, title, desc }: { active: boolean; onC
   </button>
 );
 
-const InputField = ({ label, icon, placeholder, value, onChange, type = "text", className, action }: { label: string; icon: React.ReactNode; placeholder: string; value: string; onChange: (val: string) => void; type?: string; className?: string; action?: React.ReactNode }) => (
+const InputField = ({ 
+  label, 
+  icon, 
+  placeholder, 
+  value, 
+  onChange, 
+  type = "text", 
+  className, 
+  action,
+  togglePassword,
+  showPassword
+}: { 
+  label: string; 
+  icon: React.ReactNode; 
+  placeholder: string; 
+  value: string; 
+  onChange: (val: string) => void; 
+  type?: string; 
+  className?: string; 
+  action?: React.ReactNode;
+  togglePassword?: () => void;
+  showPassword?: boolean;
+}) => (
   <div className={cn("space-y-3", className)}>
     <div className="flex items-center justify-between">
       <label className="text-xs font-black text-gray-600 uppercase tracking-widest flex items-center">
@@ -515,9 +537,20 @@ const InputField = ({ label, icon, placeholder, value, onChange, type = "text", 
         onChange={(e) => onChange(e.target.value)}
         required
       />
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-        <Navigation className="w-5 h-5 text-gray-400" />
-      </div>
+      {togglePassword ? (
+        <button
+          type="button"
+          onClick={togglePassword}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+          aria-label={showPassword ? "Hide password" : "Show password"}
+        >
+          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+        </button>
+      ) : (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
+          <Navigation className="w-5 h-5 text-gray-400" />
+        </div>
+      )}
     </div>
   </div>
 );

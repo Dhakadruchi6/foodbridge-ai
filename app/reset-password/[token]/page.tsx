@@ -4,7 +4,7 @@ import { useState } from "react";
 import { postRequest } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Lock, ArrowRight, Loader2, AlertCircle, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Lock, ArrowRight, Loader2, AlertCircle, CheckCircle2, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -19,6 +19,8 @@ export default function ResetPasswordPage() {
     const [error, setError] = useState("");
     const [tokenValidating, setTokenValidating] = useState(true);
     const [tokenInvalid, setTokenInvalid] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     useEffect(() => {
         if (!token) {
@@ -108,14 +110,23 @@ export default function ResetPasswordPage() {
                                 <Lock className="w-3.5 h-3.5 mr-2" />
                                 New Password
                             </label>
-                            <Input
-                                type="password"
-                                placeholder="••••••••"
-                                className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
+                            <div className="relative">
+                                <Input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black pr-12"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -123,14 +134,23 @@ export default function ResetPasswordPage() {
                                 <Lock className="w-3.5 h-3.5 mr-2" />
                                 Confirm Password
                             </label>
-                            <Input
-                                type="password"
-                                placeholder="••••••••"
-                                className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                            />
+                            <div className="relative">
+                                <Input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    className="h-14 rounded-2xl bg-white border-2 border-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black pr-12"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
 
                         {error && (

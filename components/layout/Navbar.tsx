@@ -185,12 +185,12 @@ export const Navbar = () => {
                             <div className="hidden md:flex items-center space-x-2">
                                 <Link href="/login">
                                     <Button variant="ghost" className="h-10 px-5 font-black text-[10px] uppercase tracking-widest text-slate-600 hover:text-slate-900 transition-colors">
-                                        Auth Access
+                                        Login
                                     </Button>
                                 </Link>
                                 <Link href="/register">
                                     <Button className="h-11 px-8 rounded-xl bg-primary text-primary-foreground shadow-xl shadow-primary/20 font-black text-[10px] uppercase tracking-[0.2em] hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0 transition-all border border-primary">
-                                        Join Network
+                                        Register
                                     </Button>
                                 </Link>
                             </div>
@@ -243,7 +243,7 @@ export const Navbar = () => {
                                     <Button variant="outline" className="w-full h-12 font-black text-[10px] uppercase tracking-widest border-slate-200">Sign In</Button>
                                 </Link>
                                 <Link href="/register" onClick={() => setIsOpen(false)}>
-                                    <Button className="w-full h-12 bg-primary text-primary-foreground font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 border border-primary">Join Network</Button>
+                                    <Button className="w-full h-12 bg-primary text-primary-foreground font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 border border-primary">Register</Button>
                                 </Link>
                             </div>
                         )

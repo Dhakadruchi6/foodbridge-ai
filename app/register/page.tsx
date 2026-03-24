@@ -25,7 +25,7 @@ export default function RegisterPage() {
           </Link>
           <div className="text-center space-y-2">
             <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-none text-center">
-              Network <span className="text-primary italic font-serif opacity-80 pl-1">Onboarding</span>
+              Registration <span className="text-primary italic font-serif opacity-80 pl-1">Onboarding</span>
             </h1>
             <p className="text-slate-500 dark:text-slate-400 font-bold text-lg text-center">Join 500+ verified nodes in the global food recovery ecosystem</p>
           </div>

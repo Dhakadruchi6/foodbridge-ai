@@ -93,7 +93,7 @@ To run FoodBridge AI locally, follow these steps:
    # Database connection
    MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/dbname?retryWrites=true&w=majority
    
-   # Security Key for authentication
+   # Password for authentication
    JWT_SECRET=your_super_secret_jwt_key_here
    
    # Use Mock DB for testing (Optional, set to false for production)
