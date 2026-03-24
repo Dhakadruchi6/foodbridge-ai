@@ -91,18 +91,48 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
                 setError("Location found, but no address resolved. You can still use the pin.");
             }
         } catch (err: unknown) {
-            console.error("Geocoding failed:", err);
-            // Handle specific Google Maps error codes if they exist in the error object
+            console.error("Google Geocoding failed, trying Nominatim fallback...", err);
+            
+            // --- Fallback to Nominatim (OpenStreetMap) ---
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+                );
+                const data = await res.json();
+                
+                if (data && data.display_name) {
+                    const formattedAddress = data.display_name;
+                    const city = data.address?.city || data.address?.town || data.address?.village || data.address?.suburb || "Unknown City";
+                    const state = data.address?.state || "Unknown State";
+                    const pincode = data.address?.postcode || "000000";
+
+                    setAddress(formattedAddress);
+                    onLocationSelect({ 
+                        lat, 
+                        lng, 
+                        address: formattedAddress, 
+                        city, 
+                        state, 
+                        pincode 
+                    });
+                    setError("");
+                    setSuccess(true);
+                    setTimeout(() => setSuccess(false), 3000);
+                    return;
+                }
+            } catch (fallbackErr) {
+                console.error("Nominatim fallback also failed:", fallbackErr);
+            }
+
+            // If everything fails, handle specific Google Maps error codes original logic
             const errorObj = err as { code?: string; status?: string };
             const status = errorObj?.code || errorObj?.status || "ERROR";
             if (status === "ZERO_RESULTS") {
                 setError("No address found for this exact spot. Try moving the pin slightly.");
             } else if (status === "OVER_QUERY_LIMIT") {
-                setError("Maps quota exceeded. Please try again in a moment.");
-            } else if (status === "REQUEST_DENIED") {
-                setError("Geocoding API is disabled or denied. Please check API configuration.");
+                setError("Maps quota exceeded. Using fallback positioning.");
             } else {
-                setError("Failed to resolve address. You can still use the marker pin.");
+                setError("Failed to resolve address. You can still use the marker pin manually.");
             }
         }
     }, [onLocationSelect]);
