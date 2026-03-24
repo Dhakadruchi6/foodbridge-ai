@@ -50,7 +50,7 @@ export const GET = asyncHandler(async (req: Request) => {
         
         const totalKg = deliveries
             .filter(d => d.status === 'completed' || d.status === 'delivered')
-            .reduce((acc, d: any) => acc + parseQuantity(d.donationId?.quantity || "0"), 0);
+            .reduce((acc, d: { donationId?: { quantity?: string } }) => acc + parseQuantity(d.donationId?.quantity || "0"), 0);
         
         const mealsServed = Math.round(totalKg * 2);
         const activeMissions = deliveries.filter(d => ['accepted', 'on_the_way', 'arrived', 'collected'].includes(d.status)).length;

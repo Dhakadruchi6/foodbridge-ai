@@ -10,15 +10,12 @@ import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  TrendingUp,
   Plus,
   History,
   ChevronRight,
   Leaf,
-  Globe2,
   Zap,
   Activity,
-  Box,
   LayoutDashboard,
   UserCircle,
   Package2,

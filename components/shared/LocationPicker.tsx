@@ -90,10 +90,11 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
             } else {
                 setError("Location found, but no address resolved. You can still use the pin.");
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Geocoding failed:", err);
             // Handle specific Google Maps error codes if they exist in the error object
-            const status = err?.code || err?.status || "ERROR";
+            const errorObj = err as { code?: string; status?: string };
+            const status = errorObj?.code || errorObj?.status || "ERROR";
             if (status === "ZERO_RESULTS") {
                 setError("No address found for this exact spot. Try moving the pin slightly.");
             } else if (status === "OVER_QUERY_LIMIT") {
