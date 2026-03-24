@@ -21,16 +21,13 @@ import {
   ShieldAlert,
   Hash,
   AlertTriangle,
-  Sparkles
+  Sparkles,
+  Phone as PhoneIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LocationPicker } from "@/components/shared/LocationPicker";
 
-// --- Feature 1: Generate Verification Code ---
-function generateVerificationCode(): string {
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `FOD-${num}`;
-}
+
 
 export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const { broadcastActivity } = useActivityBroadcast();
@@ -44,6 +41,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
     state: "",
     pincode: "",
     description: "",
+    phone: "",
     latitude: null as number | null,
     longitude: null as number | null
   });
@@ -53,8 +51,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // --- Feature 1 & 3: Verification Code State ---
-  const [verificationCode] = useState<string>(generateVerificationCode);
+
 
   // --- Feature 6: EXIF Status ---
   const [exifStatus, setExifStatus] = useState<'none' | 'present' | 'suspicious'>('none');
@@ -96,7 +93,13 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
 
     // --- Client Side Validation ---
     if (!imageFile) {
-      setError("A photo of the food with the verification code is required.");
+      setError("A photo of the food is required for AI verification.");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.phone || formData.phone.length < 10) {
+      setError("Please enter a valid contact number.");
       setLoading(false);
       return;
     }
@@ -188,7 +191,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
         latitude: formData.latitude,
         longitude: formData.longitude,
         foodImage: finalImageUrl,
-        verificationCode: verificationCode,
+        phone: formData.phone,
         imageVerification: {
           aiConfidence: finalConfidence,
           aiCategory: finalCategoryName,
@@ -266,24 +269,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
 
       <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-8">
 
-        {/* --- Feature 1 & 3: Verification Code Banner --- */}
-        <div className="relative bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10 border-2 border-dashed border-primary/30 rounded-2xl p-6 space-y-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Hash className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Verification Code</p>
-              <p className="text-3xl font-black text-primary tracking-wider">{verificationCode}</p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-2 mt-3 p-3 bg-white/60 dark:bg-slate-800/60 rounded-xl">
-            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs font-bold text-slate-600 dark:text-slate-300 leading-relaxed">
-              <span className="text-amber-600 dark:text-amber-400 font-black">Required:</span> Write this code on a piece of paper and place it next to the food while taking the photo. This prevents the use of downloaded or old images.
-            </p>
-          </div>
-        </div>
+
 
         {/* --- Feature 2 & 3: Camera Capture with Instructions --- */}
         <div className="space-y-4">
@@ -305,7 +291,7 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
                 >
                   <Camera className="w-8 h-8 mb-2 opacity-50" />
                   <span className="text-xs font-black uppercase tracking-wider">Tap to Capture Photo</span>
-                  <span className="text-[10px] font-bold opacity-60 mt-1">Make sure <span className="text-primary font-black">{verificationCode}</span> is visible in the photo</span>
+                  <span className="text-[10px] font-bold opacity-60 mt-1">Ensure the food is clearly visible for AI safety check</span>
                 </div>
               ) : (
                 <div className="relative w-full h-48 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 group">
@@ -398,6 +384,17 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
               className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
               value={formData.expiryDate}
               onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+              required
+            />
+          </FormGroup>
+
+          <FormGroup label="Point of Contact (Mobile)" icon={<PhoneIcon className="w-4 h-4" />} hint="NGOs will use this to coordinate the pickup">
+            <Input
+              type="tel"
+              placeholder="e.g. +91 98765 43210"
+              className="h-12 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-primary/5 transition-all font-black text-xs text-slate-900 dark:text-white"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               required
             />
           </FormGroup>

@@ -32,10 +32,11 @@ export const POST = asyncHandler(async (req: Request) => {
     latitude,
     longitude,
     verificationCode,
-    imageVerification
+    imageVerification,
+    phone
   } = body;
 
-  if (!foodType || !quantity || !expiryTime || !pickupAddress || !city || !preparedTime || !foodImage) {
+  if (!foodType || !quantity || !expiryTime || !pickupAddress || !city || !preparedTime || !foodImage || !phone) {
     return errorResponse('Missing required fields', 400);
   }
 
@@ -43,6 +44,7 @@ export const POST = asyncHandler(async (req: Request) => {
     donorId: userId,
     foodType,
     quantity,
+    phone,
     expiryTime,
     preparedTime,
     foodImage,

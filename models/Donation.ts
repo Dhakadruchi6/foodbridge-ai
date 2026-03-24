@@ -14,6 +14,10 @@ const DonationSchema = new Schema({
     type: String,
     required: true,
   },
+  phone: {
+    type: String,
+    required: true,
+  },
   foodImage: {
     type: String,
     required: true,
