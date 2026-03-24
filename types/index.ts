@@ -98,6 +98,15 @@ export interface AnalyticsSummary {
     [key: string]: any;
 }
 
+export interface Activity {
+    _id: string;
+    type: "NEW_DONATION" | "MISSION_ACCEPTED" | "PICKUP_STARTED" | "DELIVERY_COMPLETED" | "HUNGER_REPORT";
+    title: string;
+    description: string;
+    timestamp: string;
+    id: string; // Original entity ID (donationId or reportId)
+}
+
 export interface AdminMetrics {
     totalDonations: number;
     activeNGOs: number;

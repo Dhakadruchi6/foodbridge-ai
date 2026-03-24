@@ -6,6 +6,7 @@ import { CheckCircle2, Truck, Package, Loader2, ShieldCheck, Wifi, WifiOff, MapP
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useWebSocketLocation } from "@/hooks/useWebSocketLocation";
+import { useActivityBroadcast } from "@/hooks/useActivityBroadcast";
 import { useSession } from "next-auth/react";
 
 export type DeliveryStatus = "pending" | "accepted" | "on_the_way" | "arrived" | "collected" | "delivered" | "completed" | "rejected";
@@ -103,6 +104,7 @@ export const DeliveryStatusUpdater = ({
     onStatusUpdate?: (newStatus: DeliveryStatus) => void;
     donationId?: string;
 }) => {
+    const { broadcastActivity } = useActivityBroadcast();
     const { data: session } = useSession();
     const [status, setStatus] = useState<DeliveryStatus>(currentStatus);
     const [loading, setLoading] = useState(false);
@@ -137,6 +139,23 @@ export const DeliveryStatusUpdater = ({
                 // Broadcast status to donor via WebSocket instantly
                 const nextStep = steps.find(s => s.key === next);
                 if (nextStep) emitStatus(nextStep.wsStatus);
+
+                // --- Feature 6: Real-time Activity Broadcast ---
+                if (next === 'on_the_way') {
+                    broadcastActivity({
+                        type: "PICKUP_STARTED",
+                        title: "Pickup Started",
+                        description: `A rescue vehicle is on the way for a pickup mission`,
+                        id: deliveryId
+                    });
+                } else if (next === 'completed' || next === 'delivered') {
+                    broadcastActivity({
+                        type: "DELIVERY_COMPLETED",
+                        title: "Food Delivered",
+                        description: `Successfully delivered food assets to the destination`,
+                        id: deliveryId
+                    });
+                }
 
                 setSuccess(`Status updated to "${steps.find(s => s.key === next)?.label}"!`);
                 setTimeout(() => setSuccess(""), 3000);

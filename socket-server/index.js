@@ -58,6 +58,18 @@ io.on("connection", (socket) => {
         io.to(data.donationId).emit("status-changed", data);
     });
 
+    // Join public activity feed
+    socket.on("join-public-feed", () => {
+        socket.join("public-feed");
+        console.log(`[SOCKET] Socket ${socket.id} joined public feed`);
+    });
+
+    // Broadcast new activity to everyone in public feed
+    socket.on("broadcast-activity", (activity) => {
+        console.log(`[SOCKET] New Activity:`, activity.type, activity.title);
+        io.to("public-feed").emit("new-activity", activity);
+    });
+
     socket.on("disconnect", () => {
         console.log(`[SOCKET] User disconnected: ${socket.id}`);
     });

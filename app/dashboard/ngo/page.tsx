@@ -10,6 +10,7 @@ import { IncomingRequests } from '@/components/ngo/IncomingRequests';
 import { CertificationModal } from "@/components/ngo/CertificationModal";
 import { NotificationBell } from "@/components/donor/NotificationBell";
 import HungerRequests from "@/components/ngo/HungerRequests";
+import { LiveActivityFeed } from "@/components/shared/LiveActivityFeed";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -332,22 +333,8 @@ export default function NGODashboard() {
                   </div>
                 </div>
 
-                <div className="bg-slate-900 rounded-[1.25rem] p-8 text-white relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                    <ShieldCheck className="w-20 h-20" />
-                  </div>
-                  <div className="relative z-10 space-y-4">
-                    <h4 className="text-lg font-black">Mission Integrity</h4>
-                    <p className="text-slate-400 text-xs font-medium leading-relaxed">
-                      All data points in this perimeter are verified for safety compliance and source authenticity.
-                    </p>
-                    <Button
-                      onClick={() => setIsCertModalOpen(true)}
-                      className="h-10 px-5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-md transition-all"
-                    >
-                      View Certifications
-                    </Button>
-                  </div>
+                <div id="tour-live-feed">
+                  <LiveActivityFeed />
                 </div>
               </div>
             </div>

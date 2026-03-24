@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { postRequest } from "@/lib/apiClient";
+import { useActivityBroadcast } from "@/hooks/useActivityBroadcast";
 import {
   Package,
   Calendar,
@@ -32,6 +33,7 @@ function generateVerificationCode(): string {
 }
 
 export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) => {
+  const { broadcastActivity } = useActivityBroadcast();
   const [formData, setFormData] = useState({
     foodItem: "",
     quantity: "",
@@ -200,6 +202,14 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
 
       const result = await postRequest("/api/donations/create", payload);
       if (result.success) {
+        // --- Feature 6: Real-time Activity Broadcast ---
+        broadcastActivity({
+          type: "NEW_DONATION",
+          title: "New Donation Posted",
+          description: `${formData.foodItem} posted in ${formData.city}`,
+          id: result.data?._id || ""
+        });
+
         setSuccess(true);
         setTimeout(() => {
           onSuccess?.();

@@ -134,7 +134,7 @@ export const LoginForm = () => {
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
               <>
-                <span>Secure Sign In</span>
+                <span>Secure Login</span>
                 <ArrowRight className="w-6 h-6" />
               </>
             )}
@@ -161,7 +161,7 @@ export const LoginForm = () => {
             Need a partner account? <a href="/register" className="text-primary hover:underline underline-offset-4 font-black">Register here</a>
           </div>
           <a href="/forgot-password" className="text-slate-400 hover:text-primary transition-colors text-xs uppercase tracking-widest font-black">
-            Trouble logging in? Reset Keys
+            Trouble logging in? Reset Password
           </a>
         </div>
       </form>

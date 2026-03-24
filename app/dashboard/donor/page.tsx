@@ -7,6 +7,7 @@ import { MyDonations } from "@/components/donor/MyDonations";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { NotificationBell } from "@/components/donor/NotificationBell";
 import { OnboardingTour } from "@/components/shared/OnboardingTour";
+import { LiveActivityFeed } from "@/components/shared/LiveActivityFeed";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -200,33 +201,8 @@ export default function DonorDashboard() {
                 </div>
 
                 <div className="lg:col-span-4 space-y-8">
-                  <div className="bg-slate-900 rounded-2xl p-8 text-white relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                      <Zap className="w-20 h-20" />
-                    </div>
-                    <div className="relative z-10 space-y-6">
-                      <h4 className="text-lg font-black tracking-tight">Network Pulses</h4>
-                      <div className="space-y-4">
-                        {[
-                          { name: "Global Relief", action: "Active Search", time: "2m" },
-                          { name: "Urban Harvest", action: "Matched #201", time: "15m" },
-                        ].map((pulse, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-black">{pulse.name[0]}</div>
-                              <div className="space-y-0.5">
-                                <p className="text-[11px] font-black">{pulse.name}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{pulse.action}</p>
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-500">{pulse.time}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <Button variant="ghost" className="w-full h-11 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-                        Full Activity Logistics
-                      </Button>
-                    </div>
+                  <div id="tour-live-feed">
+                    <LiveActivityFeed />
                   </div>
                 </div>
               </div>

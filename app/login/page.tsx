@@ -24,7 +24,7 @@ export default function LoginPage() {
           </Link>
           <div className="text-center space-y-2">
             <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
-              Operational <span className="text-primary italic font-serif opacity-80 pl-1">Access</span>
+              Login <span className="text-primary italic font-serif opacity-80 pl-1">Access</span>
             </h1>
             <p className="hero-desc text-lg sm:text-2xl text-slate-600 dark:text-slate-400 font-bold leading-relaxed max-w-2xl text-balance">
               Automated food redistribution powered by AI. Connecting corporate surplus with verified NGOs in real-time.

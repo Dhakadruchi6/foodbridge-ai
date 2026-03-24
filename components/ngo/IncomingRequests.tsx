@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getRequest, postRequest } from "@/lib/apiClient";
+import { useActivityBroadcast } from "@/hooks/useActivityBroadcast";
 import {
     Clock,
     Check,
@@ -35,6 +36,7 @@ interface Request {
 }
 
 export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
+    const { broadcastActivity } = useActivityBroadcast();
     const [requests, setRequests] = useState<Request[]>([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
@@ -74,6 +76,15 @@ export const IncomingRequests = ({ onAction }: { onAction?: () => void }) => {
         try {
             const result = await postRequest("/api/donations/accept", { donationId });
             if (result.success) {
+                // --- Feature 6: Real-time Activity Broadcast ---
+                const acceptedReq = requests.find(r => r.donationId?._id === donationId);
+                broadcastActivity({
+                    type: "MISSION_ACCEPTED",
+                    title: "NGO Accepted Request",
+                    description: `An NGO partner accepted the mission for ${acceptedReq?.donationId?.foodType || 'food assets'}`,
+                    id: donationId
+                });
+
                 setAcceptedId(donationId);
                 // Smart UI Update: Filter and Notify dashboard
                 setTimeout(() => {

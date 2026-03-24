@@ -9,8 +9,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useActivityBroadcast } from "@/hooks/useActivityBroadcast";
 
 export default function ReportHungerPage() {
+    const { broadcastActivity } = useActivityBroadcast();
     const [loading, setLoading] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -83,8 +85,17 @@ export default function ReportHungerPage() {
         setLoading(true);
         try {
             const res = await postRequest("/api/hunger-reports", formData);
-            if (res.success) setSuccess(true);
-            else setError(res.message || "Something went wrong. Please try again.");
+            if (res.success) {
+                // --- Feature 6: Real-time Activity Broadcast ---
+                broadcastActivity({
+                    type: "HUNGER_REPORT",
+                    title: "Hunger Request Raised",
+                    description: `A new request for ${formData.quantity} servings/kg at ${formData.locationName || 'nearby location'}`,
+                    id: res.data?._id || ""
+                });
+
+                setSuccess(true);
+            } else setError(res.message || "Something went wrong. Please try again.");
         } catch {
             setError("Failed to submit request. Please check your connection.");
         } finally {
