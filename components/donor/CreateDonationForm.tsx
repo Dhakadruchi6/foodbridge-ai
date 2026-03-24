@@ -250,21 +250,21 @@ export const CreateDonationForm = ({ onSuccess }: { onSuccess?: () => void }) =>
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-slate-900 dark:bg-slate-950 p-10 text-white relative overflow-hidden group">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700 rounded-[1.5rem] sm:rounded-2xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 w-full max-w-4xl mx-auto">
+      <div className="bg-slate-900 dark:bg-slate-950 p-6 sm:p-10 text-white relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
-          <Box className="w-32 h-32" />
+          <Box className="w-24 h-24 sm:w-32 sm:h-32" />
         </div>
-        <div className="relative z-10 space-y-2">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center mb-4">
+        <div className="relative z-10 space-y-2 text-center sm:text-left">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center mb-4 mx-auto sm:mx-0">
             <UtensilsIcon className="w-5 h-5 text-white" />
           </div>
-          <h3 className="text-2xl font-black tracking-tight">Donate Surplus Food</h3>
-          <p className="text-slate-400 font-bold text-sm">Tell us about the food you&apos;d like to donate. Our AI will verify it and match it to nearby NGOs.</p>
+          <h3 className="text-xl sm:text-2xl font-black tracking-tight">Donate Surplus Food</h3>
+          <p className="text-slate-400 font-bold text-xs sm:text-sm">Tell us about the food you&apos;d like to donate. Our AI will verify it and match it to nearby NGOs.</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-10 space-y-8">
+      <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-8">
 
         {/* --- Feature 1 & 3: Verification Code Banner --- */}
         <div className="relative bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10 border-2 border-dashed border-primary/30 rounded-2xl p-6 space-y-3">

@@ -69,8 +69,8 @@ export const LoginForm = () => {
   };
 
   return (
-    <div ref={formRef} className="glass-card rounded-[2.5rem] border-none p-10 lg:p-12 bg-white shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-16 -mt-16 group-hover:w-40 group-hover:h-40 transition-all duration-700" />
+    <div ref={formRef} className="glass-card rounded-[2rem] sm:rounded-[2.5rem] border-none p-6 sm:p-10 lg:p-12 bg-white shadow-2xl relative overflow-hidden group w-full max-w-[450px] mx-auto">
+      <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-primary/5 rounded-bl-full -mr-12 -mt-12 sm:-mr-16 sm:-mt-16 group-hover:w-40 group-hover:h-40 transition-all duration-700" />
 
       <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
         <div className="space-y-6">

@@ -360,7 +360,7 @@ export default memo(function LiveTrackingMap({
             )}
 
             {/* ── Google Map ───────────────────────────────────────────────── */}
-            <div className="h-[420px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-lg relative z-0">
+            <div className="h-[320px] sm:h-[420px] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl relative z-0">
                 {/* Step 7: Connection Status Banner — Dynamic logic */}
                 {!connected ? (
                     <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
@@ -370,10 +370,10 @@ export default memo(function LiveTrackingMap({
                         </div>
                     </div>
                 ) : (
-                    <div className="absolute top-20 right-4 z-10">
-                         <div className="bg-emerald-500/90 backdrop-blur px-3 py-1.5 rounded-full flex items-center space-x-2 border border-emerald-400/50 shadow-lg">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Live tracking active</span>
+                    <div className="absolute top-12 sm:top-20 right-4 z-10">
+                         <div className="bg-emerald-500/90 backdrop-blur px-3 py-1.5 rounded-full flex items-center space-x-2 border border-emerald-400/50 shadow-lg scale-90 sm:scale-100">
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse" />
+                            <span className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-widest">Live tracking active</span>
                          </div>
                     </div>
                 )}
@@ -454,7 +454,7 @@ export default memo(function LiveTrackingMap({
                         </GoogleMap>
 
                         {/* Floating Recenter & Track Controls */}
-                        <div className="absolute right-4 bottom-24 flex flex-col space-y-3 z-10">
+                        <div className="absolute right-4 bottom-16 sm:bottom-24 flex flex-col space-y-3 z-10">
                             <button
                                 onClick={() => {
                                     if (mapRef.current && (ngoPos || pickupPos)) {
@@ -462,20 +462,20 @@ export default memo(function LiveTrackingMap({
                                         mapRef.current.setZoom(16);
                                     }
                                 }}
-                                className="w-12 h-12 bg-white rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center text-slate-600 hover:text-indigo-600 active:scale-90 transition-all"
+                                className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl sm:rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center text-slate-600 hover:text-indigo-600 active:scale-90 transition-all"
                                 title="Recenter Map"
                             >
-                                <Target className="w-6 h-6" />
+                                <Target className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                             <button
                                 onClick={() => setShouldFollow(!shouldFollow)}
                                 className={cn(
-                                    "w-12 h-12 rounded-2xl shadow-xl border flex items-center justify-center transition-all active:scale-90",
+                                    "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl shadow-xl border flex items-center justify-center transition-all active:scale-90",
                                     shouldFollow ? "bg-indigo-600 border-indigo-500 text-white" : "bg-white border-slate-100 text-slate-400"
                                 )}
                                 title="Auto-Follow Agent"
                             >
-                                <Crosshair className="w-6 h-6" />
+                                <Crosshair className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>
                     </>

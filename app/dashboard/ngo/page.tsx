@@ -137,13 +137,13 @@ export default function NGODashboard() {
             onComplete={handleTourComplete}
           />
         )}
-        <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12 space-y-8 sm:space-y-12">
 
           {/* SaaS Navigation - Breadcrumbs */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="flex items-center space-x-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
               <Link href="/" className="flex items-center space-x-2 hover:text-primary transition-colors">
-                <div className="relative w-6 h-6">
+                <div className="relative w-5 h-5 sm:w-6 sm:h-6">
                   <Image
                     src="/logo.png"
                     alt="FoodBridge Logo"
@@ -156,12 +156,12 @@ export default function NGODashboard() {
               <ChevronRight className="w-3 h-3 opacity-50" />
               <span className="text-slate-900">Intelligence Hub</span>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-between w-full sm:w-auto sm:space-x-3">
               <Link id="tour-profile" href="/profile" className="flex items-center space-x-1.5 h-10 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-primary hover:border-primary/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
                 <Settings className="w-4 h-4" />
                 <span>My Profile</span>
               </Link>
-              <div id="tour-notifications">
+              <div id="tour-notifications" className="sm:ml-0">
                 <NotificationBell />
               </div>
             </div>
@@ -176,36 +176,36 @@ export default function NGODashboard() {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative z-10">
               <div className="space-y-4 flex-1">
                 {user && user.verificationStatus === 'pending' && (
-                  <div className="mb-6 p-6 bg-rose-50 border-2 border-rose-200 rounded-2xl flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-4 shadow-sm animate-pulse">
-                    <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
-                      <ShieldCheck className="w-6 h-6 text-rose-600" />
+                  <div className="mb-6 p-4 sm:p-6 bg-rose-50 border-2 border-rose-200 rounded-2xl flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-4 shadow-sm animate-pulse">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mx-auto sm:mx-0">
+                      <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" />
                     </div>
-                    <div>
-                      <h4 className="text-lg font-black text-rose-900 tracking-tight">Security Clearance Pending</h4>
-                      <p className="text-sm text-rose-700 font-bold leading-relaxed max-w-2xl">
+                    <div className="text-center sm:text-left">
+                      <h4 className="text-base sm:text-lg font-black text-rose-900 tracking-tight">Security Clearance Pending</h4>
+                      <p className="text-[11px] sm:text-sm text-rose-700 font-bold leading-relaxed max-w-2xl">
                         Your operational credentials are under review by Platform Administrators. You cannot accept any live food missions or broadcast locations until your submitted registration certificates and Government IDs are securely verified.
                       </p>
                     </div>
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <div className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-md flex items-center">
+                <div className="flex flex-wrap items-center gap-3 mb-2 justify-center lg:justify-start">
+                  <div className="px-2.5 py-1 bg-primary/10 text-primary text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-md flex items-center">
                     <Activity className="w-3 h-3 mr-1.5" /> Live Radar
                   </div>
-                  <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <div className="flex items-center text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     <CircleDot className="w-3 h-3 mr-1.5 text-emerald-500 animate-pulse" /> Scanning {scanRadius}km Zone
                   </div>
                   {user && (!user.latitude || !user.longitude) && (
-                    <Link href="/profile" className="px-2.5 py-1 bg-amber-500/10 text-amber-600 text-[10px] font-black uppercase tracking-widest rounded-md flex items-center hover:bg-amber-500/20 transition-colors">
+                    <Link href="/profile" className="px-2.5 py-1 bg-amber-500/10 text-amber-600 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-md flex items-center hover:bg-amber-500/20 transition-colors">
                       <MapPin className="w-3 h-3 mr-1.5" /> Location Missing — Update Profile
                     </Link>
                   )}
                 </div>
-                <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-[1.1]">
-                  Operational <span className="text-primary tracking-normal font-serif italic text-3xl opacity-80 pl-2">Visibility</span>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-[1.1] text-center lg:text-left">
+                  Operational <span className="text-primary tracking-normal font-serif italic text-2xl sm:text-3xl opacity-80 pl-2">Visibility</span>
                 </h1>
-                <p className="text-slate-500 font-medium text-lg max-w-lg leading-relaxed">
+                <p className="text-slate-500 font-medium text-base sm:text-lg max-w-lg leading-relaxed text-center lg:text-left mx-auto lg:mx-0">
                   Real-time surplus ingestion from verified donors. Optimized by prioritizing decay kinetics and mission proximity.
                 </p>
               </div>
@@ -270,11 +270,11 @@ export default function NGODashboard() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center space-x-6 pb-2 border-b border-slate-200/60">
+          <div className="flex items-center space-x-6 pb-2 border-b border-slate-200/60 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setSelectedTab("radar")}
               className={cn(
-                "text-xl font-black tracking-tight pb-3 transition-all relative",
+                "text-lg sm:text-xl font-black tracking-tight pb-3 transition-all relative whitespace-nowrap",
                 selectedTab === "radar" ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
               )}
             >
@@ -284,7 +284,7 @@ export default function NGODashboard() {
             <button
               onClick={() => setSelectedTab("hunger")}
               className={cn(
-                "text-xl font-black tracking-tight pb-3 transition-all relative flex items-center",
+                "text-lg sm:text-xl font-black tracking-tight pb-3 transition-all relative flex items-center whitespace-nowrap",
                 selectedTab === "hunger" ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
               )}
             >
@@ -366,9 +366,9 @@ export default function NGODashboard() {
 }
 
 const StatBlock = ({ label, value, icon, status }: { label: string, value: string, icon: React.ReactNode, status: string }) => (
-  <div className="premium-card p-6 rounded-xl space-y-4 flex flex-col justify-between group">
+  <div className="premium-card p-5 sm:p-6 rounded-xl space-y-4 flex flex-col justify-between group">
     <div className="flex items-center justify-between">
-      <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors">
+      <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors">
         <div className="text-slate-400 group-hover:text-primary transition-colors">
           {icon}
         </div>
@@ -378,7 +378,7 @@ const StatBlock = ({ label, value, icon, status }: { label: string, value: strin
       </div>
     </div>
     <div className="space-y-1">
-      <p className="text-3xl font-black text-slate-900 tracking-tighter leading-none">{value}</p>
+      <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">{value}</p>
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
     </div>
   </div>

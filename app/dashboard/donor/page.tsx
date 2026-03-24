@@ -73,13 +73,13 @@ export default function DonorDashboard() {
             onComplete={handleTourComplete}
           />
         )}
-        <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12 space-y-8 sm:space-y-12">
 
           {/* Unified Navigation - Breadcrumbs */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="flex items-center space-x-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
               <Link href="/" className="flex items-center space-x-2 hover:text-primary transition-colors">
-                <div className="relative w-6 h-6">
+                <div className="relative w-5 h-5 sm:w-6 sm:h-6">
                   <Image
                     src="/logo.png"
                     alt="FoodBridge Logo"
@@ -92,12 +92,12 @@ export default function DonorDashboard() {
               <ChevronRight className="w-3 h-3 opacity-50" />
               <span className="text-slate-900">Donor Control Station</span>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-between w-full sm:w-auto sm:space-x-3">
               <Link id="tour-profile" href="/profile" className="flex items-center space-x-1.5 h-10 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-primary hover:border-primary/30 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
                 <UserCircle className="w-4 h-4" />
                 <span>My Profile</span>
               </Link>
-              <div id="tour-notifications">
+              <div id="tour-notifications" className="sm:ml-0">
                 <NotificationBell />
               </div>
             </div>
@@ -105,25 +105,25 @@ export default function DonorDashboard() {
 
 
           {/* SaaS Header - Operational Control */}
-          <div className="relative group overflow-hidden bg-white border border-slate-200/60 rounded-2xl p-10 shadow-sm">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000">
+          <div className="relative group overflow-hidden bg-white border border-slate-200/60 rounded-2xl p-6 sm:p-10 shadow-sm">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000 hidden sm:block">
               <Plus className="w-64 h-64 text-slate-900" />
             </div>
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative z-10">
               <div className="space-y-4">
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-md flex items-center">
+                <div className="flex flex-wrap items-center gap-3 mb-2">
+                  <div className="px-2.5 py-1 bg-primary/10 text-primary text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-md flex items-center">
                     <History className="w-3 h-3 mr-1.5" /> Session Active
                   </div>
-                  <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <div className="flex items-center text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     <Activity className="w-3 h-3 mr-1.5 text-emerald-500 animate-pulse" /> Network Synchronized
                   </div>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-[1.1]">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tighter leading-[1.1]">
                   Resource <span className="text-primary italic font-serif opacity-80 pl-2">Orchestration</span>
                 </h1>
-                <p className="text-slate-500 font-medium text-lg max-w-lg leading-relaxed">
+                <p className="text-slate-500 font-medium text-base sm:text-lg max-w-lg leading-relaxed">
                   Register surplus assets and monitor their redistribution lifecycle across the humanitarian node network.
                 </p>
               </div>
@@ -222,9 +222,9 @@ export default function DonorDashboard() {
 }
 
 const StatCard = ({ label, value, icon, trend }: { label: string, value: string, icon: React.ReactNode, trend: string }) => (
-  <div className="premium-card p-6 rounded-xl flex flex-col justify-between group">
+  <div className="premium-card p-5 sm:p-6 rounded-xl flex flex-col justify-between group">
     <div className="flex items-center justify-between mb-4">
-      <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors">
+      <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors">
         <div className="transition-colors">
           {icon}
         </div>
@@ -232,7 +232,7 @@ const StatCard = ({ label, value, icon, trend }: { label: string, value: string,
       <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 group-hover:text-slate-500 transition-colors">{trend}</div>
     </div>
     <div className="space-y-1">
-      <p className="text-3xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">{value}</p>
+      <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter leading-none tabular-nums">{value}</p>
       <p className="text-[10px] font-bold text-slate-400 leading-tight uppercase tracking-widest">{label}</p>
     </div>
   </div>

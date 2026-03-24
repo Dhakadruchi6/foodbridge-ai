@@ -236,14 +236,14 @@ export const RegisterForm = () => {
   };
 
   return (
-    <div ref={formRef} className="glass-card rounded-[3rem] border-none p-10 lg:p-16 bg-white shadow-[0_32px_120px_-20px_rgba(0,0,0,0.1)] relative overflow-hidden">
-      <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-tr-full -ml-16 -mb-16 pointer-events-none" />
+    <div ref={formRef} className="glass-card rounded-[2rem] sm:rounded-[3rem] border-none p-6 sm:p-10 lg:p-16 bg-white shadow-[0_32px_120px_-20px_rgba(0,0,0,0.1)] relative overflow-hidden w-full max-w-4xl mx-auto">
+      <div className="absolute bottom-0 left-0 w-32 h-32 sm:w-48 sm:h-48 bg-primary/5 rounded-tr-full -ml-12 -mb-12 sm:-ml-16 sm:-mb-16 pointer-events-none" />
 
       <form onSubmit={handleSubmit} className="space-y-10 relative z-10">
         {/* Role Selection */}
         <div className="space-y-4 relative z-20">
-          <label className="text-xs font-black text-gray-600 uppercase tracking-widest text-center block">Access Tier Selection</label>
-          <div className="grid grid-cols-2 gap-4">
+          <label className="text-[10px] sm:text-xs font-black text-gray-600 uppercase tracking-widest text-center block">Access Tier Selection</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <RoleCard
               active={formData.role === "donor"}
               onClick={() => setFormData(prev => ({ ...prev, role: "donor" }))}
@@ -374,7 +374,7 @@ export const RegisterForm = () => {
           />
 
           {formData.role === "ngo" && (
-            <>
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
               <InputField
                 label="NGO Registration #"
                 icon={<ShieldCheck className="w-4 h-4" />}
@@ -416,7 +416,7 @@ export const RegisterForm = () => {
                   onChange={(file) => setDocs({ ...docs, idProof: file })}
                 />
               </div>
-            </>
+            </div>
           )}
 
           <div className="md:col-span-2 pt-6">

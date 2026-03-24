@@ -132,10 +132,10 @@ export default function ReportHungerPage() {
 
     return (
         <div className="min-h-screen saas-gradient">
-            <div className="max-w-2xl mx-auto px-6 py-24">
-                <div className="bg-white rounded-[3rem] p-10 md:p-14 shadow-2xl border border-slate-200/60 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-10 opacity-[0.03]">
-                        <Heart className="w-48 h-48 text-rose-500" />
+            <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12 sm:py-24">
+                <div className="bg-white rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 md:p-14 shadow-2xl border border-slate-200/60 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-6 sm:p-10 opacity-[0.03] hidden sm:block">
+                        <Heart className="w-32 h-32 sm:w-48 sm:h-48 text-rose-500" />
                     </div>
 
                     <div className="relative z-10 space-y-8">
@@ -145,10 +145,10 @@ export default function ReportHungerPage() {
                                 <AlertTriangle className="w-3.5 h-3.5" />
                                 <span>Emergency Food Request</span>
                             </div>
-                            <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">
+                            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter leading-none">
                                 Need <span className="text-rose-500">Food Help?</span>
                             </h1>
-                            <p className="text-slate-500 font-medium text-sm leading-relaxed">
+                            <p className="text-slate-500 font-medium text-xs sm:text-sm leading-relaxed">
                                 Fill in this form and nearby NGOs will be notified immediately to bring food to your location.
                             </p>
                         </div>

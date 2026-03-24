@@ -11,7 +11,14 @@ import {
     Menu,
     X,
     LayoutDashboard,
-    LogOut
+    LogOut,
+    Home,
+    Cpu,
+    Network,
+    HandHeart,
+    MapPin,
+    User,
+    ChevronDown
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -210,49 +217,97 @@ export const Navbar = () => {
                 </div>
             </div>
 
-            {/* Mobile Menu */}
+            {/* Mobile Menu - Enhanced Backdrop Overlay */}
             {isOpen && (
-                <div className="absolute top-full left-0 right-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shadow-2xl p-6 flex flex-col space-y-4 animate-in slide-in-from-top-2 duration-300 md:hidden">
-                    <div className="flex items-center justify-between py-2">
-                        <span className="font-black text-xs uppercase tracking-widest text-slate-500">Appearance</span>
-                        <ThemeToggle />
-                    </div>
-                    <Link href="/" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Home</Link>
-                    <Link href="/#technology" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Technology</Link>
-                    <Link href="/#impact" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-slate-900 dark:text-slate-100 py-2">Impact</Link>
-                    <Link href="/report-hunger" onClick={() => setIsOpen(false)} className="font-black text-xs uppercase tracking-widest text-rose-500 py-2">Report Hunger</Link>
-                    <hr className="border-slate-100" />
-
-                    {mounted && (
-                        user ? (
-                            <div className="grid grid-cols-2 gap-3 pt-2">
-                                <Link href={dashboardLink} onClick={() => setIsOpen(false)}>
-                                    <Button className="w-full h-12 bg-primary text-white font-black text-[10px] uppercase tracking-widest">Dashboard</Button>
-                                </Link>
-                                <Button
-                                    onClick={handleLogout}
-                                    variant="ghost"
-                                    className="w-full h-12 text-rose-500 font-black text-[10px] uppercase tracking-widest border border-rose-100 bg-rose-50"
-                                >
-                                    Logout Access
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-3 pt-2">
-                                <Link href="/login" onClick={() => setIsOpen(false)}>
-                                    <Button variant="outline" className="w-full h-12 font-black text-[10px] uppercase tracking-widest border-slate-200">Sign In</Button>
-                                </Link>
-                                <Link href="/register" onClick={() => setIsOpen(false)}>
-                                    <Button className="w-full h-12 bg-primary text-primary-foreground font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 border border-primary">Register</Button>
-                                </Link>
-                            </div>
-                        )
-                    )}
-                </div>
+                <div 
+                    className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 md:hidden"
+                    onClick={() => setIsOpen(false)}
+                />
             )}
+
+            {/* Mobile Menu - Side Drawer Style (Better UX) */}
+            <div className={cn(
+                "fixed top-0 right-0 bottom-0 w-[280px] bg-white dark:bg-slate-950 z-50 shadow-2xl transition-transform duration-300 ease-in-out md:hidden flex flex-col",
+                isOpen ? "translate-x-0" : "translate-x-full"
+            )}>
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span className="font-black text-xs uppercase tracking-widest text-slate-400">Navigation</span>
+                    <button 
+                        onClick={() => setIsOpen(false)}
+                        className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-2">
+                    <MobileNavLink href="/" icon={<Home className="w-4 h-4" />} onClick={() => setIsOpen(false)}>Home</MobileNavLink>
+                    <MobileNavLink href="/#technology" icon={<Cpu className="w-4 h-4" />} onClick={() => setIsOpen(false)}>Intelligence</MobileNavLink>
+                    <MobileNavLink href="/#network" icon={<Network className="w-4 h-4" />} onClick={() => setIsOpen(false)}>Network</MobileNavLink>
+                    <MobileNavLink href="/#impact" icon={<HandHeart className="w-4 h-4" />} onClick={() => setIsOpen(false)}>Impact</MobileNavLink>
+                    <MobileNavLink href="/report-hunger" icon={<MapPin className="w-4 h-4" />} onClick={() => setIsOpen(false)} variant="accent">Report Hunger</MobileNavLink>
+                    
+                    <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Theme</span>
+                            <ThemeToggle />
+                        </div>
+
+                        {mounted && (
+                            user ? (
+                                <div className="space-y-3">
+                                    <Link href={dashboardLink} onClick={() => setIsOpen(false)} className="block">
+                                        <Button className="w-full h-12 bg-primary text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20">
+                                            <LayoutDashboard className="w-4 h-4 mr-2" />
+                                            {dashboardLabel}
+                                        </Button>
+                                                                    </Link>
+                                    <Button
+                                        onClick={handleLogout}
+                                        variant="ghost"
+                                        className="w-full h-12 text-rose-500 font-black text-xs uppercase tracking-widest rounded-xl border border-rose-100 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-900/10 hover:bg-rose-100 transition-colors"
+                                    >
+                                        <LogOut className="w-4 h-4 mr-2" />
+                                        Log Out
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <Link href="/login" onClick={() => setIsOpen(false)} className="block">
+                                        <Button variant="outline" className="w-full h-12 border-slate-200 dark:border-slate-800 font-black text-xs uppercase tracking-widest rounded-xl">Sign In</Button>
+                                    </Link>
+                                    <Link href="/register" onClick={() => setIsOpen(false)} className="block">
+                                        <Button className="w-full h-12 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-xs uppercase tracking-widest rounded-xl shadow-lg">New Account</Button>
+                                    </Link>
+                                </div>
+                            )
+                        )}
+                    </div>
+                </div>
+
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">FoodBridge AI v2.0</p>
+                </div>
+            </div>
         </header>
     );
 };
+
+const MobileNavLink = ({ href, children, icon, onClick, variant }: { href: string; children: React.ReactNode; icon: React.ReactNode; onClick: () => void; variant?: "accent" }) => (
+    <Link 
+        href={href} 
+        onClick={onClick}
+        className={cn(
+            "flex items-center space-x-3 p-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.98]",
+            variant === "accent" 
+                ? "bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400" 
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white"
+        )}
+    >
+        <span className="opacity-70">{icon}</span>
+        <span>{children}</span>
+    </Link>
+);
 
 const NavLink = ({ href, children, active }: { href: string; children: React.ReactNode; active?: boolean }) => (
     <Link
