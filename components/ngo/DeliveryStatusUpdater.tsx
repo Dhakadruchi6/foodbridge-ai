@@ -227,12 +227,12 @@ export const DeliveryStatusUpdater = ({
                         {isConnected ? (
                             <>
                                 <Wifi className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
-                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">WebSocket Streaming Active</span>
+                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Live tracking active</span>
                             </>
                         ) : (
                             <>
                                 <WifiOff className="w-3.5 h-3.5 text-yellow-600" />
-                                <span className="text-[10px] font-black text-yellow-600 uppercase tracking-widest">Connecting to Socket...</span>
+                                <span className="text-[10px] font-black text-yellow-600 uppercase tracking-widest">Reconnecting...</span>
                             </>
                         )}
                     </div>

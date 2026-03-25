@@ -36,6 +36,7 @@ interface LiveTrackingMapProps {
     pickupLon: number;
     currentStatus?: string;
     onTrackingUpdate?: (data: { distance: string; duration: string; isNearby: boolean }) => void;
+    onStatusChange?: (status: string) => void;
 }
 
 const mapContainerStyle = {
@@ -49,6 +50,7 @@ export default memo(function LiveTrackingMap({
     pickupLon,
     currentStatus,
     onTrackingUpdate,
+    onStatusChange,
 }: LiveTrackingMapProps) {
     const { data: session } = useSession();
 
@@ -200,9 +202,10 @@ export default memo(function LiveTrackingMap({
 
         const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
         const socket = io(socketUrl, {
-            transports: ["websocket"], // Step 3: Force websocket for critical stability
-            reconnectionAttempts: 10,
-            reconnectionDelay: 1500,
+            transports: ["websocket"],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
         });
 
         socketRef.current = socket;
@@ -291,12 +294,15 @@ export default memo(function LiveTrackingMap({
             }, 10000); // 10s fallback threshold
         });
 
-        socket.on("status-changed", ({ status }) => {
-            setLiveStatus(status);
-            // Step 13: When ARRIVED, we can stop active tracking or transition UI
-            if (status === 'ARRIVED' || status === 'delivered') {
-                console.log("[WS-DEBUG] Mission reached terminal state, stopping tracking.");
-                setNgoOnline(false);
+        socket.on("status-updated", (data) => {
+            if (data.donationId === donationId || data.donationId === undefined) {
+                setLiveStatus(data.status);
+                onStatusChange?.(data.status);
+                // Step 13: When ARRIVED, we can stop active tracking or transition UI
+                if (data.status === 'ARRIVED' || data.status === 'DELIVERED' || data.status === 'COMPLETED') {
+                    console.log("[WS-DEBUG] Mission reached terminal state, stopping tracking.");
+                    setNgoOnline(false);
+                }
             }
         });
 

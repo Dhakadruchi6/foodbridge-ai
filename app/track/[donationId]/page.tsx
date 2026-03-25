@@ -33,6 +33,7 @@ export default function LiveTrackPage() {
     const donationId = params?.donationId as string;
     const [liveData, setLiveData] = useState<LiveData | null>(null);
     const [trackingStats, setTrackingStats] = useState({ distance: "...", duration: "...", isNearby: false });
+    const [currentStatus, setCurrentStatus] = useState<string>("ACCEPTED");
     const [ready, setReady] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -47,6 +48,7 @@ export default function LiveTrackPage() {
             const result = await getRequest(`/api/donations/live-location?donationId=${donationId}`);
             if (result.success) {
                 setLiveData(result.data);
+                if (result.data?.status) setCurrentStatus(result.data.status);
             }
         } catch {
             // Silently retry on next poll interval
@@ -113,7 +115,9 @@ export default function LiveTrackPage() {
                             donationId={donationId}
                             pickupLat={liveData.liveLatitude}
                             pickupLon={liveData.liveLongitude}
+                            currentStatus={currentStatus}
                             onTrackingUpdate={(stats) => setTrackingStats(stats)}
+                            onStatusChange={(newStatus) => setCurrentStatus(newStatus)}
                         />
                     ) : (
                         <div className="h-full w-full flex items-center justify-center bg-slate-900">
@@ -143,7 +147,9 @@ export default function LiveTrackPage() {
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                     </span>
-                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">NGO on the way</p>
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                                        {currentStatus.replace(/_/g, " ")}
+                                    </p>
                                 </div>
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                                     {trackingStats.duration || "Calculating..."}
