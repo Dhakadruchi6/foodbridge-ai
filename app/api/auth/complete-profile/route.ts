@@ -43,23 +43,26 @@ export async function POST(req: Request) {
             await NGOProfile.findOneAndUpdate(
                 { userId: user._id },
                 {
-                    ngoName: name,
-                    registrationNumber: ngoRegNo || 'Pending',
-                    address,
-                    city,
-                    state,
-                    pincode,
-                    latitude,
-                    longitude,
-                    contactPhone: phone,
-                    userId: user._id,
-                    description,
-                    certificateUrl: data.certificateUrl || '',
-                    idProofUrl: data.idProofUrl || '',
-                    isVerified: false,
-                    ngo_verified: false,
-                    verificationStatus: 'pending',
-                    status: 'pending',
+                    $set: {
+                        ngoName: name,
+                        registrationNumber: ngoRegNo || 'Pending',
+                        address,
+                        city,
+                        state,
+                        pincode,
+                        latitude,
+                        longitude,
+                        contactPhone: phone,
+                        description,
+                        certificateUrl: data.certificateUrl || '',
+                        idProofUrl: data.idProofUrl || '',
+                    },
+                    $setOnInsert: {
+                        isVerified: false,
+                        ngo_verified: false,
+                        verificationStatus: 'pending',
+                        status: 'pending',
+                    }
                 },
                 { upsert: true, new: true }
             );
