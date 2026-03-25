@@ -47,11 +47,12 @@ export const LiveActivityFeed = () => {
         fetchInitialActivity();
 
         // 2. Setup Socket
-        if (SOCKET_URL) {
-            const socket = io(SOCKET_URL, {
-                transports: ["websocket"],
-                reconnectionDelay: 1000
-            });
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
+        const socket = io(socketUrl, {
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+        });
 
             socket.on("connect", () => {
                 console.log("[FEED] Connected to socket");
@@ -72,7 +73,6 @@ export const LiveActivityFeed = () => {
             return () => {
                 socket.disconnect();
             };
-        }
     }, []);
 
     if (loading && activities.length === 0) {

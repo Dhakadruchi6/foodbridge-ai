@@ -175,7 +175,7 @@ const DonationCard = ({
               <Calendar className="w-3 h-3 mr-1.5 opacity-50" /> {donation.expiryTime ? new Date(donation.expiryTime).toLocaleDateString() : 'N/A'}
             </div>
             <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              <MapPin className="w-3 h-3 mr-1.5 opacity-50" /> {donation.city}
+              <MapPin className="w-3 h-3 mr-1.5 opacity-50" /> {donation.city?.toLowerCase() === 'unknown city' ? 'Location Set' : donation.city}
             </div>
           </div>
         </div>

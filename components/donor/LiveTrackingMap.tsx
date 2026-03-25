@@ -202,7 +202,6 @@ export default memo(function LiveTrackingMap({
 
         const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
         const socket = io(socketUrl, {
-            transports: ["websocket"],
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 1000

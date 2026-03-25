@@ -112,7 +112,7 @@ function LogisticsDashboardContent() {
                                 <Package className="w-6 h-6" />
                             </div>
                             <div>
-                                <span className="text-4xl font-black text-slate-900 block tracking-tighter">{stats ? `${stats.totalRecovered}kg` : "---"}</span>
+                                <span className="text-4xl font-black text-slate-900 block tracking-tighter">{stats ? `${stats.totalRecovered || 0}kg` : "---"}</span>
                                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Total Food Recovered</span>
                             </div>
                         </CardContent>
