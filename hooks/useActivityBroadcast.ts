@@ -4,15 +4,15 @@ import { useRef, useEffect, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { Activity } from "@/types";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "";
+const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
 
 export function useActivityBroadcast() {
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
-        if (!SOCKET_URL) return;
+        if (!socketUrl) return;
 
-        const socket = io(SOCKET_URL, {
+        const socket = io(socketUrl, {
             transports: ["websocket"],
             reconnectionDelay: 1000
         });

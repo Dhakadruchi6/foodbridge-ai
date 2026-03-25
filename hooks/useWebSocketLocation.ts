@@ -37,7 +37,7 @@ export function useWebSocketLocation({
     useEffect(() => {
         if (!donationId || !userId || !enabled) return;
 
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin;
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
         const socket = io(socketUrl, {
             transports: ["websocket"], // Step 3: Force websocket for stability
             reconnectionDelay: 1000,

@@ -12,7 +12,7 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || '';
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
 
 
 

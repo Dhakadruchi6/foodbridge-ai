@@ -28,6 +28,8 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 // ── Props & Config ────────────────────────────────────────────────────────────
 
+const MAPS_LIBRARIES: ("places")[] = ["places"];
+
 interface LiveTrackingMapProps {
     donationId: string;
     pickupLat: number;
@@ -54,7 +56,7 @@ export default memo(function LiveTrackingMap({
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-        libraries: ['places'] as any,
+        libraries: MAPS_LIBRARIES,
     });
 
     const [ngoPos, setNgoPos] = useState<{ lat: number, lng: number } | null>(null);
@@ -163,6 +165,24 @@ export default memo(function LiveTrackingMap({
             }
         } catch (error) {
             console.error("Directions query failed", error);
+            // Fallback straight-line distance calculation since Directions API might be disabled
+            const R = 6371; // Radius of the earth in km
+            const dLat = (dest.lat - origin.lat) * (Math.PI/180);
+            const dLon = (dest.lng - origin.lng) * (Math.PI/180);
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(origin.lat * (Math.PI/180)) * Math.cos(dest.lat * (Math.PI/180)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2); 
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            const distKm = R * c; // Distance in km
+            
+            if (onTrackingUpdate) {
+                onTrackingUpdate({
+                    distance: `~${distKm.toFixed(1)} km`,
+                    duration: `~${Math.max(1, Math.round(distKm * 3))} mins`,
+                    isNearby: distKm < 0.5
+                });
+            }
         }
     }, [isLoaded, onTrackingUpdate]);
 
@@ -178,7 +198,7 @@ export default memo(function LiveTrackingMap({
     useEffect(() => {
         if (!donationId) return;
 
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin;
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
         const socket = io(socketUrl, {
             transports: ["websocket"], // Step 3: Force websocket for critical stability
             reconnectionAttempts: 10,
