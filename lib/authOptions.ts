@@ -24,6 +24,15 @@ declare module "next-auth" {
     }
 }
 
+declare module "next-auth/jwt" {
+    interface JWT {
+        id?: string;
+        role?: string;
+        isProfileComplete?: boolean;
+        ngo_verified?: boolean;
+    }
+}
+
 export const authOptions: NextAuthOptions = {
     providers: [
         GoogleProvider({
@@ -71,10 +80,13 @@ export const authOptions: NextAuthOptions = {
             }
             return true;
         },
-        async jwt({ token, user }: { token: Record<string, unknown>; user?: { id: string; role: string } }) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async jwt({ token, user }: { token: any; user?: any }) {
             if (user) {
                 token.id = user.id;
                 token.role = user.role;
+                token.isProfileComplete = user.isProfileComplete;
+                token.ngo_verified = user.ngo_verified;
             }
             return token;
         },
