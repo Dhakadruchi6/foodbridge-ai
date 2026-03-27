@@ -38,10 +38,10 @@ export const PATCH = asyncHandler(async (req: Request) => {
       ngo = await NGOProfile.findOneAndUpdate(
         { userId: ngoId },
         {
-          verificationStatus: action === 'approve' ? 'approved' : 'rejected',
-          status: action === 'approve' ? 'approved' : 'rejected',
-          isVerified: action === 'approve',
-          ngo_verified: action === 'approve'
+          verificationStatus,
+          status: verificationStatus,
+          isVerified,
+          ngo_verified: isVerified
         },
         { new: true }
       );
@@ -49,14 +49,14 @@ export const PATCH = asyncHandler(async (req: Request) => {
         ngo = await NGOProfile.create({
           userId: ngoId,
           ngoName: user.name,
-          city: 'Not specified',
-          address: 'Not specified',
-          contactPhone: 'Not specified',
+          city: user.city || 'Not specified',
+          address: user.address || 'Not specified',
+          contactPhone: user.phone || 'Not specified',
           registrationNumber: 'Pending',
-          verificationStatus: action === 'approve' ? 'approved' : 'rejected',
-          status: action === 'approve' ? 'approved' : 'rejected',
-          isVerified: action === 'approve',
-          ngo_verified: action === 'approve',
+          verificationStatus,
+          status: verificationStatus,
+          isVerified,
+          ngo_verified: isVerified,
         });
       }
     } else {
