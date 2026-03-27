@@ -44,6 +44,7 @@ export const GET = asyncHandler(async (req: Request) => {
         ngoName: ngoProfile?.ngoName || '',
         registrationNumber: ngoProfile?.registrationNumber || '',
         verificationStatus: ngoProfile?.verificationStatus || null,
+        ngo_verified: ngoProfile?.ngo_verified || false,
         description: ngoProfile?.description || '',
         donationPreferences: user.donationPreferences || '',
         smsEnabled: user.smsEnabled ?? true,

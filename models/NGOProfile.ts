@@ -63,6 +63,13 @@ const NGOProfileSchema = new Schema({
   idProofUrl: {
     type: String,
   },
+  /**
+   * NGO Verification System - SINGLE SOURCE OF TRUTH
+   * ---------------------------------------------
+   * Use ONLY 'ngo_verified' for backend logic and authorization.
+   * 'verificationStatus', 'status', and 'isVerified' are kept for
+   * legacy UI compatibility but MUST always be synced with 'ngo_verified'.
+   */
   ngo_verified: {
     type: Boolean,
     default: false,

@@ -44,10 +44,14 @@ export const POST = asyncHandler(async (req: Request) => {
 
     if (action === 'approve') {
         profile.verificationStatus = 'approved';
+        profile.status = 'approved';
         profile.isVerified = true;
+        profile.ngo_verified = true;
     } else {
         profile.verificationStatus = 'rejected';
+        profile.status = 'rejected';
         profile.isVerified = false;
+        profile.ngo_verified = false;
         // Optional: Could send automated rejection email here
     }
 

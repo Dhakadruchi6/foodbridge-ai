@@ -175,7 +175,7 @@ export default function NGODashboard() {
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative z-10">
               <div className="space-y-4 flex-1">
-                {user && user.verificationStatus === 'pending' && (
+                {user && !user.ngo_verified && (
                   <div className="mb-6 p-4 sm:p-6 bg-rose-50 border-2 border-rose-200 rounded-2xl flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-4 shadow-sm animate-pulse">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mx-auto sm:mx-0">
                       <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" />

@@ -12,6 +12,7 @@ declare module "next-auth" {
             id: string;
             role: string;
             isProfileComplete: boolean;
+            ngo_verified: boolean;
         } & DefaultSession["user"];
     }
 
@@ -19,6 +20,7 @@ declare module "next-auth" {
         id: string;
         role: string;
         isProfileComplete: boolean;
+        ngo_verified: boolean;
     }
 }
 
@@ -89,7 +91,16 @@ export const authOptions: NextAuthOptions = {
                     if (dbUser) {
                         session.user.id = dbUser._id.toString();
                         session.user.role = dbUser.role;
+                        
+                        let ngo_verified = false;
+                        if (dbUser.role === 'ngo') {
+                            const NGOProfile = mongoose.models.NGOProfile || (await import("@/models/NGOProfile")).default;
+                            const profile = await NGOProfile.findOne({ userId: dbUser._id });
+                            ngo_verified = profile?.ngo_verified || false;
+                        }
+
                         session.user.isProfileComplete = !!(dbUser.phone && dbUser.address && dbUser.city);
+                        session.user.ngo_verified = ngo_verified;
 
                         console.log("[AUTH] Session Computed:", {
                             email: session.user.email,
