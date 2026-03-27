@@ -17,13 +17,14 @@ import { getRequest } from "@/lib/apiClient";
 // ── Status labels ─────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-    accepted: { label: "NGO accepted your request", color: "text-indigo-600" },
+    ACCEPTED: { label: "NGO accepted your request", color: "text-indigo-600" },
     ON_THE_WAY: { label: "NGO is on the way", color: "text-blue-600" },
     NEARBY: { label: "NGO is nearby — almost here!", color: "text-amber-600" },
     ARRIVED: { label: "NGO has arrived!", color: "text-emerald-600" },
-    pickup_in_progress: { label: "Pickup in progress", color: "text-indigo-600" },
-    delivered: { label: "Food delivered successfully", color: "text-emerald-600" },
-    completed: { label: "Mission completed!", color: "text-emerald-700" },
+    PICKUP_IN_PROGRESS: { label: "Pickup in progress", color: "text-indigo-600" },
+    COLLECTED: { label: "Food Collected", color: "text-indigo-600" },
+    DELIVERED: { label: "Food delivered successfully", color: "text-emerald-600" },
+    COMPLETED: { label: "Mission completed!", color: "text-emerald-700" },
 };
 
 // ── Props & Config ────────────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ export default memo(function LiveTrackingMap({
     const [connected, setConnected] = useState(false);
     const [ngoOnline, setNgoOnline] = useState(false);
     const [lastUpdateSec, setLastUpdateSec] = useState<number | null>(null);
-    const [liveStatus, setLiveStatus] = useState(currentStatus || "accepted");
+    const [liveStatus, setLiveStatus] = useState(currentStatus?.toUpperCase() || "ACCEPTED");
     const [connectionLost, setConnectionLost] = useState(false);
     const [shouldFollow, setShouldFollow] = useState(true); // Track Live toggle
 
@@ -202,6 +203,7 @@ export default memo(function LiveTrackingMap({
 
         const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
         const socket = io(socketUrl, {
+            transports: ["websocket"],
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 1000
@@ -224,7 +226,7 @@ export default memo(function LiveTrackingMap({
         socket.on("reconnect", () => {
             setConnected(true);
             setConnectionLost(false);
-            socket.emit("join-room", { donationId, role: "donor" });
+            socket.emit("join-room", donationId);
         });
 
         // ── Receive NGO Location (Step 3, 4, 11) ─────────────────────────────────────────

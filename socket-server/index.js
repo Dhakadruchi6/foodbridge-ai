@@ -15,7 +15,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: "*", // In production, replace with your frontend URL
+        origin: "*", 
         methods: ["GET", "POST"]
     },
     transports: ["websocket"]
@@ -27,14 +27,15 @@ const lastKnownPositions = new Map();
 io.on("connection", (socket) => {
     console.log(`[SOCKET] User connected: ${socket.id}`);
 
-    // Join room using donation ID
+    // Join room using donation ID (Standardized to String)
     socket.on("join-room", (donationId) => {
         if (!donationId) return;
-        socket.join(donationId);
-        console.log(`[SOCKET] Socket ${socket.id} joined room: ${donationId}`);
+        const room = typeof donationId === 'object' ? donationId.donationId : donationId;
+        socket.join(room);
+        console.log(`[SOCKET] Socket ${socket.id} joined room: ${room}`);
         
         // If we have a last position, sends it immediately
-        const lastPos = lastKnownPositions.get(donationId);
+        const lastPos = lastKnownPositions.get(room);
         if (lastPos) {
             socket.emit("receive-location", lastPos);
         }
@@ -52,10 +53,11 @@ io.on("connection", (socket) => {
         io.to(data.donationId).emit("receive-location", data);
     });
 
-    // Handle mission status updates
-    socket.on("update-status", (data) => {
+    // Handle mission status updates (Standardized Names)
+    socket.on("status-update", (data) => {
         if (!data.donationId) return;
-        io.to(data.donationId).emit("status-changed", data);
+        console.log(`[SOCKET] Status Update for ${data.donationId}:`, data.status);
+        io.to(data.donationId).emit("status-updated", data);
     });
 
     // Join public activity feed

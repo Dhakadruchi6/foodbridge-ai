@@ -13,6 +13,7 @@ export function useActivityBroadcast() {
         if (!socketUrl) return;
 
         const socket = io(socketUrl, {
+            transports: ["websocket"],
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
