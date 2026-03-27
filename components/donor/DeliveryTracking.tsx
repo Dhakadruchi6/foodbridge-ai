@@ -206,7 +206,7 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
             )}
 
             {/* LIVE TRACKING MAP */}
-            {info.status !== 'completed' && info.donation?.latitude && info.donation?.longitude && (
+            {info.status !== 'completed' && info && (
                 <div className="space-y-4 animate-in fade-in duration-700">
                     {/* Zomato-style Status Banner */}
                     {(info.status === 'on_the_way' || info.status === 'arrived') && (
@@ -231,14 +231,16 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
                         </div>
                     )}
 
-                    <LiveTrackingMap
-                        donationId={donationId}
-                        pickupLat={info.donation.latitude}
-                        pickupLon={info.donation.longitude}
-                        ngoName={ngoName}
-                        destinationAddress={info.donation.pickupAddress || info.donation.city}
-                        onTrackingUpdate={(stats) => setTrackingStats(stats)}
-                    />
+                    <div className="h-[400px] w-full rounded-2xl overflow-hidden border border-slate-100 shadow-inner">
+                        <LiveTrackingMap
+                            donationId={donationId}
+                            pickupLat={info.donation?.latitude || 0}
+                            pickupLon={info.donation?.longitude || 0}
+                            ngoName={ngoName}
+                            destinationAddress={info.donation?.pickupAddress || info.donation?.city || "Donation Point"}
+                            onTrackingUpdate={(stats) => setTrackingStats(stats)}
+                        />
+                    </div>
                     
                     {trackingStats.duration && (
                         <div className="flex items-center justify-center space-x-4 py-2 bg-slate-50 rounded-xl border border-slate-100">

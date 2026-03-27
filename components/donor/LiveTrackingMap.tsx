@@ -91,7 +91,10 @@ export default memo(function LiveTrackingMap({
     const [interpolatedPos, setInterpolatedPos] = useState<{ lat: number, lng: number } | null>(null);
     const [rotation, setRotation] = useState(0);
 
-    const pickupPos = useMemo(() => ({ lat: pickupLat, lng: pickupLon }), [pickupLat, pickupLon]);
+    const pickupPos = useMemo(() => ({ 
+        lat: pickupLat || ngoPos?.lat || 28.6139, // Fallback to NGO or Delhi
+        lng: pickupLon || ngoPos?.lng || 77.2090 
+    }), [pickupLat, pickupLon, ngoPos]);
     const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
 
     const [connected, setConnected] = useState(false);
@@ -413,15 +416,17 @@ export default memo(function LiveTrackingMap({
                                 />
                             )}
 
-                            <Marker
-                                position={pickupPos}
-                                icon={typeof google !== 'undefined' ? {
-                                    url: 'https://cdn-icons-png.flaticon.com/512/619/619153.png',
-                                    scaledSize: new google.maps.Size(40, 40),
-                                    anchor: new google.maps.Point(20, 40),
-                                } : undefined}
-                                title="Your Location"
-                            />
+                            {pickupLat && pickupLon && (
+                                <Marker
+                                    position={pickupPos}
+                                    icon={typeof google !== 'undefined' ? {
+                                        url: 'https://cdn-icons-png.flaticon.com/512/619/619153.png',
+                                        scaledSize: new google.maps.Size(40, 40),
+                                        anchor: new google.maps.Point(20, 40),
+                                    } : undefined}
+                                    title="Your Location"
+                                />
+                            )}
 
                             {interpolatedPos && (
                                 <OverlayView
