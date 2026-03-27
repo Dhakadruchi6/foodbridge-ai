@@ -231,26 +231,7 @@ const DonationCard = ({
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Live Tracking Page Link */}
-                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/10">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <Activity className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">Live Operation Map</p>
-                      <p className="text-[9px] font-medium text-slate-500">Real-time NGO coordinate synchronization</p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => window.open(`/track/${donation._id}`, '_blank')}
-                    className="h-8 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest px-4 rounded-lg flex items-center"
-                  >
-                    <span>Open Map</span>
-                    <ExternalLink className="ml-2 w-3 h-3" />
-                  </Button>
-                </div>
+
 
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">

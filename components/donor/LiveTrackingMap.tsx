@@ -9,7 +9,7 @@
 import { useEffect, useState, useRef, useCallback, memo, useMemo } from "react";
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer, OverlayView } from "@react-google-maps/api";
 import { io, Socket } from "socket.io-client";
-import { Loader2, Target, Crosshair } from "lucide-react";
+import { Loader2, Target, Crosshair, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -37,6 +37,8 @@ interface LiveTrackingMapProps {
     pickupLat: number;
     pickupLon: number;
     currentStatus?: string;
+    ngoName?: string;
+    destinationAddress?: string;
     onTrackingUpdate?: (data: { distance: string; duration: string; isNearby: boolean }) => void;
     onStatusChange?: (status: string) => void;
 }
@@ -71,6 +73,8 @@ export default memo(function LiveTrackingMap({
     pickupLat,
     pickupLon,
     currentStatus,
+    ngoName: propNgoName,
+    destinationAddress,
     onTrackingUpdate,
     onStatusChange,
 }: LiveTrackingMapProps) {
@@ -352,6 +356,29 @@ export default memo(function LiveTrackingMap({
                     <div className="absolute inset-0 bg-slate-100 flex items-center justify-center z-10 w-full h-full">
                         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
                         <span className="ml-2 font-bold text-slate-400 text-sm">Loading Live Map...</span>
+                    </div>
+                )}
+
+                {/* Route Info Overlay (Embedded Style) */}
+                {isLoaded && interpolatedPos && (propNgoName || destinationAddress) && (
+                    <div className="absolute top-4 left-4 right-4 z-20 animate-in fade-in slide-in-from-top-4 duration-1000">
+                        <div className="bg-white/95 backdrop-blur-2xl border border-white/40 rounded-2xl p-4 shadow-xl flex items-center space-x-4">
+                            <div className="relative flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 rounded-full border-2 border-indigo-500 bg-white z-10" />
+                                <div className="w-0.5 h-4 border-l-2 border-dashed border-slate-200 my-0.5" />
+                                <MapPin className="w-3.5 h-3.5 text-emerald-500 z-10" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="mb-2">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">From</p>
+                                    <h4 className="text-[10px] font-black text-slate-800 truncate">{propNgoName || 'NGO Partner'}</h4>
+                                </div>
+                                <div>
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">To</p>
+                                    <h4 className="text-[10px] font-black text-slate-800 truncate">{destinationAddress || 'Donation Point'}</h4>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
 

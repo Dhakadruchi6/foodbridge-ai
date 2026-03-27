@@ -104,30 +104,7 @@ export default function LiveTrackPage() {
                 </div>
             </div>
 
-            {/* ── Route Info Overlay (Blinkit Style) ────────────────────── */}
-            {liveData?.liveLatitude && (
-                <div className="absolute top-28 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4 animate-in fade-in slide-in-from-top-4 duration-1000">
-                    <div className="bg-white/95 backdrop-blur-2xl border border-white/40 rounded-[2rem] p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] space-y-4">
-                        <div className="flex items-center space-x-4">
-                            <div className="relative flex flex-col items-center">
-                                <div className="w-3 h-3 rounded-full border-2 border-indigo-500 bg-white z-10" />
-                                <div className="w-0.5 h-8 border-l-2 border-dashed border-slate-200 my-1" />
-                                <MapPin className="w-4 h-4 text-emerald-500 z-10" />
-                            </div>
-                            <div className="space-y-4 flex-1">
-                                <div>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">From</p>
-                                    <h4 className="text-xs font-black text-slate-800 truncate">{liveData.ngoName || 'NGO Partner'}</h4>
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">To (Your Location)</p>
-                                    <h4 className="text-xs font-black text-slate-800 truncate">{liveData.pickupAddress || 'Donation Point'}</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+
 
             {/* ── Main Map View ───────────────────────────────────────── */}
             <div className="absolute inset-0 z-0 p-4 sm:p-6 lg:p-8 pt-32 pb-48">
@@ -146,6 +123,8 @@ export default function LiveTrackPage() {
                                         pickupLat={liveData.liveLatitude}
                                         pickupLon={liveData.liveLongitude}
                                         currentStatus={currentStatus}
+                                        ngoName={liveData.ngoName}
+                                        destinationAddress={liveData.pickupAddress}
                                         onTrackingUpdate={(stats) => setTrackingStats(stats)}
                                         onStatusChange={(newStatus) => setCurrentStatus(newStatus)}
                                     />
@@ -202,23 +181,7 @@ export default function LiveTrackPage() {
                             )} />
                         </div>
 
-                        {/* Actions */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <button
-                                onClick={openNavigation}
-                                className="h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl flex items-center justify-center space-x-2 transition-all active:scale-95 group shadow-xl shadow-slate-900/20"
-                            >
-                                <Navigation className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                                <span className="text-xs font-black uppercase tracking-widest">Directions</span>
-                            </button>
-                            <button
-                                onClick={openGoogleMaps}
-                                className="h-14 bg-slate-50 hover:bg-slate-100 text-slate-900 border border-slate-200 rounded-2xl flex items-center justify-center space-x-2 transition-all active:scale-95"
-                            >
-                                <MapPin className="w-5 h-5 text-slate-400" />
-                                <span className="text-xs font-black uppercase tracking-widest">View in Maps</span>
-                            </button>
-                        </div>
+
 
                         {/* Proximity Tip */}
                         {trackingStats.isNearby && (

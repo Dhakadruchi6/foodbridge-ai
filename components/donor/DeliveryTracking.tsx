@@ -235,6 +235,8 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
                         donationId={donationId}
                         pickupLat={info.donation.latitude}
                         pickupLon={info.donation.longitude}
+                        ngoName={ngoName}
+                        destinationAddress={info.donation.pickupAddress || info.donation.city}
                         onTrackingUpdate={(stats) => setTrackingStats(stats)}
                     />
                     
