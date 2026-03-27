@@ -9,9 +9,10 @@
 import { useEffect, useState, useRef, useCallback, memo, useMemo } from "react";
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer, OverlayView } from "@react-google-maps/api";
 import { io, Socket } from "socket.io-client";
-import { Loader2, Truck, WifiOff, Wifi, Target, Crosshair } from "lucide-react";
+import { Loader2, Target, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { getRequest } from "@/lib/apiClient";
 
 // ── Status labels ─────────────────────────────────────────────────────────────
@@ -89,12 +90,9 @@ export default memo(function LiveTrackingMap({
     const pickupPos = useMemo(() => ({ lat: pickupLat, lng: pickupLon }), [pickupLat, pickupLon]);
     const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
 
-    const [ngoName, setNgoName] = useState<string>("NGO Partner");
     const [connected, setConnected] = useState(false);
     const [ngoOnline, setNgoOnline] = useState(false);
-    const [lastUpdateSec, setLastUpdateSec] = useState<number | null>(null);
     const [liveStatus, setLiveStatus] = useState(currentStatus?.toUpperCase() || "ACCEPTED");
-    const [connectionLost, setConnectionLost] = useState(false);
     const [shouldFollow, setShouldFollow] = useState(true); // Track Live toggle
 
     // Step 6 & 12: Initial Load + Fallback Polling
@@ -102,7 +100,7 @@ export default memo(function LiveTrackingMap({
         if (!donationId) return;
 
         const fetchInitialOrPoll = async () => {
-             if (ngoOnline && connected && (Date.now() - lastUpdateRef.current < 10000)) return;
+             if ((Date.now() - lastUpdateRef.current < 10000)) return;
 
              console.log("[WS-DEBUG] Fetching location from API...");
              try {
@@ -113,15 +111,12 @@ export default memo(function LiveTrackingMap({
                           const newPos = { lat, lng };
                           setNgoPos(newPos);
                           setNgoOnline(true);
-                          setConnectionLost(false);
-                          if (name) setNgoName(name);
 
                           if (!ngoPosRef.current) {
                                ngoPosRef.current = newPos;
                                setInterpolatedPos(newPos);
                           }
                           lastUpdateRef.current = new Date(res.data.liveLocationUpdatedAt).getTime();
-                          setLastUpdateSec(res.data.ageSeconds || 0);
                      }
                  }
              } catch (e) {
@@ -144,15 +139,7 @@ export default memo(function LiveTrackingMap({
     const animationFrameRef = useRef<number | null>(null);
     const INTERPOLATION_DURATION = 1500; // Smoother glide matching 1.2s heartbeat
 
-    // ── Tick "X seconds ago" display ──────────────────────────────────────
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (lastUpdateRef.current > 0) {
-                setLastUpdateSec(Math.round((Date.now() - lastUpdateRef.current) / 1000));
-            }
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
+
 
     // ── Route Calculation (Feature 5 & 6) ──────────────────────────────────
     const calculateRoute = useCallback(async (origin: { lat: number, lng: number }, dest: { lat: number, lng: number }) => {
@@ -231,7 +218,6 @@ export default memo(function LiveTrackingMap({
         socket.on("connect", () => {
             console.log("[WS-DEBUG] Donor socket connected:", socket.id);
             setConnected(true);
-            setConnectionLost(false);
             // Step 1: Join room using donationId
             socket.emit("join-room", donationId);
         });
@@ -242,7 +228,6 @@ export default memo(function LiveTrackingMap({
 
         socket.on("reconnect", () => {
             setConnected(true);
-            setConnectionLost(false);
             socket.emit("join-room", donationId);
         });
 
@@ -304,16 +289,12 @@ export default memo(function LiveTrackingMap({
             }
 
             setNgoOnline(true);
-            setConnectionLost(false);
-            if (name) setNgoName(name);
 
             lastUpdateRef.current = timestamp || Date.now();
-            setLastUpdateSec(0);
 
             if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
             connectionLostTimerRef.current = setTimeout(() => {
                 setNgoOnline(false);
-                setConnectionLost(true);
                 // Step 12: If no update for 10s (using shorter timer here for active fallback)
             }, 10000); // 10s fallback threshold
         });
@@ -332,12 +313,11 @@ export default memo(function LiveTrackingMap({
 
         socket.on("tracking-stopped", () => {
             setNgoOnline(false);
-            setConnectionLost(true);
         });
 
         socket.on("peer-disconnected", () => {
             setNgoOnline(false);
-            setConnectionLost(true);
+
         });
 
         return () => {
@@ -345,11 +325,11 @@ export default memo(function LiveTrackingMap({
             socketRef.current = null;
             if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
         };
-    }, [donationId, session, pickupPos, shouldFollow]); // Added pickupPos and shouldFollow as they are used in the Receive Location listener
+    }, [donationId, session, pickupPos, shouldFollow, onStatusChange]); // Added pickupPos and shouldFollow as they are used in the Receive Location listener
 
 
 
-    const statusInfo = STATUS_LABELS[liveStatus] || { label: "Tracking active", color: "text-indigo-600" };
+
 
     if (loadError) return <div className="p-4 text-rose-500 font-bold">Error loading Google Maps API</div>;
 
@@ -429,10 +409,13 @@ export default memo(function LiveTrackingMap({
                                         className="relative"
                                     >
                                         <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping scale-150" />
-                                        <img 
+                                        <Image 
                                             src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" 
                                             alt="NGO Scooter"
-                                            className="w-[45px] h-[45px] relative z-10 drop-shadow-lg"
+                                            width={45}
+                                            height={45}
+                                            className="relative z-10 drop-shadow-lg"
+                                            unoptimized
                                         />
                                     </div>
                                 </OverlayView>
