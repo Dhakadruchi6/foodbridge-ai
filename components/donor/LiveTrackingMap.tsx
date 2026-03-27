@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState, useRef, useCallback, memo, useMemo } from "react";
-import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer, OverlayView } from "@react-google-maps/api";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Truck, WifiOff, Wifi, Target, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,26 @@ const mapContainerStyle = {
     height: "100%",
 };
 
+const SILVER_MAP_STYLE = [
+    { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+    { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
+    { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
+    { featureType: "poi", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
+    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
+    { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+    { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#dadada" }] },
+    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+    { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+    { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
+    { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
+    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+];
+
 export default memo(function LiveTrackingMap({
     donationId,
     pickupLat,
@@ -64,6 +84,7 @@ export default memo(function LiveTrackingMap({
 
     const [ngoPos, setNgoPos] = useState<{ lat: number, lng: number } | null>(null);
     const [interpolatedPos, setInterpolatedPos] = useState<{ lat: number, lng: number } | null>(null);
+    const [rotation, setRotation] = useState(0);
 
     const pickupPos = useMemo(() => ({ lat: pickupLat, lng: pickupLon }), [pickupLat, pickupLon]);
     const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
@@ -81,7 +102,6 @@ export default memo(function LiveTrackingMap({
         if (!donationId) return;
 
         const fetchInitialOrPoll = async () => {
-             // If we already have a live socket update, we don't need to force a REST poll unless we stall
              if (ngoOnline && connected && (Date.now() - lastUpdateRef.current < 10000)) return;
 
              console.log("[WS-DEBUG] Fetching location from API...");
@@ -97,8 +117,8 @@ export default memo(function LiveTrackingMap({
                           if (name) setNgoName(name);
 
                           if (!ngoPosRef.current) {
-                              ngoPosRef.current = newPos;
-                              setInterpolatedPos(newPos);
+                               ngoPosRef.current = newPos;
+                               setInterpolatedPos(newPos);
                           }
                           lastUpdateRef.current = new Date(res.data.liveLocationUpdatedAt).getTime();
                           setLastUpdateSec(res.data.ageSeconds || 0);
@@ -109,14 +129,11 @@ export default memo(function LiveTrackingMap({
              }
         };
 
-        fetchInitialOrPoll(); // Run immediately on mount or when connected state changes
+        fetchInitialOrPoll();
         const interval = setInterval(fetchInitialOrPoll, 10000);
-
         return () => clearInterval(interval);
     }, [donationId, connected, ngoOnline]);
 
-
-    // Use refs to avoid closure stale state
     const socketRef = useRef<Socket | null>(null);
     const lastUpdateRef = useRef<number>(0);
     const connectionLostTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -125,7 +142,7 @@ export default memo(function LiveTrackingMap({
     const ngoPosRef = useRef<{ lat: number, lng: number } | null>(null);
     const prevPosRef = useRef<{ lat: number, lng: number } | null>(null);
     const animationFrameRef = useRef<number | null>(null);
-    const INTERPOLATION_DURATION = 2500; // Matches NGO heartbeat
+    const INTERPOLATION_DURATION = 1500; // Smoother glide matching 1.2s heartbeat
 
     // ── Tick "X seconds ago" display ──────────────────────────────────────
     useEffect(() => {
@@ -248,6 +265,12 @@ export default memo(function LiveTrackingMap({
                 const startPos = prevPosRef.current || ngoPosRef.current;
                 ngoPosRef.current = newPos;
                 const startTime = Date.now();
+
+                // Calculate Heading (Rotation) for Elite Feel
+                if (Math.abs(newPos.lat - startPos.lat) > 0.000001 || Math.abs(newPos.lng - startPos.lng) > 0.000001) {
+                    const angle = Math.atan2(newPos.lng - startPos.lng, newPos.lat - startPos.lat) * 180 / Math.PI;
+                    setRotation(angle);
+                }
 
                 if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
 
@@ -420,17 +443,11 @@ export default memo(function LiveTrackingMap({
                             center={mapCenter}
                             options={{
                                 disableDefaultUI: true,
-                                zoomControl: false, // Custom styled controls look better
+                                zoomControl: false,
                                 mapTypeControl: false,
                                 streetViewControl: false,
                                 fullscreenControl: false,
-                                styles: [
-                                    {
-                                        featureType: "poi",
-                                        elementType: "labels",
-                                        stylers: [{ visibility: "off" }]
-                                    }
-                                ]
+                                styles: SILVER_MAP_STYLE // Applied Elite Silver Theme
                             }}
                             onLoad={map => { mapRef.current = map; }}
                             onUnmount={() => { mapRef.current = null; }}
@@ -461,23 +478,29 @@ export default memo(function LiveTrackingMap({
                                 title="Your Location"
                             />
 
-                            {/* Feature 3: NGO Live Tracking Moving Marker — Vehicle Hub */}
+                            {/* Feature 3: NGO Live Tracking Moving Marker — Vehicle Hub (Blinkit Style) */}
                             {interpolatedPos && (
-                                <Marker
-                                    position={
-                                        // Visual Offset if perfectly overlapping with Home icon
-                                        interpolatedPos.lat === pickupPos.lat && interpolatedPos.lng === pickupPos.lng
-                                            ? { lat: interpolatedPos.lat + 0.00005, lng: interpolatedPos.lng + 0.00005 }
-                                            : interpolatedPos
-                                    }
-                                    icon={typeof google !== 'undefined' ? {
-                                        url: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png',
-                                        scaledSize: new google.maps.Size(45, 45),
-                                        anchor: new google.maps.Point(22, 22),
-                                    } : undefined}
-                                    zIndex={1000} // Ensure it's above the home icon
-                                    title={ngoName}
-                                />
+                                <OverlayView
+                                    position={interpolatedPos}
+                                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                                >
+                                    <div 
+                                        style={{
+                                            transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+                                            transition: 'transform 0.4s ease-out'
+                                        }}
+                                        className="relative"
+                                    >
+                                        {/* Elite Pulse Halo */}
+                                        <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping scale-150" />
+                                        
+                                        <img 
+                                            src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" 
+                                            alt="NGO Scooter"
+                                            className="w-[45px] h-[45px] relative z-10 drop-shadow-lg"
+                                        />
+                                    </div>
+                                </OverlayView>
                             )}
                         </GoogleMap>
 

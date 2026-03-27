@@ -28,9 +28,9 @@ export function useWebSocketLocation({
     const watchIdRef = useRef<number | null>(null);
     const lastEmitRef = useRef<number>(0);
     const lastDbSyncRef = useRef<number>(0);
-    const THROTTLE_MS = 2500; // WebSocket: 2.5 seconds
-    const DB_SYNC_MS = 8000;   // Database: 8 seconds (less frequent to save bandwidth/DB load)
-    const MOVEMENT_THRESHOLD = 0.00001; // Degrees (~1 meter)
+    const THROTTLE_MS = 1200; // WebSocket: 1.2 seconds (Blinkit speed)
+    const DB_SYNC_MS = 10000;   // Database: 10 seconds (less frequent to save bandwidth)
+    const MOVEMENT_THRESHOLD = 0.000005; // ~0.5 meters
     const lastPosRef = useRef<{ lat: number, lng: number } | null>(null);
 
     // ── Connect & join room ─────────────────────────────────────────────
@@ -124,8 +124,8 @@ export function useWebSocketLocation({
             },
             {
                 enableHighAccuracy: true,
-                maximumAge: 1000,
-                timeout: 10000,
+                maximumAge: 0,
+                timeout: 5000,
             }
         );
 
