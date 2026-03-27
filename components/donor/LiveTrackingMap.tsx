@@ -354,64 +354,9 @@ export default memo(function LiveTrackingMap({
     if (loadError) return <div className="p-4 text-rose-500 font-bold">Error loading Google Maps API</div>;
 
     return (
-        <div className="space-y-3">
-            {/* ── Status header ─────────────────────────────────────── */}
-            <div className="flex items-center justify-between px-1">
-                <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center border border-indigo-200">
-                        <Truck className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-black text-slate-900 leading-none">{ngoName}</h4>
-                        <p className={cn("text-[10px] font-bold mt-1 uppercase tracking-widest", statusInfo.color)}>
-                            {statusInfo.label}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Connection indicator */}
-                <div className={cn(
-                    "px-3 py-1.5 rounded-full border flex items-center space-x-2",
-                    connectionLost
-                        ? "bg-red-50 border-red-100"
-                        : ngoOnline
-                            ? "bg-emerald-50 border-emerald-100"
-                            : "bg-slate-50 border-slate-100"
-                )}>
-                    {connectionLost ? (
-                        <>
-                            <WifiOff className="w-3 h-3 text-red-500" />
-                            <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">Connection Lost</span>
-                        </>
-                    ) : ngoOnline ? (
-                        <>
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
-                                {lastUpdateSec !== null ? `${lastUpdateSec}s ago` : "LIVE"}
-                            </span>
-                        </>
-                    ) : (
-                        <>
-                            <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Waiting...</span>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {/* ── Connection Lost Banner ─────────────────────────────── */}
-            {connectionLost && !ngoOnline && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center space-x-3">
-                    <WifiOff className="w-4 h-4 text-red-500 shrink-0" />
-                    <div>
-                        <p className="text-xs font-black text-red-700">NGO location signal lost</p>
-                        <p className="text-[10px] text-red-500">Showing last known position. Waiting to reconnect...</p>
-                    </div>
-                </div>
-            )}
-
+        <div className="w-full h-full relative">
             {/* ── Google Map ───────────────────────────────────────────────── */}
-            <div className="h-[320px] sm:h-[420px] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl relative z-0">
+            <div className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl relative z-0">
                 {/* Step 7: Connection Status Banner — Dynamic logic */}
                 {!connected ? (
                     <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
@@ -420,14 +365,9 @@ export default memo(function LiveTrackingMap({
                             <p className="text-xs font-black uppercase tracking-widest text-white/70">Reconnecting...</p>
                         </div>
                     </div>
-                ) : (
-                    <div className="absolute top-12 sm:top-20 right-4 z-10">
-                         <div className="bg-emerald-500/90 backdrop-blur px-3 py-1.5 rounded-full flex items-center space-x-2 border border-emerald-400/50 shadow-lg scale-90 sm:scale-100">
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse" />
-                            <span className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-widest">Live tracking active</span>
-                         </div>
-                    </div>
-                )}
+                ) : null}
+
+                {/* Loading State Overlay */}
                 {!isLoaded && (
                     <div className="absolute inset-0 bg-slate-100 flex items-center justify-center z-10 w-full h-full">
                         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
@@ -447,12 +387,11 @@ export default memo(function LiveTrackingMap({
                                 mapTypeControl: false,
                                 streetViewControl: false,
                                 fullscreenControl: false,
-                                styles: SILVER_MAP_STYLE // Applied Elite Silver Theme
+                                styles: SILVER_MAP_STYLE
                             }}
                             onLoad={map => { mapRef.current = map; }}
                             onUnmount={() => { mapRef.current = null; }}
                         >
-                            {/* Validating Routes and Polylines (Feature 5) */}
                             {directionsResponse && (
                                 <DirectionsRenderer
                                     directions={directionsResponse}
@@ -467,7 +406,6 @@ export default memo(function LiveTrackingMap({
                                 />
                             )}
 
-                            {/* Feature 4: Donor Location Marker — Modern Home Icon */}
                             <Marker
                                 position={pickupPos}
                                 icon={typeof google !== 'undefined' ? {
@@ -478,7 +416,6 @@ export default memo(function LiveTrackingMap({
                                 title="Your Location"
                             />
 
-                            {/* Feature 3: NGO Live Tracking Moving Marker — Vehicle Hub (Blinkit Style) */}
                             {interpolatedPos && (
                                 <OverlayView
                                     position={interpolatedPos}
@@ -491,9 +428,7 @@ export default memo(function LiveTrackingMap({
                                         }}
                                         className="relative"
                                     >
-                                        {/* Elite Pulse Halo */}
                                         <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping scale-150" />
-                                        
                                         <img 
                                             src="https://cdn-icons-png.flaticon.com/512/3063/3063822.png" 
                                             alt="NGO Scooter"
@@ -505,7 +440,7 @@ export default memo(function LiveTrackingMap({
                         </GoogleMap>
 
                         {/* Floating Recenter & Track Controls */}
-                        <div className="absolute right-4 bottom-16 sm:bottom-24 flex flex-col space-y-3 z-10">
+                        <div className="absolute right-4 bottom-4 flex flex-col space-y-3 z-10">
                             <button
                                 onClick={() => {
                                     if (mapRef.current && (ngoPos || pickupPos)) {
@@ -514,7 +449,6 @@ export default memo(function LiveTrackingMap({
                                     }
                                 }}
                                 className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl sm:rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center text-slate-600 hover:text-indigo-600 active:scale-90 transition-all"
-                                title="Recenter Map"
                             >
                                 <Target className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
@@ -524,22 +458,12 @@ export default memo(function LiveTrackingMap({
                                     "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl shadow-xl border flex items-center justify-center transition-all active:scale-90",
                                     shouldFollow ? "bg-indigo-600 border-indigo-500 text-white" : "bg-white border-slate-100 text-slate-400"
                                 )}
-                                title="Auto-Follow Agent"
                             >
                                 <Crosshair className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>
                     </>
                 )}
-            </div>
-
-            {/* ── Info footer ───────────────────────────────────────── */}
-            <div className="flex items-center justify-between px-2 text-[10px] font-bold text-slate-400 mt-2">
-                <div className="flex items-center space-x-1">
-                    <Wifi className="w-3 h-3" />
-                    <span>{connected ? "Live tracking active" : "Reconnecting..."}</span>
-                </div>
-                <span>Google Maps Directions Engine</span>
             </div>
         </div>
     );

@@ -26,6 +26,8 @@ interface LiveData {
     ageSeconds: number | null;
     isLive: boolean;
     donorName: string;
+    ngoName?: string;
+    pickupAddress?: string;
 }
 
 export default function LiveTrackPage() {
@@ -102,43 +104,74 @@ export default function LiveTrackPage() {
                 </div>
             </div>
 
-            {/* ── Main Map View ───────────────────────────────────────── */}
-            <div className="absolute inset-0 z-0">
-                <ErrorBoundary>
-                    {!ready || !donationId ? (
-                        <div className="h-full w-full bg-slate-900 flex flex-col items-center justify-center space-y-4">
-                            <div className="w-12 h-12 border-4 border-slate-800 border-t-indigo-500 rounded-full animate-spin" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Connecting to Tracking System...</p>
-                        </div>
-                    ) : liveData?.liveLatitude && liveData?.liveLongitude ? (
-                        <LiveTrackingMap
-                            donationId={donationId}
-                            pickupLat={liveData.liveLatitude}
-                            pickupLon={liveData.liveLongitude}
-                            currentStatus={currentStatus}
-                            onTrackingUpdate={(stats) => setTrackingStats(stats)}
-                            onStatusChange={(newStatus) => setCurrentStatus(newStatus)}
-                        />
-                    ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-slate-900">
-                            <div className="text-center space-y-4">
-                                <div className="w-16 h-16 rounded-3xl bg-slate-800 flex items-center justify-center mx-auto border border-white/5 animate-pulse">
-                                    <WifiOff className="w-8 h-8 text-slate-600" />
+            {/* ── Route Info Overlay (Blinkit Style) ────────────────────── */}
+            {liveData?.liveLatitude && (
+                <div className="absolute top-28 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4 animate-in fade-in slide-in-from-top-4 duration-1000">
+                    <div className="bg-white/95 backdrop-blur-2xl border border-white/40 rounded-[2rem] p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] space-y-4">
+                        <div className="flex items-center space-x-4">
+                            <div className="relative flex flex-col items-center">
+                                <div className="w-3 h-3 rounded-full border-2 border-indigo-500 bg-white z-10" />
+                                <div className="w-0.5 h-8 border-l-2 border-dashed border-slate-200 my-1" />
+                                <MapPin className="w-4 h-4 text-emerald-500 z-10" />
+                            </div>
+                            <div className="space-y-4 flex-1">
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">From</p>
+                                    <h4 className="text-xs font-black text-slate-800 truncate">{liveData.ngoName || 'NGO Partner'}</h4>
                                 </div>
                                 <div>
-                                    <h3 className="text-white font-black">No Signal Detected</h3>
-                                    <p className="text-slate-500 text-xs mt-1">Waiting for donor to go live...</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">To (Your Location)</p>
+                                    <h4 className="text-xs font-black text-slate-800 truncate">{liveData.pickupAddress || 'Donation Point'}</h4>
                                 </div>
                             </div>
                         </div>
-                    )}
-                </ErrorBoundary>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Main Map View ───────────────────────────────────────── */}
+            <div className="absolute inset-0 z-0 p-4 sm:p-6 lg:p-8 pt-32 pb-48">
+                <div className="w-full h-full rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl relative ring-1 ring-white/10">
+                    <ErrorBoundary>
+                        {!ready || !donationId ? (
+                            <div className="h-full w-full bg-slate-900 flex flex-col items-center justify-center space-y-4">
+                                <div className="w-12 h-12 border-4 border-slate-800 border-t-indigo-500 rounded-full animate-spin" />
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Connecting to Tracking System...</p>
+                            </div>
+                        ) : (
+                            <div className="w-full h-full"> 
+                                {liveData?.liveLatitude && liveData?.liveLongitude ? (
+                                    <LiveTrackingMap
+                                        donationId={donationId}
+                                        pickupLat={liveData.liveLatitude}
+                                        pickupLon={liveData.liveLongitude}
+                                        currentStatus={currentStatus}
+                                        onTrackingUpdate={(stats) => setTrackingStats(stats)}
+                                        onStatusChange={(newStatus) => setCurrentStatus(newStatus)}
+                                    />
+                                ) : (
+                                    <div className="h-full w-full flex items-center justify-center bg-slate-900">
+                                        <div className="text-center space-y-4">
+                                            <div className="w-16 h-16 rounded-3xl bg-slate-800 flex items-center justify-center mx-auto border border-white/5 animate-pulse">
+                                                <WifiOff className="w-8 h-8 text-slate-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-white font-black">No Signal Detected</h3>
+                                                <p className="text-slate-500 text-xs mt-1">Waiting for donor to go live...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </ErrorBoundary>
+                </div>
             </div>
 
             {/* ── Uber-style Bottom Panel ──────────────────────────────── */}
             {liveData?.liveLatitude && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4 animate-in slide-in-from-bottom-8 duration-700">
-                    <div className="bg-white rounded-[2.5rem] p-8 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] space-y-6">
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4 animate-in slide-in-from-bottom-8 duration-700">
+                    <div className="bg-white rounded-[2.5rem] p-8 shadow-[0_48px_80px_-24px_rgba(0,0,0,0.6)] space-y-6">
                         {/* Status bar */}
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
@@ -147,7 +180,7 @@ export default function LiveTrackPage() {
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                     </span>
-                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest whitespace-nowrap">
                                         {currentStatus.replace(/_/g, " ")}
                                     </p>
                                 </div>
@@ -157,7 +190,7 @@ export default function LiveTrackPage() {
                             </div>
                             <div className="text-right">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Distance</p>
-                                <p className="text-lg font-black text-slate-700">{trackingStats.distance}</p>
+                                <p className="text-lg font-black text-slate-700 whitespace-nowrap">{trackingStats.distance}</p>
                             </div>
                         </div>
 

@@ -66,7 +66,8 @@ export const GET = asyncHandler(async (req: Request) => {
     if (userRole === 'donor') {
         // Donor wants to track the NGO
         const delivery = await Delivery.findOne({ donationId })
-            .populate('ngoId', 'name');
+            .populate('ngoId', 'name')
+            .populate('donationId', 'pickupAddress city');
 
         if (!delivery || !delivery.liveLocationUpdatedAt) {
             return successResponse({ isLive: false }, 'No NGO live location available yet');
@@ -82,6 +83,8 @@ export const GET = asyncHandler(async (req: Request) => {
             isLive: ageSeconds < 60,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ngoName: (delivery.ngoId as any)?.name || 'NGO Partner',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            pickupAddress: (delivery.donationId as any)?.pickupAddress || 'Donation Point',
         }, 'NGO live location fetched');
     } else {
         // NGO wants to track the Donor
