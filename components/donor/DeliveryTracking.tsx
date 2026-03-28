@@ -170,6 +170,7 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
                         setInfo(prev => prev ? ({ ...prev, status: newStatus as any }) : null);
                         setLastUpdated(new Date());
                     }}
+                    onReconnect={fetchTracking}
                 />
 
                 {/* Overlays */}

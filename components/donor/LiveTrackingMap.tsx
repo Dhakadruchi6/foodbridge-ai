@@ -41,6 +41,7 @@ interface LiveTrackingMapProps {
     destinationAddress?: string;
     onTrackingUpdate?: (data: { distance: string; duration: string; isNearby: boolean }) => void;
     onStatusChange?: (status: string) => void;
+    onReconnect?: () => void;
 }
 
 const mapContainerStyle = {
@@ -77,6 +78,7 @@ export default memo(function LiveTrackingMap({
     destinationAddress,
     onTrackingUpdate,
     onStatusChange,
+    onReconnect,
 }: LiveTrackingMapProps) {
     const { data: session } = useSession();
 
@@ -201,43 +203,62 @@ export default memo(function LiveTrackingMap({
 
     const mapCenter = useMemo(() => ngoPos || pickupPos, [ngoPos, pickupPos]);
 
-    // ── Socket.IO connection ──────────────────────────────────────────────
+    // ── Socket.IO connection (Singleton + Recovery) ─────────────────────────
     useEffect(() => {
         if (!donationId) return;
 
         const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
-        const socket = io(socketUrl, {
-            transports: ["websocket"],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
+        
+        // Singleton Implementation
+        if (!socketRef.current) {
+            console.log("[WS-TRACK] Initializing primary socket link...");
+            socketRef.current = io(socketUrl, {
+                transports: ["websocket", "polling"],
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                timeout: 10000 // 10s connection timeout
+            });
+        }
+
+        const socket = socketRef.current;
+
+        const handleJoin = () => {
+            console.log("[WS-TRACK] Joining room:", donationId);
+            socket.emit("tracking:join", { donationId });
+            setConnected(true);
+        };
+
+        socket.on("connect", handleJoin);
+
+        socket.on("disconnect", (reason) => {
+            console.warn("[WS-TRACK] Disconnected:", reason);
+            setConnected(false);
+            if (reason === "io server disconnect") {
+                socket.connect(); // Force reconnect if server killed it
+            }
         });
 
-        socketRef.current = socket;
-
-        socket.on("connect", () => {
-            console.log("[WS-TRACK] Connected:", socket.id);
-            setConnected(true);
-            socket.emit("tracking:join", { donationId });
+        socket.on("reconnect", (attempt) => {
+            console.log(`[WS-TRACK] Restored connection (Attempt ${attempt})`);
+            handleJoin();
+            onReconnect?.();
         });
 
-        socket.on("disconnect", () => setConnected(false));
-
-        socket.on("reconnect", () => {
-            setConnected(true);
-            socket.emit("tracking:join", { donationId });
+        socket.on("connect_error", (error) => {
+            console.error("[WS-TRACK] Connection Error:", error.message);
+            setConnected(false);
         });
 
         // ── Structured Tracking Listeners ──
         socket.on("tracking:location", (data) => {
+            if (data.donationId !== donationId && data.donationId !== undefined) return;
+            
             const { lat, lng, timestamp, updated_at } = data;
             const eventTime = updated_at ? new Date(updated_at).getTime() : (timestamp || Date.now());
 
-            // Final Safeguard: Reject Stale Events
-            if (eventTime < lastUpdateRef.current) {
-                console.warn("[WS-TRACK] Ignoring stale location event");
-                return;
-            }
+            if (eventTime < lastUpdateRef.current) return;
             lastUpdateRef.current = eventTime;
 
             const newPos = { lat, lng };
@@ -249,7 +270,6 @@ export default memo(function LiveTrackingMap({
                 setInterpolatedPos(newPos);
                 prevPosRef.current = newPos;
             } else {
-                // Idempotency: Ignore duplicate coordinates
                 if (lng === ngoPosRef.current.lng && lat === ngoPosRef.current.lat) return;
 
                 setNgoPos(newPos);
@@ -257,7 +277,6 @@ export default memo(function LiveTrackingMap({
                 ngoPosRef.current = newPos;
                 const startTime = Date.now();
 
-                // Advanced Heading
                 if (Math.abs(newPos.lat - startPos.lat) > 0.000001) {
                     const angle = Math.atan2(newPos.lng - startPos.lng, newPos.lat - startPos.lat) * 180 / Math.PI;
                     setRotation(angle);
@@ -292,8 +311,10 @@ export default memo(function LiveTrackingMap({
         });
 
         socket.on("tracking:status", (data) => {
+            if (data.donationId !== donationId && data.donationId !== undefined) return;
             if (data.status === liveStatus) return;
 
+            console.log("[WS-TRACK] Incoming Status:", data.status);
             setLiveStatus(data.status);
             onStatusChange?.(data.status);
             
@@ -302,11 +323,22 @@ export default memo(function LiveTrackingMap({
             }
         });
 
-        socket.on("tracking:stopped", () => setNgoOnline(false));
+        socket.on("tracking:stopped", () => {
+            console.log("[WS-TRACK] Remote stopped tracking session");
+            setNgoOnline(false);
+        });
 
         return () => {
-            socket.disconnect();
-            socketRef.current = null;
+            // Partial cleanup: remove listeners but keep socket instance for singleton reuse if needed
+            // However, since useEffect will re-run if donationId changes, we might want to reset
+            socket.off("connect");
+            socket.off("disconnect");
+            socket.off("reconnect");
+            socket.off("connect_error");
+            socket.off("tracking:location");
+            socket.off("tracking:status");
+            socket.off("tracking:stopped");
+            
             if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         };

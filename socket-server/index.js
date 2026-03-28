@@ -18,67 +18,97 @@ const io = new Server(server, {
         origin: "*", 
         methods: ["GET", "POST"]
     },
-    transports: ["websocket"]
+    transports: ["websocket", "polling"],
+    connectTimeout: 5000
 });
 
-// Store last known positions in memory (optional, for instant join sync)
+// Store last known state in memory (optional, for instant join sync)
 const lastKnownPositions = new Map();
+const lastKnownStatuses = new Map();
 
 io.on("connection", (socket) => {
-    console.log(`[SOCKET] User connected: ${socket.id}`);
+    console.log(`[SOCKET] User connected: ${socket.id} (Transport: ${socket.conn.transport.name})`);
 
-    // Join room using donation ID (Standardized to String)
+    // --- Legacy Events (Backward Compatibility) ---
     socket.on("join-room", (donationId) => {
         if (!donationId) return;
         const room = typeof donationId === 'object' ? donationId.donationId : donationId;
         socket.join(room);
-        console.log(`[SOCKET] Socket ${socket.id} joined room: ${room}`);
+        console.log(`[SOCKET] JOIN-ROOM: ${socket.id} -> ${room}`);
         
-        // If we have a last position, sends it immediately
-        const lastPos = lastKnownPositions.get(room);
-        if (lastPos) {
-            socket.emit("receive-location", lastPos);
-        }
+        if (lastKnownPositions.has(room)) socket.emit("receive-location", lastKnownPositions.get(room));
+        if (lastKnownStatuses.has(room)) socket.emit("status-updated", { donationId: room, status: lastKnownStatuses.get(room) });
     });
 
-    // Handle incoming location from NGO
     socket.on("send-location", (data) => {
         if (!data.donationId) return;
-        console.log(`[SOCKET] Location update for ${data.donationId}:`, data.lat, data.lng);
-        
-        // Update memory
         lastKnownPositions.set(data.donationId, data);
-        
-        // Broadcast to everyone in the room (donors, admins, etc.)
         io.to(data.donationId).emit("receive-location", data);
     });
 
-    // Handle mission status updates (Standardized Names)
     socket.on("status-update", (data) => {
         if (!data.donationId) return;
-        console.log(`[SOCKET] Status Update for ${data.donationId}:`, data.status);
+        lastKnownStatuses.set(data.donationId, data.status);
         io.to(data.donationId).emit("status-updated", data);
     });
 
-    // Join public activity feed
-    socket.on("join-public-feed", () => {
-        socket.join("public-feed");
-        console.log(`[SOCKET] Socket ${socket.id} joined public feed`);
+    // --- NEW Tracking Events (Standardized) ---
+    socket.on("tracking:join", (data) => {
+        const donationId = data?.donationId;
+        if (!donationId) return;
+        
+        socket.join(donationId);
+        console.log(`[SOCKET] TRACKING:JOIN: ${socket.id} -> ${donationId}`);
+
+        // Instant Sync on Join/Reconnect
+        if (lastKnownPositions.has(donationId)) {
+            socket.emit("tracking:location", lastKnownPositions.get(donationId));
+        }
+        if (lastKnownStatuses.has(donationId)) {
+            socket.emit("tracking:status", { 
+                donationId, 
+                status: lastKnownStatuses.get(donationId),
+                source: "server_sync"
+            });
+        }
     });
 
-    // Broadcast new activity to everyone in public feed
+    socket.on("tracking:location", (data) => {
+        if (!data.donationId) return;
+        lastKnownPositions.set(data.donationId, data);
+        io.to(data.donationId).emit("tracking:location", data);
+    });
+
+    socket.on("tracking:status", (data) => {
+        if (!data.donationId) return;
+        console.log(`[SOCKET] TRACKING:STATUS: ${data.donationId} -> ${data.status}`);
+        lastKnownStatuses.set(data.donationId, data.status);
+        io.to(data.donationId).emit("tracking:status", data);
+    });
+
+    socket.on("tracking:stop", (data) => {
+        if (data?.donationId) {
+            socket.leave(data.donationId);
+            console.log(`[SOCKET] TRACKING:STOP: ${socket.id} left ${data.donationId}`);
+        }
+    });
+
+    // --- Public Feed ---
+    socket.on("join-public-feed", () => {
+        socket.join("public-feed");
+    });
+
     socket.on("broadcast-activity", (activity) => {
-        console.log(`[SOCKET] New Activity:`, activity.type, activity.title);
         io.to("public-feed").emit("new-activity", activity);
     });
 
-    socket.on("disconnect", () => {
-        console.log(`[SOCKET] User disconnected: ${socket.id}`);
+    socket.on("disconnect", (reason) => {
+        console.log(`[SOCKET] User disconnected: ${socket.id} (Reason: ${reason})`);
     });
 });
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`\n🚀 Socket Server running on port ${PORT}`);
-    console.log(`🔗 Primary Transport: WebSockets Only\n`);
+    console.log(`🔗 Transports: WebSockets + Polling\n`);
 });
