@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getSocket } from '@/lib/socket';
 import { getRequest } from '@/lib/apiClient';
 import { Activity } from '@/types';

@@ -9,7 +9,6 @@ import {
   Search,
   CheckCircle2,
   Clock,
-  ExternalLink,
   Inbox,
   Activity,
   Box,

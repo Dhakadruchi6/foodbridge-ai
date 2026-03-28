@@ -15,18 +15,6 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { getRequest } from "@/lib/apiClient";
 
-// ── Status labels ─────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-    ACCEPTED: { label: "NGO accepted your request", color: "text-indigo-600" },
-    ON_THE_WAY: { label: "NGO is on the way", color: "text-blue-600" },
-    NEARBY: { label: "NGO is nearby — almost here!", color: "text-amber-600" },
-    ARRIVED: { label: "NGO has arrived!", color: "text-emerald-600" },
-    PICKUP_IN_PROGRESS: { label: "Pickup in progress", color: "text-indigo-600" },
-    COLLECTED: { label: "Food Collected", color: "text-indigo-600" },
-    DELIVERED: { label: "Food delivered successfully", color: "text-emerald-600" },
-    COMPLETED: { label: "Mission completed!", color: "text-emerald-700" },
-};
 
 // ── Props & Config ────────────────────────────────────────────────────────────
 
@@ -115,7 +103,7 @@ export default memo(function LiveTrackingMap({
              try {
                  const res = await getRequest(`/api/donations/live-location?donationId=${donationId}`);
                  if (res.success && res.data?.isLive) {
-                     const { liveLatitude: lat, liveLongitude: lng, ngoName: name } = res.data;
+                     const { liveLatitude: lat, liveLongitude: lng } = res.data;
                      if (lat && lng) {
                           const newPos = { lat, lng };
                           setNgoPos(newPos);
@@ -232,7 +220,7 @@ export default memo(function LiveTrackingMap({
             onReconnect?.();
         });
 
-        socket.on("connect_error", (error: Error) => {
+        socket.on("connect_error", () => {
             setConnected(false);
         });
 
@@ -334,7 +322,7 @@ export default memo(function LiveTrackingMap({
             if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         };
-    }, [donationId, session, pickupPos, shouldFollow, onStatusChange, liveStatus]);
+    }, [donationId, session, pickupPos, shouldFollow, onStatusChange, liveStatus, onReconnect]);
 
 
 
@@ -366,7 +354,7 @@ export default memo(function LiveTrackingMap({
                                 </div>
                                 <div className="space-y-1">
                                     <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Signal Dropped</h3>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-normal">NGO's signal is weak. Waiting for the next pulse.</p>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-normal">NGO&apos;s signal is weak. Waiting for the next pulse.</p>
                                 </div>
                             </>
                         )}
