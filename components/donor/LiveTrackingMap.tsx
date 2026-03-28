@@ -9,7 +9,7 @@
 import { useEffect, useState, useRef, useCallback, memo, useMemo } from "react";
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer, OverlayView } from "@react-google-maps/api";
 import { getSocket } from "@/lib/socket";
-import { Loader2, Target, Crosshair, MapPin } from "lucide-react";
+import { Loader2, Target, Crosshair, MapPin, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -210,6 +210,7 @@ export default memo(function LiveTrackingMap({
         
         const handleJoin = () => {
             console.log("[WS-TRACK] Donor Syncing Room:", donationId);
+            socket.emit("join-room", { donationId });
             socket.emit("tracking:join", { donationId });
             setConnected(true);
         };
@@ -236,7 +237,7 @@ export default memo(function LiveTrackingMap({
         });
 
         // ── Structured Tracking Listeners ──
-        socket.on("tracking:location", (data: any) => {
+        const handleLocationUpdate = (data: any) => {
             if (data.donationId !== donationId && data.donationId !== undefined) return;
             
             const { lat, lng, updated_at } = data;
@@ -246,9 +247,14 @@ export default memo(function LiveTrackingMap({
             lastUpdateRef.current = eventTime;
 
             const newPos = { lat, lng };
+            console.log(`[WS-TRACK] Location Received: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
             setNgoOnline(true);
             
-            // ... truncated logic handled correctly below ...
+            if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
+            connectionLostTimerRef.current = setTimeout(() => {
+                console.warn("[WS-TRACK] Signal Dropped (10s inactivity)");
+                setNgoOnline(false);
+            }, 10000);
 
             if (!ngoPosRef.current) {
                 setNgoPos(newPos);
@@ -256,7 +262,7 @@ export default memo(function LiveTrackingMap({
                 setInterpolatedPos(newPos);
                 prevPosRef.current = newPos;
             } else {
-                if (lng === ngoPosRef.current.lng && lat === ngoPosRef.current.lat) return;
+                if (Math.abs(lng - ngoPosRef.current.lng) < 0.000001 && Math.abs(lat - ngoPosRef.current.lat) < 0.000001) return;
 
                 setNgoPos(newPos);
                 const startPos = prevPosRef.current || ngoPosRef.current;
@@ -291,10 +297,10 @@ export default memo(function LiveTrackingMap({
                     mapRef.current.fitBounds(bounds, { top: 80, bottom: 200, left: 40, right: 40 });
                 }
             }
+        };
 
-            if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
-            connectionLostTimerRef.current = setTimeout(() => setNgoOnline(false), 12000);
-        });
+        socket.on("receive-location", handleLocationUpdate);
+        socket.on("tracking:location", handleLocationUpdate);
 
         socket.on("tracking:status", (data: any) => {
             if (data.donationId !== donationId && data.donationId !== undefined) return;
@@ -339,17 +345,43 @@ export default memo(function LiveTrackingMap({
 
     return (
         <div className="w-full h-full relative">
+            {/* Connection / Signal Status Overlay */}
+            {(!connected || !ngoOnline) && (
+                <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center transition-all duration-500">
+                    <div className="bg-white/90 dark:bg-slate-800/90 p-6 rounded-2xl shadow-2xl flex flex-col items-center space-y-4 max-w-[280px] text-center animate-in fade-in zoom-in duration-300">
+                        {!connected ? (
+                            <>
+                                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <Crosshair className="w-6 h-6 text-amber-600 animate-spin" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Linking to Server</h3>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-normal">Optimizing secure channel... Hold tight.</p>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center">
+                                    <WifiOff className="w-6 h-6 text-rose-600 animate-pulse" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Signal Dropped</h3>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-normal">NGO's signal is weak. Waiting for the next pulse.</p>
+                                </div>
+                            </>
+                        )}
+                        <button 
+                            onClick={() => window.location.reload()}
+                            className="w-full py-2 bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity"
+                        >
+                            Force Refresh
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* ── Google Map ───────────────────────────────────────────────── */}
             <div className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl relative z-0">
-                {/* Step 7: Connection Status Banner — Dynamic logic */}
-                {!connected ? (
-                    <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
-                        <div className="bg-slate-900 border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col items-center space-y-4">
-                            <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                            <p className="text-xs font-black uppercase tracking-widest text-white/70">Reconnecting...</p>
-                        </div>
-                    </div>
-                ) : null}
 
                 {/* Loading State Overlay */}
                 {!isLoaded && (

@@ -40,6 +40,7 @@ export function useWebSocketLocation({
         
         const handleJoin = () => {
             console.log("[WS-TRACK] NGO Syncing Room:", donationId);
+            socket.emit("join-room", { donationId });
             socket.emit("tracking:join", { donationId });
             setIsConnected(true);
         };
@@ -72,14 +73,13 @@ export function useWebSocketLocation({
         };
     }, [donationId, userId, enabled]);
 
-    // ── Stream GPS location ─────────────────────────────────────────────
-    useEffect(() => {
-        if (!enabled || !donationId) return;
+    const [retryCount, setRetryCount] = useState(0);
 
-        if (!navigator.geolocation) {
-            console.warn("[NGO-WS] Geolocation not supported");
-            return;
-        }
+    // ── GPS Watcher ─────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!enabled || typeof window === 'undefined' || !navigator.geolocation) return;
+
+        console.log("[NGO-WS] Initializing high-accuracy GPS stream...");
 
         const watchId = navigator.geolocation.watchPosition(
             (position) => {
@@ -88,15 +88,14 @@ export function useWebSocketLocation({
                 lastEmitRef.current = now;
 
                 const { latitude: lat, longitude: lng, accuracy } = position.coords;
+                console.log(`[NGO-GPS] Sending location: ${lat.toFixed(6)}, ${lng.toFixed(6)} (Acc: ${accuracy.toFixed(1)}m)`);
 
                 // ─── STOPPED DETECTION ───
                 if (lastPosRef.current) {
                     const dLat = Math.abs(lat - lastPosRef.current.lat);
                     const dLng = Math.abs(lng - lastPosRef.current.lng);
                     if (dLat < MOVEMENT_THRESHOLD && dLng < MOVEMENT_THRESHOLD) {
-                        // Position hasn't changed significantly, we can skip emitting or emit at lower frequency
-                        // For now we'll just continue so the "LIVE" indicator stays active, 
-                        // but we could optimize here if needed.
+                        // Still pulsing to keep signal alive
                     }
                 }
                 lastPosRef.current = { lat, lng };
@@ -104,32 +103,34 @@ export function useWebSocketLocation({
                 const socket = getSocket();
 
                 if (socket?.connected) {
-                    socket.emit("tracking:location", {
+                    const payload = {
                         donationId,
                         lat,
                         lng,
+                        accuracy,
                         updated_at: new Date().toISOString()
-                    });
+                    };
+                    socket.emit("send-location", payload);
+                    socket.emit("tracking:location", payload);
                 }
 
-                // ─── DB SYNC FALLBACK ───
-                // If WS is slow or blocked, update the DB so the donor's REST fallback works.
-                if (now - lastDbSyncRef.current > DB_SYNC_MS) {
+                // ─── DB SYNC FALLBACK (Every 30s) ───
+                if (now - lastDbSyncRef.current > 30000) {
                     lastDbSyncRef.current = now;
-                    postRequest("/api/donations/live-location", {
-                        donationId,
-                        latitude: lat,
-                        longitude: lng
-                    }).catch(err => console.error("[NGO-DB] Sync Error:", err));
+                    postRequest(`/api/donation/${donationId}/location`, { lat, lng }).catch(() => {});
                 }
             },
             (err) => {
                 console.error("[NGO-WS] GPS Error:", err.message);
+                if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+                    console.log("[NGO-WS] Attempting GPS restart in 5s...");
+                    setTimeout(() => setRetryCount(prev => prev + 1), 5000);
+                }
             },
             {
                 enableHighAccuracy: true,
                 maximumAge: 0,
-                timeout: 5000,
+                timeout: 30000,
             }
         );
 
@@ -138,10 +139,9 @@ export function useWebSocketLocation({
         return () => {
             if (watchIdRef.current !== null) {
                 navigator.geolocation.clearWatch(watchIdRef.current);
-                watchIdRef.current = null;
             }
         };
-    }, [donationId, ngoName, enabled]);
+    }, [donationId, enabled, retryCount]);
 
     // ── Emit status update ──────────────────────────────────────────────
     const emitStatus = useCallback(
