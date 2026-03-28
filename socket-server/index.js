@@ -18,8 +18,10 @@ const io = new Server(server, {
         origin: "*", 
         methods: ["GET", "POST"]
     },
-    transports: ["websocket", "polling"],
-    connectTimeout: 5000
+    transports: ["polling", "websocket"], // Bridging firewalls/proxies
+    connectTimeout: 10000,
+    pingInterval: 10000, 
+    pingTimeout: 5000,   // Faster disconnection detection
 });
 
 // Store last known state in memory (optional, for instant join sync)

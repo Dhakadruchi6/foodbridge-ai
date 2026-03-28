@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import { getSocket } from "@/lib/socket";
 import { postRequest } from "@/lib/apiClient";
 
 interface LocationHookOptions {
@@ -24,7 +24,6 @@ export function useWebSocketLocation({
     enabled,
 }: LocationHookOptions) {
     const [isConnected, setIsConnected] = useState(false);
-    const socketRef = useRef<Socket | null>(null);
     const watchIdRef = useRef<number | null>(null);
     const lastEmitRef = useRef<number>(0);
     const lastDbSyncRef = useRef<number>(0);
@@ -33,53 +32,40 @@ export function useWebSocketLocation({
     const MOVEMENT_THRESHOLD = 0.000005; // ~0.5 meters
     const lastPosRef = useRef<{ lat: number, lng: number } | null>(null);
 
-    // ── Connect & join room (Singleton + Resilience) ─────────────────────
+    // ── Connect & join room (Global Singleton) ──────────────────────────
     useEffect(() => {
         if (!donationId || !userId || !enabled) return;
 
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
+        const socket = getSocket();
         
-        if (!socketRef.current) {
-            console.log("[WS-TRACK] Initializing NGO broadcast link...");
-            socketRef.current = io(socketUrl, {
-                transports: ["websocket", "polling"],
-                reconnection: true,
-                reconnectionAttempts: Infinity,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                timeout: 10000
-            });
-        }
-
-        const socket = socketRef.current;
-
         const handleJoin = () => {
-            console.log("[WS-TRACK] NGO Join Room:", donationId);
+            console.log("[WS-TRACK] NGO Syncing Room:", donationId);
             socket.emit("tracking:join", { donationId });
             setIsConnected(true);
         };
 
+        if (socket.connected) {
+            handleJoin();
+        }
+
         socket.on("connect", handleJoin);
 
-        socket.on("reconnect", (attempt) => {
-            console.log(`[WS-TRACK] NGO Restored (Attempt ${attempt})`);
+        socket.on("reconnect", (attempt: number) => {
+            console.log(`[WS-TRACK] NGO Connection Restored (Attempt ${attempt})`);
             handleJoin();
         });
 
-        socket.on("disconnect", (reason) => {
-            console.warn("[WS-TRACK] NGO Disconnected:", reason);
+        socket.on("disconnect", (reason: string) => {
+            console.warn("[WS-TRACK] NGO Link Dropped:", reason);
             setIsConnected(false);
-            if (reason === "io server disconnect") socket.connect();
         });
 
-        socket.on("connect_error", (error) => {
-            console.error("[WS-TRACK] NGO Link Error:", error.message);
+        socket.on("connect_error", (error: Error) => {
             setIsConnected(false);
         });
 
         return () => {
-            // Partial cleanup to keep singleton active
-            socket.off("connect");
+            socket.off("connect", handleJoin);
             socket.off("reconnect");
             socket.off("disconnect");
             socket.off("connect_error");
@@ -115,7 +101,7 @@ export function useWebSocketLocation({
                 }
                 lastPosRef.current = { lat, lng };
 
-                const socket = socketRef.current;
+                const socket = getSocket();
 
                 if (socket?.connected) {
                     socket.emit("tracking:location", {
@@ -160,7 +146,7 @@ export function useWebSocketLocation({
     // ── Emit status update ──────────────────────────────────────────────
     const emitStatus = useCallback(
         (status: string) => {
-            const socket = socketRef.current;
+            const socket = getSocket();
             if (socket?.connected && donationId) {
                 socket.emit("tracking:status", { donationId, status });
             }

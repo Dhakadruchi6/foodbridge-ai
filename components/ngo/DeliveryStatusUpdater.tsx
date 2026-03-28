@@ -218,25 +218,36 @@ export const DeliveryStatusUpdater = ({
             {/* WebSocket Sync Status */}
             {isTrackingActive && (
                 <div className={cn(
-                    "p-3 border rounded-xl flex items-center justify-between",
+                    "p-3 border rounded-xl flex items-center justify-between transition-all",
                     isConnected
                         ? "bg-indigo-50 border-indigo-100"
-                        : "bg-yellow-50 border-yellow-100"
+                        : "bg-amber-50 border-amber-100 animate-pulse"
                 )}>
                     <div className="flex items-center space-x-2">
                         {isConnected ? (
                             <>
-                                <Wifi className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
-                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Live tracking active</span>
+                                <Wifi className="w-3.5 h-3.5 text-indigo-600" />
+                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Live Sync Active</span>
                             </>
                         ) : (
                             <>
-                                <WifiOff className="w-3.5 h-3.5 text-yellow-600" />
-                                <span className="text-[10px] font-black text-yellow-600 uppercase tracking-widest">Reconnecting...</span>
+                                <WifiOff className="w-3.5 h-3.5 text-amber-600" />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none">Signal Dropped</span>
+                                    <span className="text-[8px] font-bold text-amber-500/70 uppercase tracking-wider mt-0.5">Attempting to Restore...</span>
+                                </div>
                             </>
                         )}
                     </div>
-                    <span className="text-[9px] font-bold text-slate-400">Real-time • 2.5s</span>
+                    {!isConnected && (
+                        <button 
+                            onClick={() => window.location.reload()} 
+                            className="px-2 py-1 bg-amber-600 text-white text-[8px] font-black uppercase tracking-widest rounded-md hover:bg-amber-700 transition-colors"
+                        >
+                            Hard Reset
+                        </button>
+                    )}
+                    {isConnected && <span className="text-[9px] font-bold text-slate-400">Real-time • 2.5s</span>}
                 </div>
             )}
 

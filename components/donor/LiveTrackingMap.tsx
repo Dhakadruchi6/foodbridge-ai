@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useRef, useCallback, memo, useMemo } from "react";
 import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer, OverlayView } from "@react-google-maps/api";
-import { io, Socket } from "socket.io-client";
+import { getSocket } from "@/lib/socket";
 import { Loader2, Target, Crosshair, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -138,7 +138,6 @@ export default memo(function LiveTrackingMap({
         return () => clearInterval(interval);
     }, [donationId, connected, ngoOnline]);
 
-    const socketRef = useRef<Socket | null>(null);
     const lastUpdateRef = useRef<number>(0);
     const connectionLostTimerRef = useRef<NodeJS.Timeout | null>(null);
     const mapRef = useRef<google.maps.Map | null>(null);
@@ -203,66 +202,53 @@ export default memo(function LiveTrackingMap({
 
     const mapCenter = useMemo(() => ngoPos || pickupPos, [ngoPos, pickupPos]);
 
-    // ── Socket.IO connection (Singleton + Recovery) ─────────────────────────
+    // ── Socket.IO connection (Global Singleton) ─────────────────────────
     useEffect(() => {
         if (!donationId) return;
 
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
+        const socket = getSocket();
         
-        // Singleton Implementation
-        if (!socketRef.current) {
-            console.log("[WS-TRACK] Initializing primary socket link...");
-            socketRef.current = io(socketUrl, {
-                transports: ["websocket", "polling"],
-                reconnection: true,
-                reconnectionAttempts: Infinity,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                timeout: 10000 // 10s connection timeout
-            });
-        }
-
-        const socket = socketRef.current;
-
         const handleJoin = () => {
-            console.log("[WS-TRACK] Joining room:", donationId);
+            console.log("[WS-TRACK] Donor Syncing Room:", donationId);
             socket.emit("tracking:join", { donationId });
             setConnected(true);
         };
 
+        if (socket.connected) {
+            handleJoin();
+        }
+
         socket.on("connect", handleJoin);
 
-        socket.on("disconnect", (reason) => {
-            console.warn("[WS-TRACK] Disconnected:", reason);
+        socket.on("disconnect", (reason: string) => {
+            console.warn("[WS-TRACK] Donor Link Dropped:", reason);
             setConnected(false);
-            if (reason === "io server disconnect") {
-                socket.connect(); // Force reconnect if server killed it
-            }
         });
 
-        socket.on("reconnect", (attempt) => {
-            console.log(`[WS-TRACK] Restored connection (Attempt ${attempt})`);
+        socket.on("reconnect", (attempt: number) => {
+            console.log(`[WS-TRACK] Donor Connection Restored (Attempt ${attempt})`);
             handleJoin();
             onReconnect?.();
         });
 
-        socket.on("connect_error", (error) => {
-            console.error("[WS-TRACK] Connection Error:", error.message);
+        socket.on("connect_error", (error: Error) => {
             setConnected(false);
         });
 
         // ── Structured Tracking Listeners ──
-        socket.on("tracking:location", (data) => {
+        socket.on("tracking:location", (data: any) => {
             if (data.donationId !== donationId && data.donationId !== undefined) return;
             
-            const { lat, lng, timestamp, updated_at } = data;
-            const eventTime = updated_at ? new Date(updated_at).getTime() : (timestamp || Date.now());
+            const { lat, lng, updated_at } = data;
+            const eventTime = updated_at ? new Date(updated_at).getTime() : Date.now();
 
             if (eventTime < lastUpdateRef.current) return;
             lastUpdateRef.current = eventTime;
 
             const newPos = { lat, lng };
             setNgoOnline(true);
+            
+            // ... truncated logic handled correctly below ...
 
             if (!ngoPosRef.current) {
                 setNgoPos(newPos);
@@ -310,7 +296,7 @@ export default memo(function LiveTrackingMap({
             connectionLostTimerRef.current = setTimeout(() => setNgoOnline(false), 12000);
         });
 
-        socket.on("tracking:status", (data) => {
+        socket.on("tracking:status", (data: any) => {
             if (data.donationId !== donationId && data.donationId !== undefined) return;
             if (data.status === liveStatus) return;
 

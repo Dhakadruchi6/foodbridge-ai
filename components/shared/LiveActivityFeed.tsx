@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { getSocket } from '@/lib/socket';
 import { getRequest } from '@/lib/apiClient';
 import { Activity } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,6 @@ const emojiMap = {
 export const LiveActivityFeed = () => {
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
-    const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
         // 1. Fetch initial activity
@@ -46,34 +45,32 @@ export const LiveActivityFeed = () => {
 
         fetchInitialActivity();
 
-        // 2. Setup Socket
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://foodbridge-ai-nk8s.onrender.com";
-        const socket = io(socketUrl, {
-            transports: ["websocket"],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
+        // 2. Setup Socket (Global Singleton)
+        const socket = getSocket();
+
+        const handleFeedSync = () => {
+            console.log("[FEED] Syncing with public activity stream...");
+            socket.emit("join-public-feed");
+        };
+
+        if (socket.connected) {
+            handleFeedSync();
+        }
+
+        socket.on("connect", handleFeedSync);
+
+        socket.on("new-activity", (newActivity: Activity) => {
+            console.log("[FEED] New activity received:", newActivity);
+            setActivities(prev => {
+                if (prev.some(a => a._id === newActivity._id)) return prev;
+                return [newActivity, ...prev].slice(0, 10);
+            });
         });
 
-            socket.on("connect", () => {
-                console.log("[FEED] Connected to socket");
-                socket.emit("join-public-feed");
-            });
-
-            socket.on("new-activity", (newActivity: Activity) => {
-                console.log("[FEED] New activity received:", newActivity);
-                setActivities(prev => {
-                    // Avoid duplicates if same ID comes through
-                    if (prev.some(a => a._id === newActivity._id)) return prev;
-                    return [newActivity, ...prev].slice(0, 10);
-                });
-            });
-
-            socketRef.current = socket;
-
-            return () => {
-                socket.disconnect();
-            };
+        return () => {
+            socket.off("connect", handleFeedSync);
+            socket.off("new-activity");
+        };
     }, []);
 
     if (loading && activities.length === 0) {
