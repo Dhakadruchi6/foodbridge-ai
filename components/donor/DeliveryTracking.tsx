@@ -64,6 +64,9 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
     const [reportLoading, setReportLoading] = useState(false);
     const [reportSuccess, setReportSuccess] = useState(false);
     const [trackingStats, setTrackingStats] = useState({ distance: "", duration: "", isNearby: false });
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [isOffline, setIsOffline] = useState(false);
+    const [isTimelineOpen, setIsTimelineOpen] = useState(false);
 
     const handleReportSubmit = async () => {
         if (!reportReason || !info?.ngoId?._id) return;
@@ -86,339 +89,270 @@ export const DeliveryTracking = ({ donationId }: { donationId: string }) => {
         }
     };
 
-    useEffect(() => {
-        const fetchTracking = async () => {
-            try {
-                const result = await getRequest(`/api/donations/track?donationId=${donationId}`);
-                if (result.success) {
-                    setInfo(result.data);
-                } else {
-                    setError(result.message);
-                }
-            } catch (err: unknown) {
-                const errorMsg = err instanceof Error ? err.message : "Failed to load tracking info";
-                setError(errorMsg);
-            } finally {
-                setLoading(false);
+    const fetchTracking = async () => {
+        try {
+            const result = await getRequest(`/api/donations/track?donationId=${donationId}`);
+            if (result.success) {
+                setInfo(result.data);
+                setLastUpdated(new Date());
+            } else {
+                setError(result.message);
             }
-        };
+        } catch (err: unknown) {
+            const errorMsg = err instanceof Error ? err.message : "Failed to load tracking info";
+            setError(errorMsg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchTracking();
+        const poll = setInterval(fetchTracking, 10000);
+        return () => clearInterval(poll);
     }, [donationId]);
 
+    useEffect(() => {
+        if (!lastUpdated) return;
+        const check = setInterval(() => {
+            const diff = Date.now() - lastUpdated.getTime();
+            setIsOffline(diff > 15000);
+        }, 5000);
+        return () => clearInterval(check);
+    }, [lastUpdated]);
+
     if (loading) return (
-        <div className="flex items-center justify-center p-8 bg-slate-50 rounded-2xl border border-slate-100 italic text-slate-400 text-sm">
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Syncing with logistics fleet...
+        <div className="flex flex-col items-center justify-center h-[60vh] bg-slate-50 rounded-[2.5rem] border border-slate-100 italic text-slate-400 text-sm">
+            <div className="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-6 animate-bounce">
+                <Truck className="w-8 h-8 text-indigo-500" />
+            </div>
+            <p className="font-black uppercase tracking-[0.2em] text-[10px]">Syncing with Fleet...</p>
         </div>
     );
 
     if (error || !info) return (
-        <div className="p-8 bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 text-sm text-center font-bold">
+        <div className="p-12 bg-slate-50 rounded-[2.5rem] border border-slate-200 text-slate-400 text-sm text-center font-bold">
+            <AlertTriangle className="w-10 h-10 mx-auto mb-4 text-slate-300" />
             {error || "Tracking details will appear once an NGO accepts the batch."}
         </div>
     );
 
     const ngoName = info.ngoProfile?.ngoName || info.ngoId?.name || "NGO Partner";
-    const ngoEmail = info.ngoId?.email || "";
     const ngoPhone = info.ngoProfile?.contactPhone || "";
-    const ngoCity = info.ngoProfile?.city || "";
 
     const steps = [
-        {
-            key: 'accepted',
-            label: 'Mission Accepted',
-            desc: 'NGO has confirmed the donation',
-            icon: <CheckCircle2 className="w-5 h-5" />,
-            time: info.createdAt
-        },
-        {
-            key: 'on_the_way',
-            label: 'On The Way',
-            desc: 'Team is heading to your location',
-            icon: <Truck className="w-5 h-5" />,
-            time: null // We don't track intermediate timestamps currently, but keeping the field
-        },
-        {
-            key: 'arrived',
-            label: 'Arrived at Pickup',
-            desc: "Team is at the donor's location",
-            icon: <MapPin className="w-5 h-5" />,
-            time: null
-        },
-        {
-            key: 'collected',
-            label: 'Food Collected',
-            desc: 'Items received and secured',
-            icon: <Package className="w-5 h-5" />,
-            time: info.pickupTime
-        },
-        {
-            key: 'delivered',
-            label: 'Arrived at Destination',
-            desc: 'Food has reached the destination',
-            icon: <Package className="w-5 h-5" />,
-            time: null
-        },
-        {
-            key: 'completed',
-            label: 'Mission Completed',
-            desc: 'Verification and distribution complete',
-            icon: <ShieldCheck className="w-5 h-5" />,
-            time: info.deliveryTime
-        }
+        { key: 'accepted', label: 'Accepted', desc: 'NGO confirmed', icon: <CheckCircle2 className="w-4 h-4" /> },
+        { key: 'on_the_way', label: 'On The Way', desc: 'Heading to you', icon: <Truck className="w-4 h-4" /> },
+        { key: 'arrived', label: 'Arrived', desc: 'At your location', icon: <MapPin className="w-4 h-4" /> },
+        { key: 'collected', label: 'Collected', desc: 'Items secured', icon: <Package className="w-4 h-4" /> },
+        { key: 'delivered', label: 'Delivered', desc: 'At destination', icon: <Package className="w-4 h-4" /> },
+        { key: 'completed', label: 'Closed', desc: 'Mission complete', icon: <ShieldCheck className="w-4 h-4" /> }
     ];
 
     const currentIdx = steps.findIndex(s => s.key === info.status);
 
-    const formatTime = (dateStr: string | null) => {
-        if (!dateStr) return "";
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return "";
-        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
-            " · " + d.toLocaleDateString([], { day: '2-digit', month: 'short' });
-    };
-
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
+        <div className="relative h-[calc(100vh-120px)] sm:h-[700px] w-full bg-slate-950 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl flex flex-col group">
+            
+            {/* 1. TOP MAP (Dominant View) */}
+            <div className="flex-1 relative">
+                <LiveTrackingMap
+                    donationId={donationId}
+                    pickupLat={info.donation?.latitude || 0}
+                    pickupLon={info.donation?.longitude || 0}
+                    ngoName={ngoName}
+                    destinationAddress={info.donation?.pickupAddress || info.donation?.city || "Donation Point"}
+                    onTrackingUpdate={(stats) => {
+                        setTrackingStats(stats);
+                        setLastUpdated(new Date());
+                    }}
+                    onStatusChange={(newStatus) => {
+                        setInfo(prev => prev ? ({ ...prev, status: newStatus as any }) : null);
+                        setLastUpdated(new Date());
+                    }}
+                />
 
-            {/* Donation Details Card */}
-            {info.donation && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-slate-50 p-4 rounded-2xl space-y-1">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Food Item</span>
-                        <span className="text-sm font-black text-slate-800">{info.donation.foodType || "—"}</span>
-                    </div>
-                    <div className="bg-slate-50 p-4 rounded-2xl space-y-1">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Quantity</span>
-                        <span className="text-sm font-black text-slate-800">{info.donation.quantity}kg</span>
-                    </div>
-                    <div className="bg-slate-50 p-4 rounded-2xl space-y-1">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Pickup</span>
-                        <span className="text-xs font-bold text-slate-600">{info.donation.pickupAddress || info.donation.city}</span>
-                    </div>
-                    <div className="bg-slate-50 p-4 rounded-2xl space-y-1">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Expires</span>
-                        <span className="text-xs font-bold text-amber-600">
-                            {info.donation.expiryTime ? new Date(info.donation.expiryTime).toLocaleDateString() : "N/A"}
+                {/* Overlays */}
+                <div className="absolute top-6 left-6 right-6 flex flex-col gap-3 pointer-events-none">
+                    <div className="self-start px-4 py-2 bg-slate-900/90 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl flex items-center space-x-3 pointer-events-auto">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                            {steps[currentIdx]?.label || info.status.replace('_', ' ')}
                         </span>
+                        {isOffline && (
+                            <span className="text-[9px] font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                                Connection Weak
+                            </span>
+                        )}
                     </div>
-                </div>
-            )}
 
-            {/* LIVE TRACKING MAP */}
-            {info.status !== 'completed' && info && (
-                <div className="space-y-4 animate-in fade-in duration-700">
-                    {/* Zomato-style Status Banner */}
-                    {(info.status === 'on_the_way' || info.status === 'arrived') && (
-                        <div className="p-4 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-600/20 text-white flex items-center justify-between overflow-hidden relative group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                                <Navigation className="w-12 h-12" />
+                    <div className="bg-white rounded-3xl p-4 shadow-2xl border border-slate-100 flex items-center justify-between w-full max-w-sm pointer-events-auto transition-transform hover:scale-[1.02]">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                                <Truck className="w-6 h-6" />
                             </div>
-                            <div className="flex items-center space-x-4 relative z-10">
-                                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 animate-pulse">
-                                    <Truck className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200 mb-1">Real-Time Insight</p>
-                                    <h4 className="text-sm font-black tracking-tight">
-                                        NGO Partner is navigating to your location
-                                    </h4>
+                            <div className="min-w-0">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Operational Partner</p>
+                                <h4 className="text-sm font-black text-slate-900 truncate tracking-tight">{ngoName}</h4>
+                                <div className="flex items-center space-x-2 mt-1">
+                                    <Timer className="w-3 h-3 text-indigo-500" />
+                                    <span className="text-[10px] font-bold text-slate-500">{trackingStats.duration || "Calculating..."}</span>
                                 </div>
                             </div>
-                            <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10 text-[9px] font-black uppercase tracking-widest relative z-10">
-                                Arriving Soon
-                            </div>
                         </div>
-                    )}
-
-                    <div className="h-[400px] w-full rounded-2xl overflow-hidden border border-slate-100 shadow-inner">
-                        <LiveTrackingMap
-                            donationId={donationId}
-                            pickupLat={info.donation?.latitude || 0}
-                            pickupLon={info.donation?.longitude || 0}
-                            ngoName={ngoName}
-                            destinationAddress={info.donation?.pickupAddress || info.donation?.city || "Donation Point"}
-                            onTrackingUpdate={(stats) => setTrackingStats(stats)}
-                        />
-                    </div>
-                    
-                    {trackingStats.duration && (
-                        <div className="flex items-center justify-center space-x-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                             <div className="flex items-center space-x-1.5">
-                                <Timer className="w-3.5 h-3.5 text-indigo-500" />
-                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{trackingStats.duration} away</span>
-                             </div>
-                             <div className="w-px h-3 bg-slate-200" />
-                             <div className="flex items-center space-x-1.5">
-                                <Navigation className="w-3.5 h-3.5 text-slate-400" />
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{trackingStats.distance}</span>
-                             </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* NGO Partner Card */}
-            <div className="flex flex-col space-y-2">
-                <div className="nav-card p-5 bg-indigo-600 rounded-[1.5rem] shadow-xl text-white overflow-hidden relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><Truck className="w-16 h-16" /></div>
-                    <div className="flex items-center space-x-4 relative z-10">
-                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20">
-                            <User className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200 leading-none mb-1.5">Operational Partner</p>
-                            <h5 className="text-lg font-black tracking-tight leading-none">{ngoName}</h5>
-                            {ngoCity && (
-                                <p className="text-[10px] font-bold text-indigo-300 mt-1 flex items-center">
-                                    <MapPin className="w-3 h-3 mr-1" />{ngoCity}
-                                </p>
+                        <div className="flex space-x-2">
+                            {ngoPhone && (
+                                <a href={`tel:${ngoPhone}`} className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                                    <Phone className="w-4 h-4" />
+                                </a>
                             )}
+                            <button 
+                                onClick={() => setIsReporting(!isReporting)}
+                                className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                            >
+                                <AlertTriangle className="w-4 h-4" />
+                            </button>
                         </div>
-                    </div>
-                    <div className="flex items-center space-x-2 relative z-10">
-                        {ngoPhone && ngoPhone !== "Not specified" && (
-                            <a
-                                href={`tel:${ngoPhone}`}
-                                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center transition-colors"
-                            >
-                                <Phone className="w-3.5 h-3.5 mr-2" />
-                                Call
-                            </a>
-                        )}
-                        {ngoEmail && (
-                            <a
-                                href={`mailto:${ngoEmail}`}
-                                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center transition-colors"
-                            >
-                                <Mail className="w-3.5 h-3.5 mr-2" />
-                                Email
-                            </a>
-                        )}
-                        <button
-                            onClick={() => setIsReporting(!isReporting)}
-                            className="px-3 py-1.5 bg-rose-500/80 hover:bg-rose-600 rounded-lg text-[10px] border border-rose-500 font-black uppercase tracking-widest flex items-center transition-colors"
-                        >
-                            <AlertTriangle className="w-3.5 h-3.5 mr-2" />
-                            Report
-                        </button>
                     </div>
                 </div>
 
-                {/* Reporting Expansion */}
-                {isReporting && (
-                    <div className="p-5 bg-white border border-rose-100 rounded-[1.5rem] shadow-sm animate-in slide-in-from-top-2 duration-300">
+                <div className="absolute bottom-10 left-6 right-6 pointer-events-none flex items-end justify-between">
+                     <div className="px-4 py-2 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-white/10 text-white flex items-center space-x-4 pointer-events-auto">
+                        <div className="flex items-center space-x-1.5">
+                            <Navigation className="w-3.5 h-3.5 text-indigo-400" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">{trackingStats.distance || "—"}</span>
+                        </div>
+                        <div className="w-px h-3 bg-white/20" />
+                        <span className="text-[9px] font-bold text-white/50 italic">
+                            {lastUpdated ? `Live • updated ${Math.floor((Date.now() - lastUpdated.getTime())/1000)}s ago` : 'Connecting...'}
+                        </span>
+                     </div>
+                </div>
+            </div>
+
+            {/* 2. BOTTOM DETAILS (Collapsible Sheet) */}
+            <div className={cn(
+                "bg-white rounded-t-[2.5rem] border-t border-slate-200 shadow-[0_-20px_50px_rgba(0,0,0,0.1)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] relative z-20",
+                isTimelineOpen ? "h-[450px]" : "h-[90px]"
+            )}>
+                <button 
+                    onClick={() => setIsTimelineOpen(!isTimelineOpen)}
+                    className="w-full flex flex-col items-center pt-3 pb-2 transition-colors hover:bg-slate-50/50"
+                >
+                    <div className="w-12 h-1.5 bg-slate-200 rounded-full mb-2" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        {isTimelineOpen ? "Collapse Roadmap" : "View Full Mission Timeline"}
+                    </p>
+                </button>
+
+                <div className="px-8 pb-8 space-y-8 overflow-y-auto max-h-[350px] no-scrollbar">
+                    {!isTimelineOpen && (
+                        <div className="flex items-center justify-between mt-2 animate-in fade-in zoom-in-95 duration-500">
+                             <div className="flex items-center space-x-2">
+                                <Package className="w-4 h-4 text-primary" />
+                                <span className="text-xs font-black text-slate-900">{info.donation?.foodType}</span>
+                             </div>
+                             <div className="flex items-center space-x-1 px-3 py-1 bg-primary/5 rounded-full">
+                                <span className="text-[10px] font-black text-primary uppercase tracking-widest">{info.donation?.quantity}kg</span>
+                             </div>
+                        </div>
+                    )}
+
+                    <div className={cn(
+                        "grid grid-cols-1 gap-6 pt-4 transition-opacity duration-300",
+                        !isTimelineOpen && "opacity-0 pointer-events-none h-0 p-0"
+                    )}>
+                        {steps.map((step, idx) => {
+                            const isDone = idx <= currentIdx;
+                            const isCurrent = idx === currentIdx;
+                            return (
+                                <div key={idx} className="flex relative group/step">
+                                    {idx < steps.length - 1 && (
+                                        <div className={cn(
+                                            "absolute left-[15px] top-[30px] w-0.5 h-[calc(100%+24px)] transition-colors duration-1000",
+                                            isDone ? "bg-indigo-600/40" : "bg-slate-100"
+                                        )} />
+                                    )}
+                                    <div className={cn(
+                                        "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-700 relative z-10",
+                                        isDone ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-200" : "bg-white border-slate-200 text-slate-300",
+                                        isCurrent && "scale-125 ring-4 ring-indigo-100 animate-pulse"
+                                    )}>
+                                        {step.icon}
+                                    </div>
+                                    <div className="ml-5 flex-1 pt-0.5">
+                                        <div className="flex justify-between items-center">
+                                            <h5 className={cn(
+                                                "text-[11px] font-black uppercase tracking-widest leading-none",
+                                                isDone ? "text-slate-900" : "text-slate-400"
+                                            )}>{step.label}</h5>
+                                            {isDone && (
+                                                <span className="text-[9px] font-bold text-slate-400">
+                                                    {idx === 0 ? "Initialised" : "Syncing..."}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] font-bold text-slate-500 mt-1 opacity-60">
+                                            {isDone ? step.desc : "Awaiting operational signal..."}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+
+            {isReporting && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="w-full max-w-sm bg-white rounded-[2rem] p-8 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-500">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-black text-slate-900 tracking-tight">Safeguard Report</h3>
+                            <button onClick={() => setIsReporting(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                <AlertTriangle className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
                         {reportSuccess ? (
-                            <div className="text-center p-4">
-                                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                                <h4 className="text-sm font-black text-emerald-700">Report Successfully Lodged</h4>
-                                <p className="text-xs font-bold text-emerald-600 mt-1">Platform administrators will investigate immediately. Penalties may be automatically assessed.</p>
+                            <div className="text-center py-6">
+                                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                                </div>
+                                <h4 className="text-sm font-black text-slate-900 mb-2">Report Transmitted</h4>
+                                <p className="text-xs font-medium text-slate-500">Security team will investigate shortly.</p>
+                                <button onClick={() => setIsReporting(false)} className="mt-6 w-full h-11 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest">Close</button>
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <h4 className="text-sm font-black text-rose-800 flex items-center tracking-tight">
-                                    <ShieldCheck className="w-4 h-4 mr-2" /> Lodge Trust & Safety Report
-                                </h4>
-                                <div className="space-y-3">
-                                    <select
-                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-200"
-                                        value={reportReason}
-                                        onChange={(e) => setReportReason(e.target.value)}
+                                <select 
+                                    className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-bold focus:ring-2 focus:ring-indigo-100"
+                                    value={reportReason}
+                                    onChange={(e) => setReportReason(e.target.value)}
+                                >
+                                    <option value="">Select Insufficiency...</option>
+                                    <option value="no_show">Ghosted / No Arrival</option>
+                                    <option value="unprofessional">Lack of Protocol</option>
+                                    <option value="safety">Safety Violation</option>
+                                </select>
+                                <textarea 
+                                    placeholder="Incident data context..."
+                                    className="w-full h-24 bg-slate-50 border border-slate-200 rounded-[1.25rem] p-4 text-xs font-medium focus:ring-2 focus:ring-indigo-100 resize-none"
+                                    value={reportDesc}
+                                    onChange={(e) => setReportDesc(e.target.value)}
+                                />
+                                <div className="flex space-x-3 pt-2">
+                                    <button onClick={() => setIsReporting(false)} className="flex-1 h-12 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
+                                    <button 
+                                        onClick={handleReportSubmit}
+                                        disabled={!reportReason || reportLoading}
+                                        className="flex-[2] h-12 bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-rose-200 disabled:opacity-50 transition-all active:scale-95"
                                     >
-                                        <option value="" disabled>Select Primary Offense...</option>
-                                        <option value="no_show">Ghosted / Did Not Arrive</option>
-                                        <option value="fake_documents">Unprofessional Behavior</option>
-                                        <option value="fraud">Fraudulent Intent</option>
-                                        <option value="other">Other Violation</option>
-                                    </select>
-
-                                    <textarea
-                                        placeholder="Optional description of the incident..."
-                                        className="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-200 resize-none"
-                                        value={reportDesc}
-                                        onChange={(e) => setReportDesc(e.target.value)}
-                                    />
-
-                                    <div className="flex justify-end gap-2">
-                                        <button
-                                            onClick={() => setIsReporting(false)}
-                                            className="px-4 py-2 rounded-lg text-xs font-black text-slate-500 hover:bg-slate-100 uppercase tracking-widest transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleReportSubmit}
-                                            disabled={!reportReason || reportLoading}
-                                            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex items-center"
-                                        >
-                                            {reportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit Report"}
-                                        </button>
-                                    </div>
+                                        {reportLoading ? "Transmitting..." : "Submit Incident"}
+                                    </button>
                                 </div>
                             </div>
                         )}
                     </div>
-                )}
-            </div>
-
-            {/* Timeline */}
-            <div className="space-y-6 px-4">
-                {steps.map((step, idx) => {
-                    const isDone = idx <= currentIdx;
-                    const isFuture = idx > currentIdx;
-                    const isCurrent = idx === currentIdx;
-
-                    return (
-                        <div key={idx} className="flex group relative">
-                            {/* Line */}
-                            {idx < steps.length - 1 && (
-                                <div className={cn(
-                                    "absolute left-[20px] top-[40px] w-0.5 h-[calc(100%+8px)] bg-slate-100",
-                                    isDone && "bg-emerald-500/20"
-                                )} />
-                            )}
-
-                            {/* Icon Container */}
-                            <div className={cn(
-                                "w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-500 relative z-10 bg-white",
-                                isDone ? "border-emerald-500 text-emerald-500 shadow-lg shadow-emerald-500/20" : "border-slate-200 text-slate-300",
-                                isCurrent && "animate-pulse scale-110"
-                            )}>
-                                {isFuture ? <Circle className="w-4 h-4" /> : step.icon}
-                            </div>
-
-                            {/* Text */}
-                            <div className="ml-6 space-y-0.5 mt-0.5 flex-1">
-                                <p className={cn(
-                                    "text-sm font-black uppercase tracking-widest leading-none",
-                                    isDone ? "text-slate-900" : "text-slate-400"
-                                )}>
-                                    {step.label}
-                                </p>
-                                <p className="text-xs font-bold text-slate-400">
-                                    {isDone ? step.desc : "Awaiting operational trigger..."}
-                                </p>
-                            </div>
-
-                            {/* Timestamp */}
-                            {isDone && step.time && (
-                                <div className="ml-auto shrink-0">
-                                    <span className="text-[10px] font-black text-slate-400 px-2 py-1 bg-slate-100 rounded-md whitespace-nowrap">
-                                        {formatTime(step.time)}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Completion message */}
-            {info.status === 'completed' && (
-                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-center">
-                    <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-                    <p className="text-sm font-black text-emerald-700">Mission Completed Successfully!</p>
-                    <p className="text-xs font-bold text-emerald-500 mt-1">Food has been delivered to the distribution hub</p>
                 </div>
             )}
         </div>

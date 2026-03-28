@@ -46,21 +46,20 @@ export function useWebSocketLocation({
         });
 
         socket.on("connect", () => {
-            console.log("[WS-DEBUG] NGO socket connected:", socket.id);
+            console.log("[WS-TRACK] NGO Connected:", socket.id);
             setIsConnected(true);
-            // Step 1: Join room using donation ID
-            socket.emit("join-room", donationId);
+            socket.emit("tracking:join", { donationId });
         });
 
         socket.on("disconnect", () => {
-            console.log("[NGO-WS] Disconnected");
+            console.log("[WS-TRACK] NGO Disconnected");
             setIsConnected(false);
         });
 
         socketRef.current = socket;
 
         return () => {
-            socket.emit("stop-tracking", { donationId });
+            socket.emit("tracking:stop", { donationId });
             socket.disconnect();
             socketRef.current = null;
         };
@@ -98,13 +97,11 @@ export function useWebSocketLocation({
                 const socket = socketRef.current;
 
                 if (socket?.connected) {
-                    console.log(`[WS-DEBUG] Sending location for ${donationId}:`, { lat, lng });
-                    // Step 2: Send NGO live location
-                    socket.emit("send-location", {
+                    socket.emit("tracking:location", {
                         donationId,
                         lat,
                         lng,
-                        ngoName, // Keeping it for UI convenience even if not in user's minimal snippet
+                        updated_at: new Date().toISOString()
                     });
                 }
 
@@ -144,7 +141,7 @@ export function useWebSocketLocation({
         (status: string) => {
             const socket = socketRef.current;
             if (socket?.connected && donationId) {
-                socket.emit("status-update", { donationId, status });
+                socket.emit("tracking:status", { donationId, status });
             }
         },
         [donationId]

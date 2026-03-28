@@ -144,18 +144,32 @@ export default memo(function LiveTrackingMap({
     const ngoPosRef = useRef<{ lat: number, lng: number } | null>(null);
     const prevPosRef = useRef<{ lat: number, lng: number } | null>(null);
     const animationFrameRef = useRef<number | null>(null);
-    const INTERPOLATION_DURATION = 1500; // Smoother glide matching 1.2s heartbeat
+    const lastRoutePos = useRef<{ lat: number, lng: number } | null>(null);
+    const INTERPOLATION_DURATION = 2500; // Premium 2.5s glide
 
+    // ── Helper: Haversine Distance ──
+    const getDistance = (p1: { lat: number, lng: number }, p2: { lat: number, lng: number }) => {
+        const R = 6371e3; // meters
+        const φ1 = p1.lat * Math.PI/180;
+        const φ2 = p2.lat * Math.PI/180;
+        const Δφ = (p2.lat-p1.lat) * Math.PI/180;
+        const Δλ = (p2.lng-p1.lng) * Math.PI/180;
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c; // meters
+    };
 
-
-    // ── Route Calculation (Feature 5 & 6) ──────────────────────────────────
+    // ── Route Calculation ──
     const calculateRoute = useCallback(async (origin: { lat: number, lng: number }, dest: { lat: number, lng: number }) => {
         if (!isLoaded || !origin || !dest) return;
 
-        // Anti-spam: Only query Google Maps Directions API once every 5 seconds maximum.
-        // This ensures the route path updates gracefully as the NGO location marker bounces/moves without exploding quotas.
         const now = Date.now();
-        if (now - lastRouteCalcTime.current < 3000) return;
+        const distMoved = lastRoutePos.current ? getDistance(lastRoutePos.current, origin) : 999;
+        
+        // Smart Trigger: Distance > 50m OR 10s interval
+        if (distMoved < 50 && (now - lastRouteCalcTime.current < 10000)) return;
 
         try {
             const directionsService = new google.maps.DirectionsService();
@@ -166,44 +180,23 @@ export default memo(function LiveTrackingMap({
             });
             setDirectionsResponse(results);
             lastRouteCalcTime.current = now;
+            lastRoutePos.current = origin;
 
-            // Feature 4: Expose Distance & ETA
             if (results.routes[0]?.legs[0] && onTrackingUpdate) {
                 const leg = results.routes[0].legs[0];
-                const distValue = leg.distance?.value || 0; // meters
                 onTrackingUpdate({
-                    distance: leg.distance?.text || "Calculating...",
-                    duration: leg.duration?.text || "Calculating...",
-                    isNearby: distValue < 500
+                    distance: leg.distance?.text || "...",
+                    duration: leg.duration?.text || "...",
+                    isNearby: (leg.distance?.value || 0) < 500
                 });
             }
         } catch (error) {
             console.error("Directions query failed", error);
-            // Fallback straight-line distance calculation since Directions API might be disabled
-            const R = 6371; // Radius of the earth in km
-            const dLat = (dest.lat - origin.lat) * (Math.PI/180);
-            const dLon = (dest.lng - origin.lng) * (Math.PI/180);
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(origin.lat * (Math.PI/180)) * Math.cos(dest.lat * (Math.PI/180)) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2); 
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-            const distKm = R * c; // Distance in km
-            
-            if (onTrackingUpdate) {
-                onTrackingUpdate({
-                    distance: `~${distKm.toFixed(1)} km`,
-                    duration: `~${Math.max(1, Math.round(distKm * 3))} mins`,
-                    isNearby: distKm < 0.5
-                });
-            }
         }
     }, [isLoaded, onTrackingUpdate]);
 
     useEffect(() => {
-        if (ngoPos) {
-            calculateRoute(ngoPos, pickupPos);
-        }
+        if (ngoPos) calculateRoute(ngoPos, pickupPos);
     }, [ngoPos, calculateRoute, pickupPos]);
 
     const mapCenter = useMemo(() => ngoPos || pickupPos, [ngoPos, pickupPos]);
@@ -223,43 +216,49 @@ export default memo(function LiveTrackingMap({
         socketRef.current = socket;
 
         socket.on("connect", () => {
-            console.log("[WS-DEBUG] Donor socket connected:", socket.id);
+            console.log("[WS-TRACK] Connected:", socket.id);
             setConnected(true);
-            // Step 1: Join room using donationId
-            socket.emit("join-room", donationId);
+            socket.emit("tracking:join", { donationId });
         });
 
-        socket.on("disconnect", () => {
-            setConnected(false);
-        });
+        socket.on("disconnect", () => setConnected(false));
 
         socket.on("reconnect", () => {
             setConnected(true);
-            socket.emit("join-room", donationId);
+            socket.emit("tracking:join", { donationId });
         });
 
-        // ── Receive NGO Location (Step 3, 4, 11) ─────────────────────────────────────────
-        socket.on("receive-location", (data) => {
-            console.log("[WS-DEBUG] NGO location received:", data);
-            const { lat, lng, ngoName: name, timestamp } = data;
-            const newPos = { lat, lng };
+        // ── Structured Tracking Listeners ──
+        socket.on("tracking:location", (data) => {
+            const { lat, lng, timestamp, updated_at } = data;
+            const eventTime = updated_at ? new Date(updated_at).getTime() : (timestamp || Date.now());
 
-            // Step 4: Render NGO marker only when location is received
+            // Final Safeguard: Reject Stale Events
+            if (eventTime < lastUpdateRef.current) {
+                console.warn("[WS-TRACK] Ignoring stale location event");
+                return;
+            }
+            lastUpdateRef.current = eventTime;
+
+            const newPos = { lat, lng };
+            setNgoOnline(true);
+
             if (!ngoPosRef.current) {
                 setNgoPos(newPos);
                 ngoPosRef.current = newPos;
                 setInterpolatedPos(newPos);
                 prevPosRef.current = newPos;
             } else {
-                setNgoPos(newPos);
+                // Idempotency: Ignore duplicate coordinates
+                if (lng === ngoPosRef.current.lng && lat === ngoPosRef.current.lat) return;
 
-                // Step 5: Smooth Marker Movement (Interpolation)
+                setNgoPos(newPos);
                 const startPos = prevPosRef.current || ngoPosRef.current;
                 ngoPosRef.current = newPos;
                 const startTime = Date.now();
 
-                // Calculate Heading (Rotation) for Elite Feel
-                if (Math.abs(newPos.lat - startPos.lat) > 0.000001 || Math.abs(newPos.lng - startPos.lng) > 0.000001) {
+                // Advanced Heading
+                if (Math.abs(newPos.lat - startPos.lat) > 0.000001) {
                     const angle = Math.atan2(newPos.lng - startPos.lng, newPos.lat - startPos.lat) * 180 / Math.PI;
                     setRotation(angle);
                 }
@@ -269,70 +268,50 @@ export default memo(function LiveTrackingMap({
                 const animate = () => {
                     const elapsed = Date.now() - startTime;
                     const progress = Math.min(elapsed / INTERPOLATION_DURATION, 1);
-
-                    const currentLat = startPos.lat + (newPos.lat - startPos.lat) * progress;
-                    const currentLng = startPos.lng + (newPos.lng - startPos.lng) * progress;
-
-                    const currentPos = { lat: currentLat, lng: currentLng };
+                    const currentPos = {
+                        lat: startPos.lat + (newPos.lat - startPos.lat) * progress,
+                        lng: startPos.lng + (newPos.lng - startPos.lng) * progress
+                    };
                     setInterpolatedPos(currentPos);
                     prevPosRef.current = currentPos;
 
-                    if (progress < 1) {
-                        animationFrameRef.current = requestAnimationFrame(animate);
-                    }
+                    if (progress < 1) animationFrameRef.current = requestAnimationFrame(animate);
                 };
+                animationFrameRef.current = requestAnimationFrame(animate);
 
-                if (newPos?.lat && newPos?.lng) {
-                    animationFrameRef.current = requestAnimationFrame(animate);
-                }
-                // Step 10 & 8: Recenter and Auto-Follow if enabled
                 if (shouldFollow && mapRef.current && typeof google !== 'undefined') {
-                    // Step 10: Auto Zoom Map / Fit Bounds
                     const bounds = new google.maps.LatLngBounds();
                     bounds.extend(pickupPos);
                     bounds.extend(newPos);
-                    mapRef.current.fitBounds(bounds, { top: 100, bottom: 250, left: 50, right: 50 });
+                    mapRef.current.fitBounds(bounds, { top: 80, bottom: 200, left: 40, right: 40 });
                 }
             }
-
-            setNgoOnline(true);
-
-            lastUpdateRef.current = timestamp || Date.now();
 
             if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
-            connectionLostTimerRef.current = setTimeout(() => {
-                setNgoOnline(false);
-                // Step 12: If no update for 10s (using shorter timer here for active fallback)
-            }, 10000); // 10s fallback threshold
+            connectionLostTimerRef.current = setTimeout(() => setNgoOnline(false), 12000);
         });
 
-        socket.on("status-updated", (data) => {
-            if (data.donationId === donationId || data.donationId === undefined) {
-                setLiveStatus(data.status);
-                onStatusChange?.(data.status);
-                // Step 13: When ARRIVED, we can stop active tracking or transition UI
-                if (data.status === 'ARRIVED' || data.status === 'DELIVERED' || data.status === 'COMPLETED') {
-                    console.log("[WS-DEBUG] Mission reached terminal state, stopping tracking.");
-                    setNgoOnline(false);
-                }
+        socket.on("tracking:status", (data) => {
+            if (data.status === liveStatus) return;
+
+            setLiveStatus(data.status);
+            onStatusChange?.(data.status);
+            
+            if (['ARRIVED', 'DELIVERED', 'COMPLETED'].includes(data.status.toUpperCase())) {
+                setNgoOnline(false);
             }
         });
 
-        socket.on("tracking-stopped", () => {
-            setNgoOnline(false);
-        });
-
-        socket.on("peer-disconnected", () => {
-            setNgoOnline(false);
-
-        });
+        socket.on("tracking:stopped", () => setNgoOnline(false));
 
         return () => {
             socket.disconnect();
             socketRef.current = null;
             if (connectionLostTimerRef.current) clearTimeout(connectionLostTimerRef.current);
+            if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         };
-    }, [donationId, session, pickupPos, shouldFollow, onStatusChange]); // Added pickupPos and shouldFollow as they are used in the Receive Location listener
+    }, [donationId, session, pickupPos, shouldFollow, onStatusChange, liveStatus]);
+
 
 
 
